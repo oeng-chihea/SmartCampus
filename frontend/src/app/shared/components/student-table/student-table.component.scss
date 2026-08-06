@@ -1,0 +1,307 @@
+:host {
+  display: block;
+  min-width: 0;
+  width: 100%;
+}
+
+.student-table-card {
+  background: transparent;
+  container-type: inline-size;
+  min-width: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.student-table-card__header {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.student-table-card__header p,
+.student-table-card__header h2 {
+  margin: 0;
+}
+
+.student-table-card__header p {
+  color: var(--color-brand);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.student-table-card__header h2 {
+  color: var(--color-brand-deep);
+  font-size: clamp(1.02rem, 2cqw, 1.12rem);
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.student-table-card__count {
+  color: var(--color-muted);
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.student-table-card > .student-table-card__header > button {
+  background: var(--color-brand);
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: #ffffff;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font: inherit;
+  font-weight: 700;
+  min-height: 38px;
+  padding: 0 14px;
+}
+
+.student-table {
+  margin-top: 14px;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.student-table__grid {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 0;
+  min-width: 100%;
+  overflow: hidden;
+  width: 100%;
+}
+
+.student-table__row {
+  align-items: center;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-subtle);
+  display: grid;
+  font-size: clamp(0.84rem, 1.3cqw, 0.94rem);
+  gap: clamp(8px, 1.1cqw, 12px);
+  grid-template-columns:
+    minmax(0, 1.5fr)
+    minmax(80px, 0.65fr)
+    minmax(56px, 0.38fr)
+    minmax(72px, 0.42fr)
+    minmax(72px, 0.42fr)
+    minmax(108px, 0.55fr);
+  min-width: 0;
+  padding: 12px 14px;
+  width: 100%;
+}
+
+.student-table__row:last-child {
+  border-bottom: 0;
+}
+
+.student-table__row:not(.student-table__row--head):hover {
+  background: var(--color-brand-faint);
+}
+
+.student-table__row--head {
+  background: var(--surface-muted);
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.student-table__row--head > span {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.student-table__student strong,
+.student-table__student span {
+  display: block;
+  overflow-wrap: break-word;
+}
+
+.student-table__student strong {
+  color: var(--color-brand-deep);
+  font-weight: 700;
+}
+
+.student-table__student span,
+.student-table__row > span {
+  color: var(--color-muted);
+  min-width: 0;
+}
+
+.student-table__student span {
+  font-size: 0.8rem;
+  margin-top: 3px;
+}
+
+.student-table__status-cell,
+.student-table__action-cell {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.student-status {
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  font-size: 0.7rem;
+  font-weight: 700;
+  justify-content: center;
+  min-width: 72px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.status-active {
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+}
+
+.status-review {
+  background: var(--color-brand-muted);
+  color: var(--color-brand-deep);
+}
+
+.status-inactive {
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+}
+
+/* Login access toggle */
+.login-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 8px;
+  padding: 0;
+}
+
+.login-toggle__track {
+  background: #fca5a5;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  height: 24px;
+  padding: 2px;
+  position: relative;
+  transition: background 160ms ease;
+  width: 44px;
+}
+
+.login-toggle__thumb {
+  background: #ffffff;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.2);
+  display: block;
+  height: 20px;
+  transform: translateX(0);
+  transition: transform 160ms ease;
+  width: 20px;
+}
+
+.login-toggle--on .login-toggle__track {
+  background: var(--color-brand);
+}
+
+.login-toggle--on .login-toggle__thumb {
+  transform: translateX(20px);
+}
+
+.login-toggle__label {
+  color: #b91c1c;
+  font-size: 0.76rem;
+  font-weight: 700;
+  min-width: 3.5rem;
+  text-align: left;
+}
+
+.login-toggle--on .login-toggle__label {
+  color: var(--color-brand-strong);
+}
+
+.login-toggle:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+@container (max-width: 860px) {
+  .student-table__row {
+    grid-template-columns:
+      minmax(0, 1.4fr)
+      minmax(72px, 0.55fr)
+      minmax(52px, 0.35fr)
+      minmax(68px, 0.4fr)
+      minmax(68px, 0.4fr)
+      minmax(100px, 0.55fr);
+  }
+}
+
+@container (max-width: 720px) {
+  .student-table-card__header {
+    flex-direction: column;
+  }
+
+  .student-table-card > .student-table-card__header > button {
+    width: 100%;
+  }
+
+  .student-table {
+    overflow-x: visible;
+  }
+
+  .student-table__grid {
+    border: 0;
+    gap: 10px;
+    overflow: visible;
+  }
+
+  .student-table__row--head {
+    display: none;
+  }
+
+  .student-table__row {
+    align-items: stretch;
+    background: var(--surface-muted);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    gap: 10px;
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+
+  .student-table__row:last-child {
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .student-table__row > [role='cell'] {
+    align-items: start;
+    display: grid;
+    gap: 6px;
+    grid-template-columns: minmax(96px, 0.4fr) minmax(0, 1fr);
+  }
+
+  .student-table__row > [role='cell']::before {
+    color: var(--color-muted);
+    content: attr(data-label);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .student-table__status-cell,
+  .student-table__action-cell {
+    justify-content: flex-start;
+  }
+}

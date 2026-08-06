@@ -1,0 +1,224 @@
+<section class="student-scan" aria-labelledby="scan-title">
+  <div class="student-scan__shell">
+    <!-- Top bar: brand + account (sign out always visible) -->
+    <header class="student-scan__top">
+      <div class="student-scan__brand">
+        <p class="student-scan__eyebrow">Smart Campus</p>
+        <h1 id="scan-title">Mark attendance</h1>
+      </div>
+
+      <div class="student-scan__account" aria-label="Account">
+        <div class="student-scan__avatar" aria-hidden="true">
+          {{ (user()?.name || 'S').charAt(0) }}
+        </div>
+        <div class="student-scan__user-text">
+          <span class="student-scan__user-name">{{ user()?.name }}</span>
+          <span class="student-scan__user-id">{{ user()?.studentId || user()?.email }}</span>
+        </div>
+        <button
+          type="button"
+          class="student-scan__signout"
+          (click)="logout()"
+          aria-label="Sign out of Smart Campus"
+        >
+          <svg
+            class="student-scan__signout-icon"
+            viewBox="0 0 20 20"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M7.5 4.5H5.5A1.5 1.5 0 0 0 4 6v8a1.5 1.5 0 0 0 1.5 1.5h2M12 13.5 15.5 10 12 6.5M15.25 10H8"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span>Sign out</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Intro + primary refresh action -->
+    <div class="student-scan__intro">
+      <p class="student-scan__lead">
+        When your teacher opens a class session, the same live QR appears here. Check the class,
+        then mark yourself present.
+      </p>
+      <button
+        type="button"
+        class="student-scan__btn student-scan__btn--ghost student-scan__btn--refresh"
+        (click)="refresh()"
+        [disabled]="state.loading()"
+      >
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" class="student-scan__refresh-icon">
+          <path
+            d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6M16.5 4.5v4h-4"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        {{ state.loading() ? 'Loading…' : 'Refresh sessions' }}
+      </button>
+    </div>
+
+    @if (state.error()) {
+      <p class="student-scan__alert student-scan__alert--error" role="alert">{{ state.error() }}</p>
+    }
+    @if (state.info()) {
+      <p class="student-scan__alert student-scan__alert--info" role="status">{{ state.info() }}</p>
+    }
+    @if (state.success()) {
+      <p class="student-scan__alert student-scan__alert--ok" role="status">{{ state.success() }}</p>
+    }
+
+    <!-- Live sessions list (horizontal cards) -->
+    <section class="student-scan__section" aria-labelledby="live-sessions-title">
+      <div class="student-scan__section-head">
+        <h2 id="live-sessions-title" class="student-scan__section-title">Live sessions</h2>
+        @if (!state.loading() && state.openSessions().length > 0) {
+          <span class="student-scan__count">{{ state.openSessions().length }} open</span>
+        }
+      </div>
+
+      @if (state.loading()) {
+        <article class="student-scan__card student-scan__card--empty">
+          <div class="student-scan__empty-icon" aria-hidden="true">…</div>
+          <strong>Loading open classes…</strong>
+          <p>Checking for live sessions from your teachers.</p>
+        </article>
+      } @else if (state.openSessions().length === 0) {
+        <article class="student-scan__card student-scan__card--empty">
+          <div class="student-scan__empty-icon" aria-hidden="true">QR</div>
+          <strong>No open class yet</strong>
+          <p>
+            Ask your teacher to create a session on the Sessions page. The live QR will show here at
+            the same time.
+          </p>
+        </article>
+      } @else {
+        <ul class="student-scan__session-list">
+          @for (session of state.openSessions(); track session.id) {
+            <li>
+              <article
+                class="student-scan__card student-scan__card--session"
+                [attr.aria-labelledby]="'session-' + session.id"
+              >
+                <header class="student-scan__card-head">
+                  <span class="student-scan__live">
+                    <span class="student-scan__live-dot" aria-hidden="true"></span>
+                    Live
+                  </span>
+                  <div class="student-scan__card-titles">
+                    <p class="student-scan__teacher">{{ session.teacherName }}</p>
+                    <h3 [id]="'session-' + session.id" class="student-scan__session-title">
+                      {{ session.title }}
+                    </h3>
+                  </div>
+                </header>
+
+                <!-- Horizontal body: QR | details + action -->
+                <div class="student-scan__card-body">
+                  <div class="student-scan__qr-wrap">
+                    <img
+                      class="student-scan__qr"
+                      [src]="session.qrDataUrl"
+                      width="200"
+                      height="200"
+                      [alt]="'QR code for ' + session.title"
+                    />
+                    <p class="student-scan__qr-note">
+                      Same live code as your teacher · refreshes automatically
+                    </p>
+                    <p class="student-scan__expires">
+                      Expires {{ session.qr.expiresAt | date: 'mediumTime' }}
+                      <span>({{ session.qr.ttlSeconds }}s)</span>
+                    </p>
+                  </div>
+
+                  <div class="student-scan__card-side">
+                    <div class="student-scan__session-grid">
+                      <div class="student-scan__session-item">
+                        <span>Location</span>
+                        <strong>{{ session.locationName }}</strong>
+                      </div>
+                      <div class="student-scan__session-item">
+                        <span>Late after</span>
+                        <strong>{{ session.lateAfterMinutes }} min</strong>
+                      </div>
+                    </div>
+
+                    @if (alreadyDone(session.title)) {
+                      <div class="student-scan__done">
+                        <span class="student-scan__status-pill student-scan__status-pill--present">
+                          Already recorded
+                        </span>
+                        <p>You already marked attendance for this class.</p>
+                      </div>
+                    } @else {
+                      <button
+                        type="button"
+                        class="student-scan__btn student-scan__btn--present"
+                        (click)="markPresent(session)"
+                        [disabled]="state.submittingId() === session.id"
+                      >
+                        {{
+                          state.submittingId() === session.id ? 'Recording…' : 'Mark me present'
+                        }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              </article>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    @if (state.lastRecord(); as record) {
+      <article class="student-scan__card student-scan__card--result" aria-labelledby="result-title">
+        <div class="student-scan__result-hero">
+          <span
+            class="student-scan__status-pill"
+            [class.student-scan__status-pill--present]="record.status === 'Present'"
+            [class.student-scan__status-pill--late]="record.status === 'Late'"
+          >
+            {{ record.status }}
+          </span>
+          <h2 id="result-title">{{ record.session }}</h2>
+          <p>{{ record.location }} · {{ record.recordedAt | date: 'medium' }}</p>
+        </div>
+      </article>
+    }
+
+    @if (state.myRecords().length > 0) {
+      <section class="student-scan__section student-scan__history" aria-labelledby="history-title">
+        <div class="student-scan__section-head">
+          <h2 id="history-title" class="student-scan__section-title">My attendance</h2>
+          <span class="student-scan__count">{{ state.myRecords().length }}</span>
+        </div>
+        <ul class="student-scan__history-list">
+          @for (row of state.myRecords(); track row.id) {
+            <li class="student-scan__history-row">
+              <div class="student-scan__history-main">
+                <strong>{{ row.session }}</strong>
+                <span>{{ row.location }}</span>
+              </div>
+              <span
+                class="student-scan__badge"
+                [class.student-scan__badge--present]="row.status === 'Present'"
+                [class.student-scan__badge--late]="row.status === 'Late'"
+              >
+                {{ row.status }}
+              </span>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  </div>
+</section>

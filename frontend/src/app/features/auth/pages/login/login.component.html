@@ -1,0 +1,88 @@
+@if (portalRole(); as role) {
+  <section
+    class="login-card"
+    [class.login-card--shake]="shaking()"
+    aria-labelledby="login-title"
+    (animationend)="onShakeEnd($event)"
+  >
+    <header class="login-card__header">
+      <p class="login-card__eyebrow">{{ role }} portal</p>
+      <h1 id="login-title">{{ copy()?.title }}</h1>
+      <p class="login-card__lead">{{ copy()?.lead }}</p>
+    </header>
+
+    <form class="login-card__form" (ngSubmit)="submit()" novalidate>
+      <label
+        class="login-card__field"
+        [class.login-card__field--invalid]="hasFieldError('email')"
+      >
+        Email
+        <input
+          type="email"
+          name="email"
+          [(ngModel)]="email"
+          (ngModelChange)="onFieldInput('email')"
+          autocomplete="username"
+          placeholder="you@smartcampus.edu"
+          [class.is-invalid]="hasFieldError('email')"
+          [attr.aria-invalid]="hasFieldError('email')"
+          [attr.aria-describedby]="hasFieldError('email') ? 'login-email-error' : null"
+        />
+        @if (fieldError('email'); as emailErr) {
+          <span id="login-email-error" class="login-card__field-error">{{ emailErr }}</span>
+        }
+      </label>
+
+      <label
+        class="login-card__field"
+        [class.login-card__field--invalid]="hasFieldError('password')"
+      >
+        Password
+        <input
+          type="password"
+          name="password"
+          [(ngModel)]="password"
+          (ngModelChange)="onFieldInput('password')"
+          autocomplete="current-password"
+          placeholder="Enter password"
+          [class.is-invalid]="hasFieldError('password')"
+          [attr.aria-invalid]="hasFieldError('password')"
+          [attr.aria-describedby]="hasFieldError('password') ? 'login-password-error' : null"
+        />
+        @if (fieldError('password'); as passwordErr) {
+          <span id="login-password-error" class="login-card__field-error">{{ passwordErr }}</span>
+        }
+      </label>
+
+      @if (alert(); as formAlert) {
+        <div class="login-card__alert-wrap">
+          <app-alert [alert]="formAlert" />
+        </div>
+      }
+
+      <button type="submit" class="login-card__submit" [disabled]="submitting()">
+        {{ submitting() ? 'Signing in…' : 'Sign in' }}
+      </button>
+    </form>
+
+    <div class="login-card__demos">
+      <p>{{ copy()?.demoHeading }}</p>
+      <div class="login-card__demo-list">
+        @for (account of demoAccounts(); track account.email) {
+          <button type="button" class="login-card__demo" (click)="fillDemo(account)">
+            <strong>{{ account.role }}</strong>
+            <span>{{ account.email }}</span>
+          </button>
+        }
+      </div>
+    </div>
+  </section>
+} @else {
+  <section class="login-card" aria-labelledby="login-invalid-title">
+    <h1 id="login-invalid-title">Sign in unavailable</h1>
+    <p class="login-card__lead">
+      This page is not a role portal. Open the sign-in URL for your role only (admin, teacher, or
+      student).
+    </p>
+  </section>
+}

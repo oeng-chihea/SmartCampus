@@ -1,0 +1,43 @@
+<div
+  class="modal-dialog-backdrop"
+  role="presentation"
+  (click)="onBackdropClick($event)"
+>
+  <div
+    #dialogPanel
+    class="modal-dialog"
+    [class.modal-dialog--md]="size() === 'md'"
+    [class.modal-dialog--lg]="size() === 'lg'"
+    [class.modal-dialog--xl]="size() === 'xl'"
+    [class.modal-dialog--spacious]="spacious()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="titleId"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="modal-dialog__header">
+      <div class="modal-dialog__header-copy">
+        @if (eyebrow()) {
+          <p class="modal-dialog__eyebrow">{{ eyebrow() }}</p>
+        }
+        <h2 [id]="titleId" class="modal-dialog__title">{{ title() }}</h2>
+      </div>
+      <button
+        type="button"
+        class="modal-dialog__close"
+        [attr.aria-label]="closeAriaLabel()"
+        (click)="close()"
+      >
+        ×
+      </button>
+    </header>
+
+    <div class="modal-dialog__body">
+      <!-- Module-specific fields / content -->
+      <ng-content />
+    </div>
+
+    <!-- Optional footer actions projected by the host module -->
+    <ng-content select="[modalFooter]" />
+  </div>
+</div>

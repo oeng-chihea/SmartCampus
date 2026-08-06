@@ -1,0 +1,37 @@
+<section class="locations-page" aria-labelledby="locations-title">
+  <header class="locations-page__header">
+    <div class="locations-page__copy">
+      <h1 id="locations-title">{{ page.title }}</h1>
+      <p>{{ page.subtitle }}</p>
+    </div>
+  </header>
+
+  <section class="locations-page__metrics" aria-label="Location summary">
+    @for (metric of page.metrics; track metric.label; let index = $index) {
+      <app-stat-card [card]="metric" [animationDelay]="index * 70" />
+    }
+  </section>
+
+  <section class="locations-page__workspace" aria-label="Location directory">
+    <div class="locations-page__toolbar">
+      <app-location-filter [filters]="page.filters" (apply)="onFilterApply($event)" />
+    </div>
+    <app-table
+      eyebrow="Location directory"
+      title="Approved zones"
+      [countLabel]="filteredLocations().length + ' locations'"
+      tableAriaLabel="Approved campus locations"
+      [columns]="locationColumns"
+      [rows]="filteredLocations()"
+      [interactive]="true"
+      [showExport]="true"
+      emptyTitle="No locations match your filters"
+      emptyMessage="Try another name, building, or status."
+      (rowSelect)="onLocationSelect($event)"
+    />
+  </section>
+
+  @if (selectedDetail(); as detail) {
+    <app-location-detail-dialog [detail]="detail" (closed)="onDetailClose()" />
+  }
+</section>

@@ -1,0 +1,71 @@
+:host {
+  --admin-sidebar-expanded: 280px;
+  --admin-sidebar-collapsed: 88px;
+  --admin-sidebar-width: var(--admin-sidebar-expanded);
+  display: block;
+  min-height: 100dvh;
+}
+
+:host.sidebar-collapsed {
+  --admin-sidebar-width: var(--admin-sidebar-collapsed);
+}
+
+.admin-layout {
+  background: var(--page-bg);
+  color: var(--color-text);
+  min-height: 100dvh;
+  min-width: 0;
+  overflow-x: clip;
+  padding-inline-start: var(--admin-sidebar-width);
+  position: relative;
+  transition: padding-inline-start 220ms ease;
+}
+
+.admin-layout > app-admin-sidebar {
+  inset: 0 auto 0 0;
+  position: fixed;
+  transition: width 220ms ease;
+  width: var(--admin-sidebar-width);
+  z-index: 40;
+}
+
+.admin-layout__workspace {
+  min-width: 0;
+  width: 100%;
+}
+
+/* Tablet + phone: sidebar becomes top chrome (collapse not used as rail) */
+@media (max-width: 1180px) {
+  :host,
+  :host.sidebar-collapsed {
+    --admin-sidebar-width: 0px;
+  }
+
+  .admin-layout {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    padding-inline-start: 0;
+    transition: none;
+  }
+
+  .admin-layout > app-admin-sidebar {
+    position: sticky;
+    top: 0;
+    transition: none;
+    width: 100%;
+    z-index: 50;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-layout > app-admin-sidebar {
+    position: sticky;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-layout,
+  .admin-layout > app-admin-sidebar {
+    transition: none;
+  }
+}

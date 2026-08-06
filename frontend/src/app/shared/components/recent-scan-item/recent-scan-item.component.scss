@@ -1,0 +1,133 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.recent-scan {
+  align-items: flex-start;
+  background: var(--surface);
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 12px;
+  transition: background 160ms ease;
+}
+
+.recent-scan:hover {
+  background: var(--color-brand-faint);
+}
+
+.recent-scan__content,
+.recent-scan__meta {
+  min-width: 0;
+}
+
+.recent-scan strong,
+.recent-scan span,
+.recent-scan small {
+  display: block;
+}
+
+.recent-scan__title-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.recent-scan strong {
+  color: var(--color-brand-deep);
+  font-size: 0.9rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.recent-scan__id {
+  background: var(--surface-muted);
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.recent-scan__content > span {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.recent-scan__location {
+  color: var(--color-slate-soft) !important;
+  font-size: 0.76rem !important;
+}
+
+.recent-scan__meta {
+  align-items: flex-end;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 42%;
+  text-align: right;
+}
+
+.recent-scan small {
+  color: var(--color-muted);
+  font-size: 0.74rem;
+}
+
+.recent-scan__distance {
+  color: var(--color-slate-soft);
+}
+
+.recent-scan__status {
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  font-size: 0.68rem;
+  font-weight: 700;
+  margin-top: 4px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.status-present {
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+}
+
+.status-late {
+  background: var(--color-brand-muted);
+  color: var(--color-brand-deep);
+}
+
+.status-absent {
+  background: var(--color-brand-faint);
+  border: 1px solid var(--border-subtle);
+  color: var(--color-muted);
+}
+
+.status-outside-location {
+  background: var(--color-brand-faint);
+  border: 1px solid var(--color-brand-muted);
+  color: var(--color-brand-strong);
+}
+
+@media (max-width: 560px) {
+  .recent-scan {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .recent-scan__meta {
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-width: none;
+    text-align: left;
+  }
+}

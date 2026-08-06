@@ -1,0 +1,159 @@
+:host {
+  display: block;
+  min-width: 0;
+  width: 100%;
+}
+
+.dashboard {
+  align-content: start;
+  background: var(--page-bg);
+  display: grid;
+  gap: clamp(14px, 1.6vw, 24px);
+  min-height: 100%;
+  min-width: 0;
+  padding: clamp(14px, 2vw, 32px);
+  width: 100%;
+}
+
+.dashboard-hero {
+  align-items: end;
+  animation: fade-in 520ms ease both;
+  display: grid;
+  gap: clamp(14px, 2.4vw, 28px);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, min(100%, 480px));
+  min-width: 0;
+  position: relative;
+}
+
+.dashboard-hero__copy {
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-hero h1 {
+  color: var(--color-brand-deep);
+  font-size: clamp(1.65rem, 4vw, 3.1rem);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  margin: 0;
+  max-width: 18ch;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-hero p {
+  color: var(--color-slate);
+  font-size: clamp(0.9rem, 1.4vw, 1.05rem);
+  line-height: 1.55;
+  margin: 10px 0 0;
+  max-width: 58ch;
+}
+
+.dashboard__stats {
+  display: grid;
+  gap: clamp(10px, 1.2vw, 16px);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.dashboard__insights {
+  align-items: stretch;
+  display: grid;
+  gap: clamp(12px, 1.4vw, 18px);
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.95fr);
+  min-width: 0;
+}
+
+.dashboard__chart-panel,
+.dashboard__records-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.dashboard__chart-panel > *,
+.dashboard__records-panel > * {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Large tablet / small desktop */
+@media (max-width: 1180px) {
+  .dashboard-hero,
+  .dashboard__insights {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-hero h1 {
+    max-width: none;
+  }
+}
+
+/* Tablet */
+@media (max-width: 900px) {
+  .dashboard {
+    padding: 16px;
+  }
+
+  .dashboard-hero {
+    align-items: stretch;
+  }
+}
+
+/* Phone landscape / large phone */
+@media (max-width: 640px) {
+  .dashboard {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .dashboard__stats {
+    gap: 10px;
+  }
+
+  .dashboard-hero h1 {
+    font-size: clamp(1.5rem, 8vw, 2.1rem);
+    margin-top: 10px;
+  }
+
+  .dashboard-hero p {
+    font-size: 0.9rem;
+  }
+}
+
+/* Narrow phone */
+@media (max-width: 420px) {
+  .dashboard__stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+}

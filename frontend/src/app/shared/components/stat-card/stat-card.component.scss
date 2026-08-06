@@ -1,0 +1,150 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.stat-card {
+  align-items: flex-start;
+  animation: slide-up 520ms ease both;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  gap: clamp(10px, 1.4vw, 14px);
+  min-height: 0;
+  min-width: 0;
+  padding: clamp(14px, 1.4vw, 20px);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+  width: 100%;
+}
+
+.stat-card:hover {
+  border-color: rgba(22, 163, 74, 0.28);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.stat-card__icon {
+  background: var(--color-brand-soft);
+  border-radius: var(--radius-sm);
+  color: var(--color-brand);
+  flex: 0 0 auto;
+  height: 40px;
+  position: relative;
+  width: 40px;
+}
+
+.stat-card__icon::before {
+  background: currentColor;
+  content: '';
+  height: 18px;
+  left: 11px;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  position: absolute;
+  top: 11px;
+  width: 18px;
+}
+
+.stat-card__content {
+  min-width: 0;
+}
+
+.stat-card p,
+.stat-card span {
+  margin: 0;
+}
+
+.stat-card p {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stat-card strong {
+  color: var(--color-brand-deep);
+  display: block;
+  font-size: clamp(1.55rem, 3.2vw, 2.4rem);
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin-top: 8px;
+}
+
+.stat-card span {
+  color: var(--color-muted);
+  display: block;
+  font-size: clamp(0.8rem, 1.4vw, 0.88rem);
+  line-height: 1.45;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .stat-card {
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .stat-card__icon {
+    height: 36px;
+    width: 36px;
+  }
+
+  .stat-card__icon::before {
+    height: 16px;
+    left: 10px;
+    top: 10px;
+    width: 16px;
+  }
+}
+
+/* All tones unify to the same green — no multi-color icons */
+.tone-blue .stat-card__icon,
+.tone-green .stat-card__icon,
+.tone-amber .stat-card__icon,
+.tone-violet .stat-card__icon {
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+}
+
+.icon-students::before {
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.7-3.7 3.8-6 8-6s7.3 2.3 8 6H4Z'/%3E%3C/svg%3E");
+}
+
+.icon-attendance::before,
+.icon-present::before {
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 3h2v2h6V3h2v2h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2V3Zm-2 8v9h14v-9H5Zm11.2 2.4-5.1 5.1-2.9-2.9 1.4-1.4 1.5 1.5 3.7-3.7 1.4 1.4Z'/%3E%3C/svg%3E");
+}
+
+.icon-sessions::before {
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm1 10.6 3.5 2.1-.9 1.5L11 13.2V7h2v5.6Z'/%3E%3C/svg%3E");
+}
+
+.icon-locations::before {
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 14.5 9 2.5 2.5 0 0 1 12 11.5Z'/%3E%3C/svg%3E");
+}
+
+.icon-reports::before,
+.icon-late::before {
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 3h14v18H5V3Zm3 4v10h2V7H8Zm3 4v6h2v-6h-2Zm3-2v8h2V9h-2Z'/%3E%3C/svg%3E");
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

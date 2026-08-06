@@ -1,0 +1,98 @@
+import { CampusLocationResponseDto } from '../dto/location-response.dto';
+
+/**
+ * Seeded campus zones for geofence-backed attendance sessions.
+ * Buildings are limited to A, B, and C for the teacher session picker.
+ * Coordinates align with the frontend mock until TypeORM is wired.
+ * sessionsUsing starts at 0 and is updated by SessionsService.
+ */
+export const LOCATION_SEED: CampusLocationResponseDto[] = [
+  {
+    id: 'LOC-001',
+    name: 'Building A, Room 201',
+    building: 'Building A',
+    room: '201',
+    radiusMeters: 80,
+    latitude: 11.5564,
+    longitude: 104.9282,
+    status: 'Active',
+    sessionsUsing: 0,
+  },
+  {
+    id: 'LOC-002',
+    name: 'Building B, Room 105',
+    building: 'Building B',
+    room: '105',
+    radiusMeters: 60,
+    latitude: 11.5571,
+    longitude: 104.929,
+    status: 'Active',
+    sessionsUsing: 0,
+  },
+  {
+    id: 'LOC-003',
+    name: 'Building C, Room 101',
+    building: 'Building C',
+    room: '101',
+    radiusMeters: 100,
+    latitude: 11.5558,
+    longitude: 104.9275,
+    status: 'Active',
+    sessionsUsing: 0,
+  },
+  {
+    id: 'LOC-004',
+    name: 'Building A, Hall 1',
+    building: 'Building A',
+    room: 'Hall 1',
+    radiusMeters: 120,
+    latitude: 11.5566,
+    longitude: 104.9285,
+    status: 'Active',
+    sessionsUsing: 0,
+  },
+  {
+    id: 'LOC-005',
+    name: 'Building B, Open Studio',
+    building: 'Building B',
+    room: 'Studio',
+    radiusMeters: 90,
+    latitude: 11.5573,
+    longitude: 104.9294,
+    status: 'Inactive',
+    sessionsUsing: 0,
+  },
+  {
+    id: 'LOC-006',
+    name: 'Building C, Lab 2',
+    building: 'Building C',
+    room: 'Lab 2',
+    radiusMeters: 75,
+    latitude: 11.5555,
+    longitude: 104.9272,
+    status: 'Active',
+    sessionsUsing: 0,
+  },
+  {
+    id: 'LOC-007',
+    name: 'Building A, Quiet Zone',
+    building: 'Building A',
+    room: 'QZ',
+    radiusMeters: 40,
+    latitude: 11.5582,
+    longitude: 104.9265,
+    status: 'Inactive',
+    sessionsUsing: 0,
+  },
+  {
+    id: 'LOC-008',
+    name: 'Building B, Room 210',
+    building: 'Building B',
+    room: '210',
+    radiusMeters: 50,
+    latitude: 11.558,
+    longitude: 104.9268,
+    status: 'Active',
+    sessionsUsing: 0,
+  },
+];

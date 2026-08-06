@@ -1,0 +1,22 @@
+:host {
+  display: block;
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-placeholder {
+  align-content: start;
+  display: grid;
+  min-height: 100%;
+  min-width: 0;
+  padding: clamp(14px, 2.4vw, 42px);
+  width: 100%;
+}
+
+.admin-placeholder h1 {
+  color: var(--color-brand-deep);
+  font-size: clamp(1.6rem, 4vw, 2.8rem);
+  line-height: 1.1;
+  margin: 0;
+  overflow-wrap: anywhere;
+}

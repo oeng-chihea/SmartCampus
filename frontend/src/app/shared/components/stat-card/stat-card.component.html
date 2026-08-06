@@ -1,0 +1,12 @@
+<article
+  class="stat-card"
+  [class]="'stat-card tone-' + card().tone"
+  [style.animation-delay.ms]="animationDelay()"
+>
+  <div class="stat-card__icon" [class]="'stat-card__icon icon-' + card().icon" aria-hidden="true"></div>
+  <div class="stat-card__content">
+    <p>{{ card().label }}</p>
+    <strong>{{ card().value }}</strong>
+    <span>{{ card().helper }}</span>
+  </div>
+</article>

@@ -1,0 +1,28 @@
+<form class="student-filter" aria-label="Student filters">
+  <div class="student-filter__controls">
+    <label class="student-filter__search">
+      <span>Find student</span>
+      <input type="search" [placeholder]="filters().searchPlaceholder" />
+    </label>
+
+    <label>
+      <span>Class</span>
+      <select aria-label="Class">
+        @for (course of filters().courseOptions; track course) {
+          <option>{{ course }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
+      <span>Status</span>
+      <select aria-label="Status">
+        @for (status of filters().statusOptions; track status) {
+          <option>{{ status }}</option>
+        }
+      </select>
+    </label>
+
+    <button type="button">Apply</button>
+  </div>
+</form>

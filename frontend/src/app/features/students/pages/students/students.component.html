@@ -1,0 +1,21 @@
+<section class="students-page" aria-labelledby="students-title">
+  <header class="students-page__header">
+    <div class="students-page__copy">
+      <h1 id="students-title">{{ page.title }}</h1>
+      <p>{{ page.subtitle }}</p>
+    </div>
+  </header>
+
+  <section class="students-page__metrics" aria-label="Student summary">
+    @for (metric of page.metrics; track metric.label; let index = $index) {
+      <app-stat-card [card]="metric" [animationDelay]="index * 70" />
+    }
+  </section>
+
+  <section class="students-page__workspace" aria-label="Student directory">
+    <div class="students-page__toolbar">
+      <app-student-filter [filters]="page.filters" />
+    </div>
+    <app-student-table [students]="students()" (loginToggle)="onLoginToggle($event)" />
+  </section>
+</section>

@@ -1,0 +1,54 @@
+<aside
+  class="sidebar"
+  [class.sidebar--collapsed]="collapsed()"
+  aria-label="Admin navigation"
+>
+  <div class="sidebar__brand">
+    <span class="sidebar__logo">SC</span>
+    <div class="sidebar__brand-text">
+      <strong>SmartCampus</strong>
+      <small>Attendance System</small>
+    </div>
+    <button
+      type="button"
+      class="sidebar__collapse"
+      [attr.aria-expanded]="!collapsed()"
+      [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+      [title]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+      (click)="collapseToggle.emit()"
+    >
+      <span class="sidebar__collapse-icon" aria-hidden="true"></span>
+    </button>
+  </div>
+
+  <nav class="sidebar__nav" aria-label="Main sections">
+    @for (item of items(); track item.label) {
+      <a
+        [routerLink]="item.path"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        [attr.title]="collapsed() ? item.label : null"
+        [attr.aria-label]="item.label"
+      >
+        <span class="sidebar__icon" [class]="'sidebar__icon icon-' + item.icon" aria-hidden="true"></span>
+        <span class="sidebar__label">{{ item.label }}</span>
+      </a>
+    }
+  </nav>
+
+  <div class="sidebar__footer">
+    @if (userLabel()) {
+      <p class="sidebar__user">{{ userLabel() }}</p>
+    }
+    <button
+      type="button"
+      class="sidebar__logout"
+      [attr.title]="collapsed() ? 'Sign out' : null"
+      [attr.aria-label]="'Sign out'"
+      (click)="logout.emit()"
+    >
+      <span class="sidebar__logout-icon" aria-hidden="true"></span>
+      <span class="sidebar__label">Sign out</span>
+    </button>
+  </div>
+</aside>

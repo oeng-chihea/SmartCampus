@@ -1,0 +1,112 @@
+:host {
+  display: block;
+  min-width: 0;
+  width: 100%;
+}
+
+.locations-page {
+  align-content: start;
+  background: var(--page-bg);
+  display: grid;
+  gap: clamp(14px, 1.5vw, 20px);
+  min-height: 100%;
+  min-width: 0;
+  padding: clamp(14px, 2vw, 32px);
+  width: 100%;
+}
+
+.locations-page__header {
+  animation: fade-in 480ms ease both;
+  min-width: 0;
+}
+
+.locations-page__copy {
+  min-width: 0;
+}
+
+.locations-page__header h1 {
+  color: var(--color-brand-deep);
+  font-size: clamp(1.55rem, 3.4vw, 2.35rem);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.locations-page__header p {
+  color: var(--color-slate);
+  font-size: clamp(0.9rem, 1.3vw, 1rem);
+  line-height: 1.55;
+  margin: 8px 0 0;
+  max-width: 62ch;
+}
+
+.locations-page__metrics {
+  display: grid;
+  gap: clamp(10px, 1.2vw, 14px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.locations-page__workspace {
+  animation: fade-in 560ms ease both;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: clamp(14px, 1.6vw, 18px);
+  width: 100%;
+}
+
+.locations-page__toolbar {
+  border-bottom: 1px solid var(--border-subtle);
+  min-width: 0;
+  padding-bottom: 12px;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 900px) {
+  .locations-page {
+    padding: 16px;
+  }
+
+  .locations-page__metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .locations-page {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .locations-page__workspace {
+    gap: 12px;
+    padding: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}

@@ -1,0 +1,131 @@
+{
+  "title": "Students",
+  "subtitle": "Authorised accounts that link each attendance scan to the correct student identity.",
+  "filters": {
+    "searchPlaceholder": "Search student name or ID",
+    "statusOptions": ["All statuses", "Active", "Review", "Inactive"],
+    "courseOptions": ["All classes", "SE401", "SE302", "CS201", "SE220"]
+  },
+  "students": [
+    {
+      "studentId": "SC-1024",
+      "name": "Sok Dara",
+      "email": "sok.dara@smartcampus.edu",
+      "course": "SE401",
+      "year": "Year 3",
+      "attendanceRate": 94,
+      "status": "Active",
+      "loginEnabled": true
+    },
+    {
+      "studentId": "SC-1088",
+      "name": "Maly Chan",
+      "email": "maly.chan@smartcampus.edu",
+      "course": "SE401",
+      "year": "Year 2",
+      "attendanceRate": 87,
+      "status": "Review",
+      "loginEnabled": true
+    },
+    {
+      "studentId": "SC-1132",
+      "name": "Rithy Kun",
+      "email": "rithy.kun@smartcampus.edu",
+      "course": "SE302",
+      "year": "Year 4",
+      "attendanceRate": 91,
+      "status": "Active",
+      "loginEnabled": true
+    },
+    {
+      "studentId": "SC-1196",
+      "name": "Nita Lim",
+      "email": "nita.lim@smartcampus.edu",
+      "course": "CS201",
+      "year": "Year 1",
+      "attendanceRate": 72,
+      "status": "Review",
+      "loginEnabled": false
+    },
+    {
+      "studentId": "SC-1201",
+      "name": "Vannak Sok",
+      "email": "vannak.sok@smartcampus.edu",
+      "course": "SE401",
+      "year": "Year 3",
+      "attendanceRate": 96,
+      "status": "Active",
+      "loginEnabled": true
+    },
+    {
+      "studentId": "SC-1210",
+      "name": "Sreymom Pich",
+      "email": "sreymom.pich@smartcampus.edu",
+      "course": "SE302",
+      "year": "Year 2",
+      "attendanceRate": 83,
+      "status": "Active",
+      "loginEnabled": true
+    },
+    {
+      "studentId": "SC-1222",
+      "name": "Dara Meas",
+      "email": "dara.meas@smartcampus.edu",
+      "course": "CS201",
+      "year": "Year 1",
+      "attendanceRate": 78,
+      "status": "Active",
+      "loginEnabled": true
+    },
+    {
+      "studentId": "SC-1235",
+      "name": "Bopha Heng",
+      "email": "bopha.heng@smartcampus.edu",
+      "course": "SE220",
+      "year": "Year 2",
+      "attendanceRate": 89,
+      "status": "Active",
+      "loginEnabled": true
+    },
+    {
+      "studentId": "SC-1240",
+      "name": "Kosal Phan",
+      "email": "kosal.phan@smartcampus.edu",
+      "course": "SE302",
+      "year": "Year 4",
+      "attendanceRate": 64,
+      "status": "Review",
+      "loginEnabled": false
+    },
+    {
+      "studentId": "SC-1251",
+      "name": "Chenda Long",
+      "email": "chenda.long@smartcampus.edu",
+      "course": "CS201",
+      "year": "Year 1",
+      "attendanceRate": 55,
+      "status": "Inactive",
+      "loginEnabled": false
+    },
+    {
+      "studentId": "SC-1258",
+      "name": "Piseth Mao",
+      "email": "piseth.mao@smartcampus.edu",
+      "course": "SE401",
+      "year": "Year 3",
+      "attendanceRate": 92,
+      "status": "Active",
+      "loginEnabled": true
+    },
+    {
+      "studentId": "SC-1264",
+      "name": "Sreyneang Ouk",
+      "email": "sreyneang.ouk@smartcampus.edu",
+      "course": "SE220",
+      "year": "Year 2",
+      "attendanceRate": 81,
+      "status": "Active",
+      "loginEnabled": true
+    }
+  ]
+}

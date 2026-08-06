@@ -1,0 +1,13 @@
+<main class="admin-layout" [class.admin-layout--collapsed]="sidebarCollapsed()">
+  <app-admin-sidebar
+    [items]="navigation()"
+    [userLabel]="userLabel()"
+    [collapsed]="sidebarCollapsed()"
+    (collapseToggle)="toggleSidebar()"
+    (logout)="logout()"
+  />
+
+  <section class="admin-layout__workspace">
+    <router-outlet />
+  </section>
+</main>

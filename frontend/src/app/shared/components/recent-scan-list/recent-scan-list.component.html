@@ -1,0 +1,16 @@
+<section class="recent-scan-list" aria-labelledby="recent-scans-heading">
+  <div class="recent-scan-list__header">
+    <div>
+      <p>Attendance records</p>
+      <h2 id="recent-scans-heading">Recent student scans</h2>
+      <span class="recent-scan-list__count">{{ scans().length }} records</span>
+    </div>
+    <button type="button">Review all</button>
+  </div>
+
+  <div class="recent-scan-list__items" role="list">
+    @for (scan of scans(); track scan.id; let index = $index) {
+      <app-recent-scan-item [scan]="scan" [style.animation-delay.ms]="index * 60" role="listitem" />
+    }
+  </div>
+</section>

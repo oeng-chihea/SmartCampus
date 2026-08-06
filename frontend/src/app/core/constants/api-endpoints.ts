@@ -1,0 +1,17 @@
+export const API_ENDPOINTS = {
+  auth: '/auth',
+  authLogin: '/auth/login',
+  users: '/users',
+  students: '/students',
+  attendance: '/attendance',
+  attendancePreview: '/attendance/preview',
+  attendanceSubmit: '/attendance/submit',
+  attendanceMe: '/attendance/me',
+  locations: '/locations',
+  sessions: '/sessions',
+  sessionsOpen: '/sessions/open',
+  sessionById: (id: string) => `/sessions/${id}`,
+  sessionQr: (id: string) => `/sessions/${id}/qr`,
+  sessionClose: (id: string) => `/sessions/${id}/close`,
+  reports: '/reports',
+} as const;

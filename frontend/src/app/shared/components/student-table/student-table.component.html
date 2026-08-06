@@ -1,0 +1,62 @@
+<section class="student-table-card" aria-labelledby="student-table-heading">
+  <div class="student-table-card__header">
+    <div>
+      <p>Student directory</p>
+      <h2 id="student-table-heading">Authorised accounts</h2>
+      <span class="student-table-card__count">{{ students().length }} students</span>
+    </div>
+    <button type="button">Export</button>
+  </div>
+
+  <div class="student-table" role="table" aria-label="Student directory">
+    <div class="student-table__grid">
+      <div class="student-table__row student-table__row--head" role="row">
+        <span role="columnheader">Student</span>
+        <span role="columnheader">Class</span>
+        <span role="columnheader">Year</span>
+        <span role="columnheader">Attendance</span>
+        <span role="columnheader">Status</span>
+        <span role="columnheader">Login access</span>
+      </div>
+
+      @for (student of students(); track student.studentId) {
+        <div class="student-table__row" role="row">
+          <div class="student-table__student" role="cell" data-label="Student">
+            <strong>{{ student.name }}</strong>
+            <span>{{ student.studentId }} · {{ student.email }}</span>
+          </div>
+          <span role="cell" data-label="Class">{{ student.course }}</span>
+          <span role="cell" data-label="Year">{{ student.year }}</span>
+          <span role="cell" data-label="Attendance">{{ student.attendanceRate }}%</span>
+          <div class="student-table__status-cell" role="cell" data-label="Status">
+            <span [class]="'student-status status-' + student.status.toLowerCase()">
+              {{ student.status }}
+            </span>
+          </div>
+          <div class="student-table__action-cell" role="cell" data-label="Login access">
+            <button
+              type="button"
+              class="login-toggle"
+              [class.login-toggle--on]="student.loginEnabled"
+              [class.login-toggle--off]="!student.loginEnabled"
+              [attr.aria-pressed]="student.loginEnabled"
+              [attr.aria-label]="
+                (student.loginEnabled ? 'Disable' : 'Enable') +
+                ' login for ' +
+                student.name
+              "
+              (click)="onToggle(student.studentId)"
+            >
+              <span class="login-toggle__track" aria-hidden="true">
+                <span class="login-toggle__thumb"></span>
+              </span>
+              <span class="login-toggle__label">
+                {{ student.loginEnabled ? 'Active' : 'Inactive' }}
+              </span>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</section>

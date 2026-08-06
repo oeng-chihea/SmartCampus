@@ -1,0 +1,87 @@
+<div
+  class="select-dropdown"
+  [class.select-dropdown--open]="open()"
+  [class.select-dropdown--up]="openUpward()"
+>
+  <button
+    type="button"
+    class="select-dropdown__trigger"
+    [id]="inputId() ?? undefined"
+    [class.select-dropdown__trigger--placeholder]="!selectedLabel()"
+    [class.select-dropdown__trigger--invalid]="invalid()"
+    [class.select-dropdown__trigger--open]="open()"
+    [disabled]="isDisabled()"
+    [attr.aria-expanded]="open()"
+    [attr.aria-haspopup]="'listbox'"
+    [attr.aria-invalid]="invalid()"
+    [attr.aria-controls]="open() ? listId() : null"
+    (click)="toggle()"
+    (keydown)="onTriggerKeydown($event)"
+  >
+    <span class="select-dropdown__value">
+      {{ selectedLabel() || placeholder() }}
+    </span>
+    <span class="select-dropdown__chevron" aria-hidden="true">
+      <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M5.5 7.75L10 12.25L14.5 7.75"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </span>
+  </button>
+
+  @if (open()) {
+    <div class="select-dropdown__panel" role="presentation">
+      <ul
+        [id]="listId()"
+        class="select-dropdown__list"
+        role="listbox"
+        tabindex="-1"
+        (keydown)="onListKeydown($event)"
+      >
+        @if (options().length === 0) {
+          <li class="select-dropdown__empty" role="presentation">No options available</li>
+        } @else {
+          @for (option of options(); track option.value; let index = $index; let last = $last) {
+            <li
+              class="select-dropdown__option"
+              role="option"
+              [class.select-dropdown__option--active]="activeIndex() === index"
+              [class.select-dropdown__option--selected]="isSelected(option)"
+              [class.select-dropdown__option--disabled]="option.disabled"
+              [class.select-dropdown__option--divider]="!last"
+              [attr.aria-selected]="isSelected(option)"
+              [attr.aria-disabled]="option.disabled || null"
+              (click)="selectOption(option, $event)"
+              (mouseenter)="setActive(index)"
+            >
+              <span class="select-dropdown__option-copy">
+                <span class="select-dropdown__option-label">{{ option.label }}</span>
+                @if (option.hint) {
+                  <span class="select-dropdown__option-hint">{{ option.hint }}</span>
+                }
+              </span>
+              @if (isSelected(option)) {
+                <span class="select-dropdown__check" aria-hidden="true">
+                  <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M4.5 10.5L8.2 14L15.5 6.5"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </span>
+              }
+            </li>
+          }
+        }
+      </ul>
+    </div>
+  }
+</div>

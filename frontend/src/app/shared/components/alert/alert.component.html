@@ -1,0 +1,23 @@
+@if (resolvedMessage(); as text) {
+  <div
+    class="app-alert"
+    [class.app-alert--error]="resolvedSeverity() === 'error'"
+    [class.app-alert--success]="resolvedSeverity() === 'success'"
+    [class.app-alert--info]="resolvedSeverity() === 'info'"
+    [class.app-alert--warning]="resolvedSeverity() === 'warning'"
+    [attr.role]="resolvedSeverity() === 'error' ? 'alert' : 'status'"
+    [attr.aria-live]="resolvedSeverity() === 'error' ? 'assertive' : 'polite'"
+  >
+    <p class="app-alert__message">{{ text }}</p>
+    @if (dismissible()) {
+      <button
+        type="button"
+        class="app-alert__dismiss"
+        aria-label="Dismiss message"
+        (click)="onDismiss()"
+      >
+        ×
+      </button>
+    }
+  </div>
+}

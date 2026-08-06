@@ -1,0 +1,140 @@
+<div
+  class="location-dialog-backdrop"
+  role="presentation"
+  (click)="onBackdropClick($event)"
+>
+  <div
+    class="location-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="location-dialog-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="location-dialog__header">
+      <div class="location-dialog__header-copy">
+        <p class="location-dialog__eyebrow">Location detail</p>
+        <h2 id="location-dialog-title">{{ detail().location.name }}</h2>
+        <span class="location-dialog__id">{{ detail().location.id }}</span>
+      </div>
+      <button
+        type="button"
+        class="location-dialog__close"
+        aria-label="Close location detail"
+        (click)="close()"
+      >
+        ×
+      </button>
+    </header>
+
+    <div class="location-dialog__body">
+      <!-- Zone profile -->
+      <section class="location-dialog__zone" aria-label="Zone profile">
+        <div class="location-dialog__zone-top">
+          <div class="location-dialog__zone-avatar" aria-hidden="true">
+            {{ initials(detail().location.building) }}
+          </div>
+          <div class="location-dialog__zone-meta">
+            <strong>{{ detail().location.name }}</strong>
+            <span>
+              {{ detail().location.building }} · Room {{ detail().location.room }}
+            </span>
+            <span
+              [class]="
+                'location-dialog__badge status-' + statusClass(detail().location.status)
+              "
+            >
+              {{ detail().location.status }}
+            </span>
+          </div>
+        </div>
+
+        <dl class="location-dialog__facts">
+          <div>
+            <dt>Building / area</dt>
+            <dd>{{ detail().location.building }}</dd>
+          </div>
+          <div>
+            <dt>Room</dt>
+            <dd>{{ detail().location.room }}</dd>
+          </div>
+          <div>
+            <dt>Geofence radius</dt>
+            <dd>{{ radiusLabel(detail().location.radiusMeters) }}</dd>
+          </div>
+          <div>
+            <dt>Coordinates</dt>
+            <dd>{{ coordinatesLabel(detail().location) }}</dd>
+          </div>
+          <div>
+            <dt>Sessions linked</dt>
+            <dd>{{ detail().location.sessionsUsing }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- People located in this area -->
+      <section class="location-dialog__people" aria-labelledby="people-at-zone-heading">
+        <div class="location-dialog__people-header">
+          <div>
+            <p>People at this zone</p>
+            <h3 id="people-at-zone-heading">Who is located here</h3>
+          </div>
+          <span class="location-dialog__people-count">
+            {{ detail().people.length }}
+            {{ detail().people.length === 1 ? 'person' : 'people' }}
+          </span>
+        </div>
+
+        @if (detail().people.length === 0) {
+          <div class="location-dialog__empty" role="status">
+            <strong>No people recorded here yet</strong>
+            <p>Attendance scans inside this geofence will appear in this list.</p>
+          </div>
+        } @else {
+          <ul class="location-dialog__person-list">
+            @for (person of detail().people; track person.studentId + person.session + person.submittedAt) {
+              <li class="location-dialog__person">
+                <div class="location-dialog__person-avatar" aria-hidden="true">
+                  {{ initials(person.name) }}
+                </div>
+                <div class="location-dialog__person-body">
+                  <div class="location-dialog__person-main">
+                    <strong class="location-dialog__person-name">{{ person.name }}</strong>
+                    <span
+                      [class]="
+                        'location-dialog__badge status-' + statusClass(person.status)
+                      "
+                    >
+                      {{ person.status }}
+                    </span>
+                  </div>
+                  <p class="location-dialog__person-profile">
+                    {{ personProfileLine(person) }}
+                  </p>
+                  <p class="location-dialog__person-area">
+                    <span class="location-dialog__area-label">Located in</span>
+                    {{ person.locationArea }}
+                  </p>
+                  <p class="location-dialog__person-session">
+                    {{ person.session }}
+                    ·
+                    {{ person.submittedAt }}
+                    @if (person.distanceMeters !== null) {
+                      · {{ person.distanceMeters }} m from zone center
+                    }
+                  </p>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    </div>
+
+    <footer class="location-dialog__footer">
+      <button type="button" class="location-dialog__primary" (click)="close()">
+        Close
+      </button>
+    </footer>
+  </div>
+</div>

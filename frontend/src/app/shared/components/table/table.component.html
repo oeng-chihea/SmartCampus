@@ -1,0 +1,111 @@
+<section class="table-card" [attr.aria-labelledby]="headingId()">
+  <div class="table-card__header">
+    <div>
+      <p>{{ eyebrow() }}</p>
+      <h2 [id]="headingId()">{{ title() }}</h2>
+      <span class="table-card__count">{{ countLabel() }}</span>
+    </div>
+    @if (showExport()) {
+      <button type="button" (click)="onExport()">Export</button>
+    }
+  </div>
+
+  @if (loading()) {
+    <p class="table-card__loading" role="status">{{ loadingMessage() }}</p>
+  } @else if (rows().length === 0) {
+    <div class="table-card__empty" role="status">
+      <strong>{{ emptyTitle() }}</strong>
+      <p>{{ emptyMessage() }}</p>
+    </div>
+  } @else {
+    <div class="data-table" role="table" [attr.aria-label]="tableAriaLabel()">
+      <div class="data-table__grid">
+        <div
+          class="data-table__row data-table__row--head"
+          role="row"
+          [style.grid-template-columns]="gridTemplate()"
+        >
+          @for (column of columns(); track column.key) {
+            <span role="columnheader">{{ column.header }}</span>
+          }
+        </div>
+
+        @for (row of rows(); track trackRow(row)) {
+          <div
+            class="data-table__row"
+            role="row"
+            [class.data-table__row--interactive]="interactive()"
+            [class.data-table__row--active]="isActive(row)"
+            [attr.tabindex]="interactive() ? 0 : null"
+            [style.grid-template-columns]="gridTemplate()"
+            (click)="onRowActivate(row)"
+            (keydown)="onRowKeydown($event, row)"
+          >
+            @for (column of columns(); track column.key) {
+              @switch (cellType(column)) {
+                @case ('primary') {
+                  <div
+                    class="data-table__primary"
+                    role="cell"
+                    [attr.data-label]="column.header"
+                  >
+                    <strong>{{ primaryValue(column, row).title }}</strong>
+                    @if (primaryValue(column, row).subtitle; as subtitle) {
+                      <span>{{ subtitle }}</span>
+                    }
+                  </div>
+                }
+                @case ('badge') {
+                  <div
+                    class="data-table__status-cell"
+                    role="cell"
+                    [attr.data-label]="column.header"
+                    [class.data-table__status-cell--end]="column.align !== 'start'"
+                  >
+                    <span [class]="badgeClass(column, row)">{{ badgeLabel(column, row) }}</span>
+                  </div>
+                }
+                @case ('actions') {
+                  <div
+                    class="data-table__actions-cell"
+                    role="cell"
+                    [attr.data-label]="column.header"
+                  >
+                    @if (visibleActions(column, row); as actions) {
+                      @if (actions.length > 0) {
+                        <div
+                          class="data-table__action-group"
+                          role="group"
+                          [attr.aria-label]="column.header"
+                        >
+                          @for (action of actions; track action.id) {
+                            <button
+                              type="button"
+                              class="data-table__action-label"
+                              [class.data-table__action-label--danger]="action.variant === 'danger'"
+                              [disabled]="action.disabled === true"
+                              (click)="onAction($event, action.id, row)"
+                            >
+                              {{ action.label }}
+                            </button>
+                          }
+                        </div>
+                      } @else {
+                        <span class="data-table__muted">—</span>
+                      }
+                    }
+                  </div>
+                }
+                @default {
+                  <span role="cell" [attr.data-label]="column.header">{{
+                    textValue(column, row)
+                  }}</span>
+                }
+              }
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+</section>

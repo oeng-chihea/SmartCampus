@@ -1,0 +1,262 @@
+<section class="sessions-page" aria-labelledby="sessions-title">
+  <header class="sessions-page__header">
+    <div class="sessions-page__copy">
+      <h1 id="sessions-title">Attendance sessions</h1>
+      <p>
+        Create a class session at an approved campus location, display a short-lived QR code, and
+        close the session when class ends.
+      </p>
+    </div>
+    <button
+      type="button"
+      class="sessions-page__refresh"
+      (click)="reload()"
+      [disabled]="state.loading()"
+    >
+      {{ state.loading() ? 'Loading…' : 'Refresh' }}
+    </button>
+  </header>
+
+  @if (state.error()) {
+    <p class="sessions-page__alert sessions-page__alert--error" role="alert">{{ state.error() }}</p>
+  }
+  @if (state.success()) {
+    <p class="sessions-page__alert sessions-page__alert--ok" role="status">{{ state.success() }}</p>
+  }
+
+  <section class="sessions-page__metrics" aria-label="Session summary">
+    @for (metric of state.metrics(); track metric.label; let index = $index) {
+      <app-stat-card [card]="metric" [animationDelay]="index * 70" />
+    }
+  </section>
+
+  <div class="sessions-page__grid">
+    <!-- Left: Live QR -->
+    <section class="sessions-page__panel sessions-page__panel--qr" aria-labelledby="qr-title">
+      <header class="sessions-page__panel-head">
+        <p>Live QR</p>
+        <h2 id="qr-title">Short-lived session code</h2>
+      </header>
+
+      @if (state.qrLoading()) {
+        <p class="sessions-page__muted">Loading QR…</p>
+      } @else if (state.qr(); as liveQr) {
+        <div class="sessions-page__qr-layout">
+          @if (state.qrDataUrl(); as dataUrl) {
+            <img
+              class="sessions-page__qr-image"
+              [src]="dataUrl"
+              width="240"
+              height="240"
+              alt="Attendance session QR code"
+            />
+          }
+          <div class="sessions-page__qr-meta">
+            @if (state.selectedSession(); as session) {
+              <p class="sessions-page__qr-title">{{ session.title }}</p>
+              <p class="sessions-page__muted sessions-page__muted--tight">{{ session.locationName }}</p>
+            }
+            <p class="sessions-page__expires">
+              <span class="sessions-page__label">Expires</span>
+              {{ liveQr.expiresAt | date: 'mediumTime' }}
+              <span class="sessions-page__muted sessions-page__muted--inline"
+                >({{ liveQr.ttlSeconds }}s TTL)</span
+              >
+            </p>
+            <code class="sessions-page__payload">{{ liveQr.payload }}</code>
+            <div class="sessions-page__qr-actions">
+              <button type="button" class="sessions-page__btn-secondary" (click)="refreshQrNow()">
+                Refresh QR
+              </button>
+              <button type="button" class="sessions-page__btn-secondary" (click)="copyPayload()">
+                Copy payload
+              </button>
+            </div>
+          </div>
+        </div>
+      } @else {
+        <div class="sessions-page__empty">
+          <strong>No QR selected</strong>
+          <p>
+            Open a session with <em>Create session</em>, or choose <em>Show QR</em> on an open session
+            below.
+          </p>
+        </div>
+      }
+    </section>
+
+    <!-- Right: Open attendance (CTA + dialog trigger) -->
+    <section class="sessions-page__panel sessions-page__panel--open" aria-labelledby="open-attendance-title">
+      <header class="sessions-page__panel-head">
+        <p>New session</p>
+        <h2 id="open-attendance-title">Open attendance</h2>
+      </header>
+
+      <div class="sessions-page__open-body">
+        <p class="sessions-page__open-lead">
+          Start a new attendance session for your class. Students will scan a short-lived QR code tied
+          to an approved campus location.
+        </p>
+        <ul class="sessions-page__open-points">
+          <li>Pick a campus zone with geofence radius</li>
+          <li>Set the late threshold in minutes</li>
+          <li>Display a rotating QR for students</li>
+        </ul>
+        <button
+          type="button"
+          class="sessions-page__btn-primary"
+          (click)="openCreateDialog()"
+          [disabled]="state.loading() || state.locations().length === 0"
+        >
+          Create session
+        </button>
+        @if (state.locations().length === 0 && !state.loading()) {
+          <p class="sessions-page__muted">No active locations available from the API.</p>
+        }
+      </div>
+    </section>
+  </div>
+
+  <section class="sessions-page__workspace" aria-label="Session list">
+    <app-table
+      eyebrow="Session log"
+      title="Your attendance sessions"
+      [countLabel]="state.sessions().length + ' sessions'"
+      tableAriaLabel="Your attendance sessions"
+      [columns]="sessionColumns()"
+      [rows]="state.sessions()"
+      [activeRowId]="state.selectedSessionId()"
+      [loading]="state.loading()"
+      loadingMessage="Loading sessions from API…"
+      emptyTitle="No sessions yet"
+      emptyMessage="Create your first open session to generate a short-lived QR code."
+      (actionClick)="onSessionAction($event)"
+    />
+  </section>
+</section>
+
+@if (state.createDialogOpen()) {
+  <app-modal-dialog
+    eyebrow="New session"
+    title="Create attendance session"
+    closeAriaLabel="Close create session dialog"
+    size="lg"
+    [lockDismiss]="true"
+    [spacious]="true"
+    (closed)="closeCreateDialog()"
+  >
+    <!-- Sessions-module fields; shell + shake live in shared modal-dialog -->
+    <form
+      class="session-create-form"
+      (ngSubmit)="createSession(); $event.preventDefault()"
+      novalidate
+    >
+      @if (state.dialogError()) {
+        <p class="sessions-page__alert sessions-page__alert--error" role="alert">
+          {{ state.dialogError() }}
+        </p>
+      }
+
+      <label
+        class="session-create-form__field"
+        [class.session-create-form__field--invalid]="state.hasFieldError('title')"
+      >
+        <span class="session-create-form__label">
+          Session title
+          <abbr class="session-create-form__required" title="required">*</abbr>
+        </span>
+        <input
+          type="text"
+          name="title"
+          [(ngModel)]="state.title"
+          (ngModelChange)="onFieldInput('title')"
+          placeholder="e.g. SE401 · Morning Lecture"
+          autocomplete="off"
+          [class.is-invalid]="state.hasFieldError('title')"
+          [attr.aria-invalid]="state.hasFieldError('title')"
+          [attr.aria-describedby]="state.hasFieldError('title') ? 'session-title-error' : null"
+        />
+        @if (state.fieldError('title'); as titleErr) {
+          <span id="session-title-error" class="session-create-form__field-error">{{
+            titleErr
+          }}</span>
+        }
+      </label>
+
+      <div
+        class="session-create-form__field"
+        [class.session-create-form__field--invalid]="state.hasFieldError('locationId')"
+      >
+        <span class="session-create-form__label" id="session-location-label">
+          Campus location
+          <abbr class="session-create-form__required" title="required">*</abbr>
+        </span>
+        <app-select-dropdown
+          name="locationId"
+          inputId="session-location-input"
+          [(ngModel)]="state.locationId"
+          (ngModelChange)="onFieldInput('locationId')"
+          [options]="locationOptions()"
+          [placeholder]="
+            state.locations().length === 0
+              ? 'No active locations'
+              : 'Select a campus location'
+          "
+          [invalid]="state.hasFieldError('locationId')"
+          [attr.aria-labelledby]="'session-location-label'"
+          [attr.aria-describedby]="
+            state.hasFieldError('locationId') ? 'session-location-error' : null
+          "
+        />
+        @if (state.fieldError('locationId'); as locationErr) {
+          <span id="session-location-error" class="session-create-form__field-error">{{
+            locationErr
+          }}</span>
+        }
+      </div>
+
+      <label
+        class="session-create-form__field"
+        [class.session-create-form__field--invalid]="state.hasFieldError('lateAfterMinutes')"
+      >
+        <span class="session-create-form__label">
+          Late after (minutes)
+          <abbr class="session-create-form__required" title="required">*</abbr>
+        </span>
+        <input
+          type="number"
+          name="lateAfterMinutes"
+          [(ngModel)]="state.lateAfterMinutes"
+          (ngModelChange)="onFieldInput('lateAfterMinutes')"
+          min="0"
+          max="180"
+          step="1"
+          placeholder="e.g. 15"
+          [class.is-invalid]="state.hasFieldError('lateAfterMinutes')"
+          [attr.aria-invalid]="state.hasFieldError('lateAfterMinutes')"
+          [attr.aria-describedby]="
+            state.hasFieldError('lateAfterMinutes') ? 'session-late-error' : null
+          "
+        />
+        @if (state.fieldError('lateAfterMinutes'); as lateErr) {
+          <span id="session-late-error" class="session-create-form__field-error">{{
+            lateErr
+          }}</span>
+        }
+      </label>
+
+      <footer class="session-create-form__actions">
+        <button type="button" class="sessions-page__btn-secondary" (click)="closeCreateDialog()">
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="sessions-page__btn-primary"
+          [disabled]="state.creating() || state.locations().length === 0"
+        >
+          {{ state.creating() ? 'Creating…' : 'Create & show QR' }}
+        </button>
+      </footer>
+    </form>
+  </app-modal-dialog>
+}

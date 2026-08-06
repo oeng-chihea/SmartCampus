@@ -1,0 +1,44 @@
+<form class="location-filter" aria-label="Location filters" (ngSubmit)="submit()">
+  <div class="location-filter__controls">
+    <label class="location-filter__search">
+      <span>Find location</span>
+      <input
+        type="search"
+        name="search"
+        [placeholder]="filters().searchPlaceholder"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+      />
+    </label>
+
+    <label>
+      <span>Building</span>
+      <select
+        name="building"
+        [ngModel]="building()"
+        (ngModelChange)="building.set($event)"
+        aria-label="Building"
+      >
+        @for (option of filters().buildingOptions; track option) {
+          <option [value]="option">{{ option }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
+      <span>Status</span>
+      <select
+        name="status"
+        [ngModel]="status()"
+        (ngModelChange)="status.set($event)"
+        aria-label="Status"
+      >
+        @for (option of filters().statusOptions; track option) {
+          <option [value]="option">{{ option }}</option>
+        }
+      </select>
+    </label>
+
+    <button type="submit">Apply</button>
+  </div>
+</form>

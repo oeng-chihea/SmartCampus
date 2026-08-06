@@ -1,0 +1,25 @@
+<section class="dashboard" aria-labelledby="dashboard-title">
+  <header class="dashboard-hero">
+    <div class="dashboard-hero__copy">
+      <h1 id="dashboard-title">{{ dashboard.title }}</h1>
+      <p>{{ dashboard.subtitle }}</p>
+    </div>
+
+    <app-quick-lookup [quickFilter]="dashboard.quickFilter" />
+  </header>
+
+  <section class="dashboard__stats" aria-label="Attendance summary">
+    @for (card of dashboard.summaryCards; track card.label; let index = $index) {
+      <app-stat-card [card]="card" [animationDelay]="index * 80" />
+    }
+  </section>
+
+  <section class="dashboard__insights" aria-label="Attendance chart and records">
+    <div class="dashboard__chart-panel">
+      <app-attendance-chart [monthlyTrend]="dashboard.monthlyTrend" [year]="dashboard.trendYear" />
+    </div>
+    <div class="dashboard__records-panel">
+      <app-recent-scan-list [scans]="dashboard.recentScans" />
+    </div>
+  </section>
+</section>

@@ -1,0 +1,53 @@
+<form class="attendance-filter" aria-label="Attendance filters" (ngSubmit)="submit()">
+  <div class="attendance-filter__controls">
+    <label class="attendance-filter__search">
+      <span>Find record</span>
+      <input
+        type="search"
+        name="search"
+        [placeholder]="filters().searchPlaceholder"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+      />
+    </label>
+
+    <label>
+      <span>Session</span>
+      <select
+        name="session"
+        [ngModel]="session()"
+        (ngModelChange)="session.set($event)"
+        aria-label="Session"
+      >
+        @for (option of filters().sessionOptions; track option) {
+          <option [value]="option">{{ option }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
+      <span>Status</span>
+      <select
+        name="status"
+        [ngModel]="status()"
+        (ngModelChange)="status.set($event)"
+        aria-label="Status"
+      >
+        @for (option of filters().statusOptions; track option) {
+          <option [value]="option">{{ option }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
+      <span>Date</span>
+      <select name="date" [ngModel]="date()" (ngModelChange)="date.set($event)" aria-label="Date">
+        @for (option of filters().dateOptions; track option) {
+          <option [value]="option">{{ option }}</option>
+        }
+      </select>
+    </label>
+
+    <button type="submit">Apply</button>
+  </div>
+</form>

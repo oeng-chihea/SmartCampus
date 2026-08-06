@@ -1,0 +1,172 @@
+:host {
+  display: contents;
+}
+
+/* Full-viewport overlay — true center regardless of sidebar width */
+.modal-dialog-backdrop {
+  align-items: center;
+  background: rgba(20, 83, 45, 0.38);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: max(20px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px))
+    max(20px, env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 100vw;
+  z-index: 1200;
+}
+
+.modal-dialog {
+  /* Entrance only — shake is Web Animations API on this element */
+  animation: modal-dialog-in 220ms ease both;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 64px rgba(20, 83, 45, 0.24);
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+  max-height: min(92dvh, 760px);
+  min-width: 0;
+  /* visible so nested app-select-dropdown panels are not clipped */
+  overflow: visible;
+  transform-origin: center center;
+  width: min(720px, calc(100vw - 40px));
+}
+
+.modal-dialog--md {
+  max-width: min(560px, calc(100vw - 40px));
+  width: min(560px, calc(100vw - 40px));
+}
+
+.modal-dialog--lg {
+  max-width: min(720px, calc(100vw - 40px));
+  width: min(720px, calc(100vw - 40px));
+}
+
+.modal-dialog--xl {
+  max-height: min(92dvh, 880px);
+  max-width: min(960px, calc(100vw - 40px));
+  width: min(960px, calc(100vw - 40px));
+}
+
+.modal-dialog--spacious {
+  min-height: min(420px, 92dvh);
+}
+
+.modal-dialog__header {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  gap: clamp(12px, 2vw, 20px);
+  justify-content: space-between;
+  padding: clamp(22px, 3vw, 28px) clamp(24px, 3.5vw, 36px) clamp(16px, 2vw, 20px);
+}
+
+.modal-dialog__header-copy {
+  min-width: 0;
+}
+
+.modal-dialog__eyebrow {
+  color: var(--color-brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.modal-dialog__title {
+  color: var(--color-brand-deep);
+  font-size: clamp(1.2rem, 2.6vw, 1.5rem);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 6px 0 0;
+}
+
+.modal-dialog__close {
+  align-items: center;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-brand-deep);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 1.4rem;
+  height: 40px;
+  justify-content: center;
+  line-height: 1;
+  transition: background 140ms ease, border-color 140ms ease;
+  width: 40px;
+}
+
+.modal-dialog__close:hover {
+  background: var(--color-brand-faint);
+  border-color: var(--color-brand-muted);
+}
+
+.modal-dialog__close:focus-visible {
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+.modal-dialog__body {
+  display: grid;
+  flex: 1 1 auto;
+  gap: clamp(16px, 2.2vw, 22px);
+  min-height: 0;
+  /* visible: absolute dropdown menus must paint outside the body box */
+  overflow: visible;
+  padding: clamp(20px, 2.8vw, 28px) clamp(24px, 3.5vw, 36px) clamp(24px, 3vw, 32px);
+}
+
+@keyframes modal-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 900px) {
+  .modal-dialog--lg {
+    max-width: min(640px, calc(100vw - 32px));
+    width: min(640px, calc(100vw - 32px));
+  }
+
+  .modal-dialog--spacious {
+    min-height: min(380px, 90dvh);
+  }
+}
+
+@media (max-width: 640px) {
+  .modal-dialog,
+  .modal-dialog--md,
+  .modal-dialog--lg,
+  .modal-dialog--xl {
+    max-height: min(94dvh, 720px);
+    max-width: calc(100vw - 24px);
+    min-height: 0;
+    width: calc(100vw - 24px);
+  }
+
+  .modal-dialog__header {
+    padding: 18px 18px 14px;
+  }
+
+  .modal-dialog__body {
+    gap: 14px;
+    padding: 16px 18px 20px;
+  }
+}

@@ -1,0 +1,158 @@
+{
+  "records": [
+    {
+      "id": "att-001",
+      "student": "Sok Dara",
+      "studentId": "SC-1024",
+      "session": "SE401 · Morning Lecture",
+      "location": "Building A, Room 201",
+      "recordedAt": "2026-07-15T09:15:22",
+      "submittedAt": "Today, 09:15",
+      "status": "Present",
+      "distanceMeters": 12
+    },
+    {
+      "id": "att-002",
+      "student": "Maly Chan",
+      "studentId": "SC-1088",
+      "session": "SE401 · Morning Lecture",
+      "location": "Building A, Room 201",
+      "recordedAt": "2026-07-15T09:28:04",
+      "submittedAt": "Today, 09:28",
+      "status": "Late",
+      "distanceMeters": 18
+    },
+    {
+      "id": "att-003",
+      "student": "Rithy Kun",
+      "studentId": "SC-1132",
+      "session": "SE302 · Lab B",
+      "location": "Outside approved zone",
+      "recordedAt": "2026-07-15T10:05:41",
+      "submittedAt": "Today, 10:05",
+      "status": "Outside Location",
+      "distanceMeters": 146
+    },
+    {
+      "id": "att-004",
+      "student": "Nita Lim",
+      "studentId": "SC-1196",
+      "session": "CS201 · Intro Class",
+      "location": "Building B, Room 105",
+      "recordedAt": "2026-07-15T10:12:09",
+      "submittedAt": "Today, 10:12",
+      "status": "Present",
+      "distanceMeters": 8
+    },
+    {
+      "id": "att-005",
+      "student": "Vannak Sok",
+      "studentId": "SC-1201",
+      "session": "SE401 · Morning Lecture",
+      "location": "Building A, Room 201",
+      "recordedAt": "2026-07-15T10:18:33",
+      "submittedAt": "Today, 10:18",
+      "status": "Present",
+      "distanceMeters": 21
+    },
+    {
+      "id": "att-006",
+      "student": "Sreymom Pich",
+      "studentId": "SC-1210",
+      "session": "SE302 · Lab B",
+      "location": "Building C, Room 101",
+      "recordedAt": "2026-07-15T10:22:15",
+      "submittedAt": "Today, 10:22",
+      "status": "Late",
+      "distanceMeters": 15
+    },
+    {
+      "id": "att-007",
+      "student": "Dara Meas",
+      "studentId": "SC-1222",
+      "session": "CS201 · Intro Class",
+      "location": "Building B, Room 105",
+      "recordedAt": "2026-07-15T10:30:02",
+      "submittedAt": "Today, 10:30",
+      "status": "Present",
+      "distanceMeters": 6
+    },
+    {
+      "id": "att-008",
+      "student": "Bopha Heng",
+      "studentId": "SC-1235",
+      "session": "SE401 · Tutorial",
+      "location": "Building A, Hall 1",
+      "recordedAt": "2026-07-14T14:05:48",
+      "submittedAt": "Yesterday, 14:05",
+      "status": "Present",
+      "distanceMeters": 11
+    },
+    {
+      "id": "att-009",
+      "student": "Kosal Phan",
+      "studentId": "SC-1240",
+      "session": "SE302 · Lab B",
+      "location": "Outside approved zone",
+      "recordedAt": "2026-07-14T14:40:19",
+      "submittedAt": "Yesterday, 14:40",
+      "status": "Outside Location",
+      "distanceMeters": 210
+    },
+    {
+      "id": "att-010",
+      "student": "Chenda Long",
+      "studentId": "SC-1251",
+      "session": "CS201 · Intro Class",
+      "location": "Building B, Room 105",
+      "recordedAt": "2026-07-14T15:02:27",
+      "submittedAt": "Yesterday, 15:02",
+      "status": "Absent",
+      "distanceMeters": null
+    },
+    {
+      "id": "att-011",
+      "student": "Piseth Mao",
+      "studentId": "SC-1258",
+      "session": "SE401 · Morning Lecture",
+      "location": "Building A, Room 201",
+      "recordedAt": "2026-07-14T09:12:10",
+      "submittedAt": "Yesterday, 09:12",
+      "status": "Present",
+      "distanceMeters": 9
+    },
+    {
+      "id": "att-012",
+      "student": "Sreyneang Ouk",
+      "studentId": "SC-1264",
+      "session": "SE302 · Lab B",
+      "location": "Building C, Room 101",
+      "recordedAt": "2026-07-14T09:35:44",
+      "submittedAt": "Yesterday, 09:35",
+      "status": "Late",
+      "distanceMeters": 22
+    },
+    {
+      "id": "att-013",
+      "student": "Vichea Sam",
+      "studentId": "SC-1270",
+      "session": "CS201 · Intro Class",
+      "location": "Building B, Room 105",
+      "recordedAt": "2026-07-13T10:01:05",
+      "submittedAt": "Mon, 10:01",
+      "status": "Absent",
+      "distanceMeters": null
+    },
+    {
+      "id": "att-014",
+      "student": "Ravy Chea",
+      "studentId": "SC-1277",
+      "session": "SE401 · Tutorial",
+      "location": "Building A, Hall 1",
+      "recordedAt": "2026-07-13T14:18:52",
+      "submittedAt": "Mon, 14:18",
+      "status": "Present",
+      "distanceMeters": 14
+    }
+  ]
+}

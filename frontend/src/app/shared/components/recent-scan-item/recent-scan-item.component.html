@@ -1,0 +1,19 @@
+<article class="recent-scan">
+  <div class="recent-scan__content">
+    <div class="recent-scan__title-row">
+      <strong>{{ scan().student }}</strong>
+      <span class="recent-scan__id">{{ scan().studentId }}</span>
+    </div>
+    <span>{{ scan().session }}</span>
+    <span class="recent-scan__location">{{ scan().location }}</span>
+  </div>
+  <div class="recent-scan__meta">
+    <small>{{ scan().submittedAt }}</small>
+    @if (scan().distanceMeters !== null) {
+      <small class="recent-scan__distance">{{ scan().distanceMeters }} m from zone</small>
+    }
+    <span [class]="'recent-scan__status status-' + statusClass()">
+      {{ scan().status }}
+    </span>
+  </div>
+</article>

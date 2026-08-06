@@ -1,0 +1,129 @@
+{
+  "year": 2026,
+  "monthlyTrend": [
+    { "month": "Jan", "presentRate": 84, "present": 980, "late": 92, "absent": 120, "outsideLocation": 28 },
+    { "month": "Feb", "presentRate": 86, "present": 1004, "late": 88, "absent": 110, "outsideLocation": 24 },
+    { "month": "Mar", "presentRate": 88, "present": 1040, "late": 80, "absent": 98, "outsideLocation": 22 },
+    { "month": "Apr", "presentRate": 87, "present": 1025, "late": 85, "absent": 105, "outsideLocation": 26 },
+    { "month": "May", "presentRate": 90, "present": 1088, "late": 72, "absent": 86, "outsideLocation": 18 },
+    { "month": "Jun", "presentRate": 89, "present": 1062, "late": 76, "absent": 92, "outsideLocation": 20 },
+    { "month": "Jul", "presentRate": 85, "present": 990, "late": 94, "absent": 118, "outsideLocation": 30 },
+    { "month": "Aug", "presentRate": 91, "present": 1110, "late": 68, "absent": 78, "outsideLocation": 16 },
+    { "month": "Sep", "presentRate": 92, "present": 1135, "late": 64, "absent": 70, "outsideLocation": 14 },
+    { "month": "Oct", "presentRate": 90, "present": 1098, "late": 70, "absent": 82, "outsideLocation": 18 },
+    { "month": "Nov", "presentRate": 88, "present": 1055, "late": 78, "absent": 96, "outsideLocation": 22 },
+    { "month": "Dec", "presentRate": 87, "present": 1030, "late": 82, "absent": 102, "outsideLocation": 25 }
+  ],
+  "recentScans": [
+    {
+      "id": "scan-001",
+      "student": "Sok Dara",
+      "studentId": "SC-1024",
+      "session": "SE401 · Morning Lecture",
+      "location": "Building A, Room 201",
+      "submittedAt": "Today, 09:15",
+      "recordedAt": "2026-07-15T09:15:22",
+      "status": "Present",
+      "distanceMeters": 12
+    },
+    {
+      "id": "scan-002",
+      "student": "Maly Chan",
+      "studentId": "SC-1088",
+      "session": "SE401 · Morning Lecture",
+      "location": "Building A, Room 201",
+      "submittedAt": "Today, 09:28",
+      "recordedAt": "2026-07-15T09:28:04",
+      "status": "Late",
+      "distanceMeters": 18
+    },
+    {
+      "id": "scan-003",
+      "student": "Rithy Kun",
+      "studentId": "SC-1132",
+      "session": "SE302 · Lab B",
+      "location": "Outside approved zone",
+      "submittedAt": "Today, 10:05",
+      "recordedAt": "2026-07-15T10:05:41",
+      "status": "Outside Location",
+      "distanceMeters": 146
+    },
+    {
+      "id": "scan-004",
+      "student": "Nita Lim",
+      "studentId": "SC-1196",
+      "session": "CS201 · Intro Class",
+      "location": "Building B, Room 105",
+      "submittedAt": "Today, 10:12",
+      "recordedAt": "2026-07-15T10:12:09",
+      "status": "Present",
+      "distanceMeters": 8
+    },
+    {
+      "id": "scan-005",
+      "student": "Vannak Sok",
+      "studentId": "SC-1201",
+      "session": "SE401 · Morning Lecture",
+      "location": "Building A, Room 201",
+      "submittedAt": "Today, 10:18",
+      "recordedAt": "2026-07-15T10:18:33",
+      "status": "Present",
+      "distanceMeters": 21
+    },
+    {
+      "id": "scan-006",
+      "student": "Sreymom Pich",
+      "studentId": "SC-1210",
+      "session": "SE302 · Lab B",
+      "location": "Building C, Room 101",
+      "submittedAt": "Today, 10:22",
+      "recordedAt": "2026-07-15T10:22:15",
+      "status": "Late",
+      "distanceMeters": 15
+    },
+    {
+      "id": "scan-007",
+      "student": "Dara Meas",
+      "studentId": "SC-1222",
+      "session": "CS201 · Intro Class",
+      "location": "Building B, Room 105",
+      "submittedAt": "Today, 10:30",
+      "recordedAt": "2026-07-15T10:30:02",
+      "status": "Present",
+      "distanceMeters": 6
+    },
+    {
+      "id": "scan-008",
+      "student": "Bopha Heng",
+      "studentId": "SC-1235",
+      "session": "SE401 · Tutorial",
+      "location": "Building A, Hall 1",
+      "submittedAt": "Yesterday, 14:05",
+      "recordedAt": "2026-07-14T14:05:48",
+      "status": "Present",
+      "distanceMeters": 11
+    },
+    {
+      "id": "scan-009",
+      "student": "Kosal Phan",
+      "studentId": "SC-1240",
+      "session": "SE302 · Lab B",
+      "location": "Outside approved zone",
+      "submittedAt": "Yesterday, 14:40",
+      "recordedAt": "2026-07-14T14:40:19",
+      "status": "Outside Location",
+      "distanceMeters": 210
+    },
+    {
+      "id": "scan-010",
+      "student": "Chenda Long",
+      "studentId": "SC-1251",
+      "session": "CS201 · Intro Class",
+      "location": "Building B, Room 105",
+      "submittedAt": "Yesterday, 15:02",
+      "recordedAt": "2026-07-14T15:02:27",
+      "status": "Absent",
+      "distanceMeters": null
+    }
+  ]
+}
