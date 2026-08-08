@@ -1,16 +1,55 @@
 import { describe, expect, it } from 'vitest';
-import { StudentService } from './student.service';
+import {
+  buildStudentFilters,
+  buildStudentMetrics,
+} from '../core/utils/student-stats.util';
+import { Student } from '../models/student.model';
 
-describe('StudentService', () => {
-  it('loads student management data from students mock JSON', () => {
-    const service = new StudentService();
-    const page = service.getStudentManagement();
+const sample: Student[] = [
+  {
+    studentId: 'SC-1001',
+    name: 'Chihea',
+    email: 'chihea@smartcampus.edu',
+    course: 'SE401',
+    year: 'Year 1',
+    attendanceRate: 100,
+    status: 'Active',
+    loginEnabled: true,
+    hasAccount: true,
+  },
+  {
+    studentId: 'SC-1002',
+    name: 'Another Student',
+    email: 'another@smartcampus.edu',
+    course: 'SE302',
+    year: 'Year 2',
+    attendanceRate: 50,
+    status: 'Review',
+    loginEnabled: false,
+    hasAccount: false,
+  },
+];
 
-    expect(page.title).toBe('Students');
-    expect(page.metrics).toHaveLength(3);
-    expect(page.students.length).toBeGreaterThan(0);
-    expect(page.filters.statusOptions).toContain('Active');
-    expect(page.students.every((student) => Boolean(student.studentId))).toBe(true);
-    expect(page.metrics[0].value).toBe(String(page.students.length));
+describe('student-stats util', () => {
+  it('builds the three summary metrics from the student list', () => {
+    const metrics = buildStudentMetrics(sample);
+
+    expect(metrics).toHaveLength(3);
+    expect(metrics[0].label).toBe('Total students');
+    expect(metrics[0].value).toBe('2');
+    expect(metrics[1].value).toBe('1');
+    expect(metrics[2].value).toBe('1');
+  });
+
+  it('derives filters with unique courses plus status options', () => {
+    const filters = buildStudentFilters(sample);
+
+    expect(filters.statusOptions).toContain('Active');
+    expect(filters.courseOptions).toEqual(['All classes', 'SE401', 'SE302']);
+  });
+
+  it('returns only the "All classes" option when there are no students', () => {
+    const filters = buildStudentFilters([]);
+    expect(filters.courseOptions).toEqual(['All classes']);
   });
 });

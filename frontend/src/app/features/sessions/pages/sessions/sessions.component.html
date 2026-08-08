@@ -3,7 +3,8 @@
     <div class="sessions-page__copy">
       <h1 id="sessions-title">Attendance sessions</h1>
       <p>
-        Create a class session at an approved campus location, display a short-lived QR code, and
+        Create a class session at an approved campus location, display a short-lived QR students can
+        open with the iPhone Camera app, and
         close the session when class ends.
       </p>
     </div>
@@ -69,7 +70,7 @@
                 Refresh QR
               </button>
               <button type="button" class="sessions-page__btn-secondary" (click)="copyPayload()">
-                Copy payload
+                Copy scan link
               </button>
             </div>
           </div>
@@ -94,13 +95,13 @@
 
       <div class="sessions-page__open-body">
         <p class="sessions-page__open-lead">
-          Start a new attendance session for your class. Students will scan a short-lived QR code tied
-          to an approved campus location.
+          Start a new attendance session for your class. Students can scan the short-lived QR with the
+          iPhone Camera app or mark present in the student app.
         </p>
         <ul class="sessions-page__open-points">
           <li>Pick a campus zone with geofence radius</li>
           <li>Set the late threshold in minutes</li>
-          <li>Display a rotating QR for students</li>
+          <li>Display a rotating QR (opens student scan link)</li>
         </ul>
         <button
           type="button"

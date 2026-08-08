@@ -1,8 +1,13 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
-import { UserRole } from '../../common/constants/roles.constant';
+import { USER_ROLES, UserRole } from '../../common/constants/roles.constant';
 import { verifyPassword } from '../../common/utils/password.util';
+import { StudentsService } from '../students/students.service';
 import { UserResponseDto } from '../users/dto/user-response.dto';
 import { UsersService } from '../users/users.service';
 import { AuthSessionResponseDto } from './dto/auth-session-response.dto';
@@ -18,6 +23,7 @@ export class AuthService {
 
   constructor(
     private readonly usersService: UsersService,
+    private readonly studentsService: StudentsService,
     private readonly configService: ConfigService,
   ) {
     this.tokenSecret =
@@ -34,6 +40,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    if (user.role === USER_ROLES.student) {
+      await this.assertStudentLoginEnabled(user.studentId);
+    }
+
     const profile = this.usersService.toResponse(user);
     const accessToken = this.signToken(profile.id, profile.role);
 
@@ -41,6 +51,21 @@ export class AuthService {
       accessToken,
       user: profile,
     };
+  }
+
+  /** Block login when the linked student profile has login access disabled. */
+  private async assertStudentLoginEnabled(
+    studentId: string | null | undefined,
+  ): Promise<void> {
+    if (!studentId) {
+      return;
+    }
+    const student = await this.studentsService.findByStudentId(studentId);
+    if (student && !student.loginEnabled) {
+      throw new ForbiddenException(
+        'This student account is disabled. Contact your administrator.',
+      );
+    }
   }
 
   private signToken(userId: string, role: UserRole): string {

@@ -1,7 +1,9 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { hashPassword } from '../../common/utils/password.util';
+import { StudentEntity } from '../../database/entities/student.entity';
 import { UserEntity } from '../../database/entities/user.entity';
+import { StudentsService } from '../students/students.service';
 import { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
 
@@ -23,6 +25,9 @@ describe('AuthService', () => {
     findByEmail: jest.Mock;
     findById: jest.Mock;
     toResponse: UsersService['toResponse'];
+  };
+  let students: {
+    findByStudentId: jest.Mock;
   };
 
   const admin = makeUser({
@@ -59,6 +64,18 @@ describe('AuthService', () => {
     [student.id]: student,
   };
 
+  const activeStudentProfile: StudentEntity = {
+    studentId: 'SC-1024',
+    name: 'Sok Dara',
+    email: 'sok.dara@smartcampus.edu',
+    course: 'SE401',
+    year: 'Year 3',
+    attendanceRate: 94,
+    status: 'Active',
+    loginEnabled: true,
+    userId: 'u-student-1',
+  };
+
   beforeEach(() => {
     users = {
       findByEmail: jest.fn(async (email: string) => byEmail[email] ?? null),
@@ -72,13 +89,23 @@ describe('AuthService', () => {
       }),
     };
 
+    students = {
+      findByStudentId: jest.fn(async (studentId: string) =>
+        studentId === 'SC-1024' ? activeStudentProfile : null,
+      ),
+    };
+
     const config = {
       get: jest.fn((key: string) =>
         key === 'jwt.secret' ? 'test-secret' : undefined,
       ),
     } as unknown as ConfigService;
 
-    service = new AuthService(users as unknown as UsersService, config);
+    service = new AuthService(
+      users as unknown as UsersService,
+      students as unknown as StudentsService,
+      config,
+    );
   });
 
   it('normalizes email before matching a user', async () => {
@@ -113,6 +140,20 @@ describe('AuthService', () => {
         password: 'wrong-password',
       }),
     ).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('blocks login when the student login access is disabled', async () => {
+    students.findByStudentId = jest.fn(async () => ({
+      ...activeStudentProfile,
+      loginEnabled: false,
+    }));
+
+    await expect(
+      service.login({
+        email: 'student@smartcampus.edu',
+        password: 'student123',
+      }),
+    ).rejects.toThrow(ForbiddenException);
   });
 
   it('verifies a token issued during login', async () => {

@@ -39,6 +39,8 @@
               class="login-toggle"
               [class.login-toggle--on]="student.loginEnabled"
               [class.login-toggle--off]="!student.loginEnabled"
+              [class.login-toggle--disabled]="!student.hasAccount"
+              [disabled]="!student.hasAccount"
               [attr.aria-pressed]="student.loginEnabled"
               [attr.aria-label]="
                 (student.loginEnabled ? 'Disable' : 'Enable') +
@@ -51,7 +53,7 @@
                 <span class="login-toggle__thumb"></span>
               </span>
               <span class="login-toggle__label">
-                {{ student.loginEnabled ? 'Active' : 'Inactive' }}
+                {{ student.hasAccount ? (student.loginEnabled ? 'Active' : 'Inactive') : 'No account' }}
               </span>
             </button>
           </div>

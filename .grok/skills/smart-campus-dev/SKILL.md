@@ -81,7 +81,11 @@ frontend/src/app/
 - After login: always `router.navigateByUrl(auth.homePathForRole(role))`.
 - Roles type: `'admin' | 'teacher' | 'student'` (`models/user.model.ts`).
 - Frontend login calls Nest `POST /api/auth/login` and stores the real access
-  token; keep demo account chips aligned with backend `DEMO_USERS`.
+  token in `localStorage` key `smartcampus_auth_session`.
+- **No demo login chips** — students sign in with personal accounts created by
+  an admin (`POST /api/students` with password, or generic `POST /api/users`).
+  Only admin/teacher/Chihea are seeded. Login access is enforced server-side via
+  `students.login_enabled` (403 for disabled accounts).
 
 ## UI patterns already in the app
 
@@ -116,9 +120,9 @@ backend/src/
   config/
   database/          # data-source, migrations, seeders (scaffold)
   modules/
-    auth/            # implemented: POST /api/auth/login
-    users/           # account and role boundary
-    students/
+    auth/            # implemented: POST /api/auth/login (+ login_enabled check)
+    users/           # implemented: POST /api/users (admin account provisioning)
+    students/        # implemented: GET/POST /api/students, PATCH /:id/access
     dashboard/
     attendance/
     locations/
@@ -141,6 +145,10 @@ When implementing API modules:
    (same live QR as teacher), then `POST /api/attendance/submit` and
    `GET /api/attendance/me` (in-memory). Keep mock admin `AttendanceService`
    separate until admin records go live.
+9. Live student accounts: `StudentService` (frontend) ↔ `StudentsModule`/
+   `UsersModule` (Nest, TypeORM users + students tables). When adding account
+   features, keep the link `users.student_id` ↔ `students.student_id` and
+   enforce `students.login_enabled` at login.
 
 ## Style / SCSS
 

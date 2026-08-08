@@ -1,21 +1,55 @@
 <section class="students-page" aria-labelledby="students-title">
   <header class="students-page__header">
     <div class="students-page__copy">
-      <h1 id="students-title">{{ page.title }}</h1>
-      <p>{{ page.subtitle }}</p>
+      <h1 id="students-title">{{ title }}</h1>
+      <p>{{ subtitle }}</p>
     </div>
   </header>
 
+  @if (alert(); as message) {
+    <div class="students-page__alert">
+      <app-alert [alert]="message" />
+    </div>
+  }
+
   <section class="students-page__metrics" aria-label="Student summary">
-    @for (metric of page.metrics; track metric.label; let index = $index) {
+    @for (metric of metrics(); track metric.label; let index = $index) {
       <app-stat-card [card]="metric" [animationDelay]="index * 70" />
     }
   </section>
 
   <section class="students-page__workspace" aria-label="Student directory">
     <div class="students-page__toolbar">
-      <app-student-filter [filters]="page.filters" />
+      <app-student-filter [filters]="filters()" />
+      <button
+        type="button"
+        class="students-page__add"
+        [attr.aria-expanded]="showForm()"
+        (click)="showForm.set(!showForm())"
+      >
+        {{ showForm() ? 'Close form' : 'Add student account' }}
+      </button>
     </div>
-    <app-student-table [students]="students()" (loginToggle)="onLoginToggle($event)" />
+
+    @if (showForm()) {
+      <app-student-form-card
+        [courseOptions]="formCourseOptions()"
+        (create)="onStudentCreated($event)"
+        (cancel)="showForm.set(false)"
+      />
+    }
+
+    @if (loading()) {
+      <p class="students-page__empty">Loading students…</p>
+    } @else if (students().length === 0) {
+      <p class="students-page__empty">
+        No students yet. Add the first student account above.
+      </p>
+    } @else {
+      <app-student-table
+        [students]="students()"
+        (loginToggle)="onLoginToggle($event)"
+      />
+    }
   </section>
 </section>

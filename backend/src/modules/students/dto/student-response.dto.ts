@@ -1,5 +1,3 @@
-export type StudentStatus = 'Active' | 'Review' | 'Inactive';
-
 export interface StudentResponseDto {
   studentId: string;
   name: string;
@@ -7,6 +5,8 @@ export interface StudentResponseDto {
   course: string;
   year: string;
   attendanceRate: number;
-  status: StudentStatus;
+  status: string;
   loginEnabled: boolean;
+  /** True when a login account exists (users row linked via user_id). */
+  hasAccount: boolean;
 }

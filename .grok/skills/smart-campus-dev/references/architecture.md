@@ -16,9 +16,9 @@ smart-campus-system/
 
 | Feature folder | Page(s) | Route(s) | Service | Mock data |
 |----------------|---------|----------|---------|-----------|
-| `features/auth` | login | `/auth/login` | `AuthService` | in-service demo users |
+| `features/auth` | login | `/auth/login` | `AuthService` | none (live API; no demo chips) |
 | `features/dashboard` | dashboard | `/dashboard` | `DashboardService` | `dashboard-attendance.json` |
-| `features/students` | students | `/students` | `StudentService` | `students.json` |
+| `features/students` | students | `/students` | `StudentService` | **live API** (`GET/POST /api/students`, `PATCH /:id/access`) |
 | `features/attendance` | admin-records, student-scan | `/attendance`, `/student/scan` | `AttendanceService` (+ auth for scan) | `attendance-records.json` |
 | `features/locations` | locations | `/locations` | `LocationService` | `locations.json` (+ attendance/students for detail) |
 | `features/sessions` | empty folder | `/sessions` placeholder | — | — |
@@ -33,7 +33,7 @@ smart-campus-system/
 | `attendance-chart` | Dashboard |
 | `recent-scan-list` / `recent-scan-item` | Dashboard |
 | `student-filter` / `student-table` | Students |
-| `student-form-card` | (available; form card pattern) |
+| `student-form-card` | Students (Add student account form — name, ID, email, class, year, password) |
 | `attendance-filter` / `attendance-records-table` | Admin attendance |
 | `location-filter` / `location-table` / `location-detail-dialog` | Locations |
 
@@ -42,8 +42,8 @@ smart-campus-system/
 | File | Main types |
 |------|------------|
 | `user.model.ts` | `User`, `UserRole` |
-| `auth.model.ts` | `AuthSession`, `LoginRequest`, `DemoAccount` |
-| `student.model.ts` | `Student`, filters, management page shape |
+| `auth.model.ts` | `AuthSession`, `LoginRequest` |
+| `student.model.ts` | `Student` (+ `hasAccount`), `CreateStudentRequest` |
 | `attendance.model.ts` | `AttendanceRecord`, filter state, admin page shape |
 | `location.model.ts` | `CampusLocation`, `LocationDetail`, filters |
 | `api-response.model.ts` | generic API envelope (for future HTTP) |
@@ -58,15 +58,15 @@ smart-campus-system/
 
 | Module | Status |
 |--------|--------|
-| `auth` | Working demo login (`POST /api/auth/login`), HMAC-ish demo tokens |
-| `users` | Registered account/role boundary with frontend-aligned user contract |
-| `students` | Registered module with frontend-aligned student contract |
+| `auth` | Live login (`POST /api/auth/login`), HMAC-signed tokens, enforces `students.login_enabled` (403 for disabled) |
+| `users` | **Live** account provisioning: `POST /api/users` (admin); links student accounts to profiles |
+| `students` | **Live** directory: `GET /api/students`, `POST /api/students` (+ account), `PATCH /:id/access` |
 | `dashboard` | Registered module with frontend-aligned dashboard contract |
 | `attendance` | Registered module with frontend-aligned attendance contract |
 | `locations` | Registered module with frontend-aligned location contracts |
 | `sessions` | Registered boundary; frontend page is still a placeholder |
 | `reports` | Registered boundary; frontend page is still a placeholder |
-| TypeORM / migrations | Config folders present; not the live data source for UI yet |
+| TypeORM / migrations | Users/students rows persist via TypeORM `synchronize: true`; sessions still in-memory |
 
 All backend routes use the `/api` global prefix. Feature modules contain
 `<feature>.controller.ts`, `<feature>.service.ts`, and `<feature>.module.ts`.
@@ -92,6 +92,8 @@ This cross-mock join is intentional for the admin “who is in this zone” view
 
 ## Security notes (demo stage)
 
-- Passwords and tokens are for local demos only.
+- Seeded passwords are for local demos only; every student has a **personal
+  account** (no shared demo student logins).
 - Frontend session is localStorage JSON, not production JWT validation.
-- Role checks are client-side guards; production must enforce roles on the API.
+- Role checks are enforced on the API for the live modules (auth, users,
+  students, sessions, attendance) via `AuthGuard` + `RolesGuard`.

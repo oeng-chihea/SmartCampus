@@ -8,14 +8,16 @@ This folder holds **Grok skills** for the Smart Campus Attendance System. Skills
 |-------|------|---------|
 | **smart-campus-workflow** | `smart-campus-workflow/SKILL.md` | Page-to-page user flows by role (admin, teacher, student) |
 | **smart-campus-teacher** | `smart-campus-teacher/SKILL.md` | Teacher role: what they can/can’t do, Sessions/QR workflow |
+| **smart-campus-student** | `smart-campus-student/SKILL.md` | Student role: per-student login accounts, provisioning, scan flow |
 | **smart-campus-dev** | `smart-campus-dev/SKILL.md` | Where to put code, routes, services, and mock data when building features |
 
 ### Reference docs (detailed maps)
 
 | File | Contents |
 |------|----------|
-| `smart-campus-workflow/references/page-flows.md` | Full route map, guards, layouts, demo accounts |
+| `smart-campus-workflow/references/page-flows.md` | Full route map, guards, layouts, seeded accounts |
 | `smart-campus-teacher/references/teacher-workflow.md` | Teacher happy path, session/QR sequence, file index |
+| `smart-campus-student/references/student-account-flow.md` | Student account provisioning, login control, scan sequence, test script |
 | `smart-campus-dev/references/architecture.md` | Folder layout, feature modules, backend status |
 
 ---
@@ -29,9 +31,11 @@ This folder holds **Grok skills** for the Smart Campus Attendance System. Skills
    - `.grok/skills/smart-campus-workflow/references/page-flows.md`
 2. **Teacher-only duties** — open:
    - `.grok/skills/smart-campus-teacher/SKILL.md`
-3. **Know where code lives** — open:
+3. **Student accounts & scan flow** — open:
+   - `.grok/skills/smart-campus-student/SKILL.md`
+4. **Know where code lives** — open:
    - `.grok/skills/smart-campus-dev/SKILL.md`
-4. **Run the app** (from repo root):
+5. **Run the app** (from repo root):
 
 ```bash
 # Frontend (Angular) — http://127.0.0.1:4200
@@ -43,7 +47,7 @@ npm run backend:start
 
 ### With Grok (AI assistant)
 
-- **Slash:** `/smart-campus-workflow`, `/smart-campus-teacher`, or `/smart-campus-dev`
+- **Slash:** `/smart-campus-workflow`, `/smart-campus-teacher`, `/smart-campus-student`, or `/smart-campus-dev`
 - **Ask in chat:** e.g. “What can a teacher do?” or “Teacher session QR flow”
 - Grok auto-loads skills when your request matches the skill `description`.
 
@@ -66,13 +70,16 @@ npm run backend:start
 | `teacher` | `/dashboard` | Admin layout; **no** Students; **Sessions** is primary live work |
 | `student` | `/student/scan` | Student scan page only |
 
-### Demo logins
+### Seeded login accounts
 
 | Role | Email | Password |
 |------|-------|----------|
 | Admin | `admin@smartcampus.edu` | `admin123` |
 | Teacher | `teacher@smartcampus.edu` | `teacher123` |
-| Student | `student@smartcampus.edu` | `student123` |
+| Student (initial) | `chihea@smartcampus.edu` | `chihea123` |
+
+Every other student account is created by an admin from **Students → Add student account**
+(no shared demo student accounts). See `smart-campus-student/SKILL.md`.
 
 ---
 
@@ -119,6 +126,8 @@ Update the workflow skill when you:
 - Wire more frontend services to the **live API**
 
 Update **smart-campus-teacher** when teacher permissions, Sessions UI, or QR rules change.
+
+Update **smart-campus-student** when account provisioning, login access control, or the scan flow changes.
 
 Update the dev skill when folder conventions or feature structure change.
 

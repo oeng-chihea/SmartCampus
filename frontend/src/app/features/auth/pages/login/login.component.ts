@@ -4,30 +4,23 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { AlertMessage, FieldErrors } from '../../../../models/alert.model';
-import { DemoAccount } from '../../../../models/auth.model';
 import { UserRole } from '../../../../models/user.model';
 import { AlertService } from '../../../../services/alert.service';
 import { AuthService } from '../../../../services/auth.service';
 import { AlertComponent } from '../../../../shared/components/alert/alert.component';
 
-const ROLE_COPY: Record<
-  UserRole,
-  { title: string; lead: string; demoHeading: string }
-> = {
+const ROLE_COPY: Record<UserRole, { title: string; lead: string }> = {
   admin: {
     title: 'Admin sign in',
     lead: 'Sign in with your SmartCampus admin account to manage students and attendance.',
-    demoHeading: 'Admin demo account',
   },
   teacher: {
     title: 'Teacher sign in',
     lead: 'Sign in with your SmartCampus teacher account to run sessions and QR attendance.',
-    demoHeading: 'Teacher demo account',
   },
   student: {
     title: 'Student sign in',
     lead: 'Sign in with your SmartCampus student account to submit attendance.',
-    demoHeading: 'Student demo account',
   },
 };
 
@@ -68,11 +61,6 @@ export class LoginComponent {
   readonly copy = computed(() => {
     const role = this.portalRole();
     return role ? ROLE_COPY[role] : null;
-  });
-
-  readonly demoAccounts = computed<DemoAccount[]>(() => {
-    const role = this.portalRole();
-    return role ? this.auth.demoAccountsForRole(role) : [];
   });
 
   hasFieldError(field: string): boolean {
@@ -134,16 +122,36 @@ export class LoginComponent {
       }
 
       this.clearValidation();
-      await this.router.navigateByUrl(this.auth.homePathForRole(result.user.role));
+      await this.router.navigateByUrl(
+        this.resolvePostLoginUrl(result.user.role),
+      );
     } finally {
       this.submitting.set(false);
     }
   }
 
-  fillDemo(account: DemoAccount): void {
-    this.email = account.email;
-    this.password = account.password;
-    this.clearValidation();
+  /**
+   * Prefer a safe same-app returnUrl (from iPhone Camera deep link),
+   * otherwise the role home path.
+   */
+  private resolvePostLoginUrl(role: UserRole): string {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    if (returnUrl && this.isSafeReturnUrl(returnUrl)) {
+      return returnUrl;
+    }
+    return this.auth.homePathForRole(role);
+  }
+
+  /** Only allow in-app relative paths (block open redirects). */
+  private isSafeReturnUrl(url: string): boolean {
+    if (!url.startsWith('/') || url.startsWith('//')) {
+      return false;
+    }
+    // Reject protocol-relative / absolute URLs sneaked into the param.
+    if (url.includes('://')) {
+      return false;
+    }
+    return true;
   }
 
   private applyLoginFailure(message: string): void {

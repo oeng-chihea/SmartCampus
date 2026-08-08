@@ -50,6 +50,11 @@ export class StudentAttendanceService {
     return error instanceof HttpErrorResponse && error.status === 409;
   }
 
+  /** 403 from submit = the scanned QR token was rejected (expired/rotated/closed). */
+  isQrRejected(error: unknown): boolean {
+    return error instanceof HttpErrorResponse && error.status === 403;
+  }
+
   mapError(error: unknown, fallback: string): string {
     if (error instanceof HttpErrorResponse) {
       if (error.status === 0) {

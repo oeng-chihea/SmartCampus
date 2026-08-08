@@ -1,4 +1,4 @@
-import { User, UserRole } from './user.model';
+import { User } from './user.model';
 
 export interface LoginRequest {
   email: string;
@@ -8,11 +8,4 @@ export interface LoginRequest {
 export interface AuthSession {
   accessToken: string;
   user: User;
-}
-
-export interface DemoAccount {
-  email: string;
-  password: string;
-  role: UserRole;
-  label: string;
 }
