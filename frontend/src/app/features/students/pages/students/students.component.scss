@@ -63,9 +63,52 @@
 }
 
 .students-page__toolbar {
+  align-items: center;
   border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
   min-width: 0;
   padding-bottom: 12px;
+}
+
+.students-page__add {
+  background: var(--color-brand);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+  padding: 10px 16px;
+  transition:
+    background 180ms ease,
+    box-shadow 180ms ease,
+    transform 160ms ease;
+}
+
+.students-page__add:hover {
+  background: var(--color-brand-strong);
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+  transform: translateY(-1px);
+}
+
+.students-page__add:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.students-page__alert {
+  animation: fade-in 300ms ease both;
+  min-width: 0;
+}
+
+.students-page__empty {
+  color: var(--color-muted);
+  font-size: 0.95rem;
+  margin: 0;
+  padding: 24px 4px;
+  text-align: center;
 }
 
 @keyframes fade-in {

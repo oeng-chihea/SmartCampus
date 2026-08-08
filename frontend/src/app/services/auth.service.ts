@@ -4,32 +4,10 @@ import { firstValueFrom } from 'rxjs';
 import { API_ENDPOINTS } from '../core/constants/api-endpoints';
 import { authLoginPath } from '../core/constants/app-routes';
 import { environment } from '../../environments/environment';
-import { AuthSession, DemoAccount, LoginRequest } from '../models/auth.model';
+import { AuthSession, LoginRequest } from '../models/auth.model';
 import { User, UserRole } from '../models/user.model';
 
 const STORAGE_KEY = 'smartcampus_auth_session';
-
-/** Demo account chips on the login form (must match backend demo users). */
-const DEMO_ACCOUNTS: DemoAccount[] = [
-  {
-    email: 'admin@smartcampus.edu',
-    password: 'admin123',
-    role: 'admin',
-    label: 'admin · admin@smartcampus.edu',
-  },
-  {
-    email: 'teacher@smartcampus.edu',
-    password: 'teacher123',
-    role: 'teacher',
-    label: 'teacher · teacher@smartcampus.edu',
-  },
-  {
-    email: 'student@smartcampus.edu',
-    password: 'student123',
-    role: 'student',
-    label: 'student · student@smartcampus.edu',
-  },
-];
 
 const LOGIN_ROLES: UserRole[] = ['admin', 'teacher', 'student'];
 
@@ -51,16 +29,9 @@ export class AuthService {
   readonly isAuthenticated = computed(() => this.sessionSignal() !== null);
   readonly role = computed(() => this.sessionSignal()?.user.role ?? null);
 
-  readonly demoAccounts: DemoAccount[] = DEMO_ACCOUNTS;
-
   /** Bearer token for protected API calls, or null when logged out. */
   getAccessToken(): string | null {
     return this.sessionSignal()?.accessToken ?? null;
-  }
-
-  /** Demo chips for a single role portal (admin / teacher / student). */
-  demoAccountsForRole(role: UserRole): DemoAccount[] {
-    return DEMO_ACCOUNTS.filter((account) => account.role === role);
   }
 
   isLoginRole(value: string | null | undefined): value is UserRole {
@@ -150,7 +121,7 @@ export class AuthService {
         return 'Cannot reach the API. Start the backend on port 3000.';
       }
       if (error.status === 401) {
-        return 'Invalid email or password. Use the demo account below.';
+        return 'Invalid email or password.';
       }
       const body = error.error as { message?: string | string[] } | null;
       if (typeof body?.message === 'string') {

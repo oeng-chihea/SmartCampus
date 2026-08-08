@@ -3,6 +3,8 @@ export const API_ENDPOINTS = {
   authLogin: '/auth/login',
   users: '/users',
   students: '/students',
+  studentAccess: (studentId: string) =>
+    `/students/${encodeURIComponent(studentId)}/access`,
   attendance: '/attendance',
   attendancePreview: '/attendance/preview',
   attendanceSubmit: '/attendance/submit',

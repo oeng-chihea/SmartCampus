@@ -168,6 +168,61 @@
   max-width: 36rem;
 }
 
+.student-scan__intro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.student-scan__btn--camera {
+  background: linear-gradient(135deg, #0f766e, #115e59);
+  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.28);
+  color: #fff;
+  flex-shrink: 0;
+  min-height: 42px;
+  padding: 0 14px;
+}
+
+.student-scan__btn--camera:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* ── In-app camera ──────────────────────────────────────────── */
+
+.student-scan__camera {
+  background: #fff;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.student-scan__camera-frame {
+  background: #0f172a;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.student-scan__camera-region {
+  min-height: 280px;
+  width: 100%;
+}
+
+.student-scan__camera-region video {
+  border-radius: 14px !important;
+  object-fit: cover;
+}
+
+.student-scan__camera-hint {
+  color: var(--color-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  margin: 0;
+  text-align: center;
+}
+
 .student-scan__btn {
   align-items: center;
   border: 0;

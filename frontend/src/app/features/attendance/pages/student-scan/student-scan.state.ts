@@ -12,6 +12,9 @@ export class StudentScanPageState {
   readonly error = signal<string | null>(null);
   readonly success = signal<string | null>(null);
   readonly info = signal<string | null>(null);
+  /** In-app camera scanner open on this page. */
+  readonly cameraOpen = signal(false);
+  readonly cameraError = signal<string | null>(null);
   readonly openSessions = signal<OpenLiveSessionCard[]>([]);
   readonly lastRecord = signal<AttendanceRecord | null>(null);
   readonly myRecords = signal<AttendanceRecord[]>([]);
@@ -69,6 +72,25 @@ export class StudentScanPageState {
 
   setError(message: string | null): void {
     this.error.set(message);
+  }
+
+  setInfo(message: string | null): void {
+    this.info.set(message);
+  }
+
+  openCamera(): void {
+    this.cameraError.set(null);
+    this.error.set(null);
+    this.cameraOpen.set(true);
+  }
+
+  closeCamera(): void {
+    this.cameraOpen.set(false);
+    this.cameraError.set(null);
+  }
+
+  setCameraError(message: string | null): void {
+    this.cameraError.set(message);
   }
 
   hasSubmittedFor(sessionTitle: string): boolean {

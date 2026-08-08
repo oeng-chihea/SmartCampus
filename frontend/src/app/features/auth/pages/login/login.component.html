@@ -64,18 +64,6 @@
         {{ submitting() ? 'Signing in…' : 'Sign in' }}
       </button>
     </form>
-
-    <div class="login-card__demos">
-      <p>{{ copy()?.demoHeading }}</p>
-      <div class="login-card__demo-list">
-        @for (account of demoAccounts(); track account.email) {
-          <button type="button" class="login-card__demo" (click)="fillDemo(account)">
-            <strong>{{ account.role }}</strong>
-            <span>{{ account.email }}</span>
-          </button>
-        }
-      </div>
-    </div>
   </section>
 } @else {
   <section class="login-card" aria-labelledby="login-invalid-title">

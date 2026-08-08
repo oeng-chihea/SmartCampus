@@ -15,7 +15,7 @@ routing, also load **`smart-campus-workflow`**. For code placement, use
 
 Detailed steps: `references/teacher-workflow.md`.
 
-## Demo account
+## Seeded account
 
 | Field | Value |
 |-------|--------|
@@ -123,4 +123,5 @@ Requires `Authorization: Bearer <accessToken>`.
 | Skill | Use for |
 |-------|---------|
 | `smart-campus-workflow` | All roles page graph |
+| `smart-campus-student` | Student login accounts + scan flow (other half of the loop) |
 | `smart-campus-dev` | File placement, Nest/Angular conventions |

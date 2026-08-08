@@ -174,71 +174,6 @@
   opacity: 0.72;
 }
 
-.login-card__demos {
-  animation: rise-in 480ms cubic-bezier(0.22, 1, 0.36, 1) 300ms both;
-  border-top: 1px solid var(--border-subtle);
-  margin-top: clamp(28px, 4vw, 36px);
-  padding-top: clamp(18px, 2.8vw, 24px);
-}
-
-.login-card__demos > p {
-  color: var(--color-muted);
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  margin: 0 0 12px;
-  text-transform: uppercase;
-}
-
-.login-card__demo-list {
-  display: grid;
-  gap: 10px;
-}
-
-.login-card__demo {
-  align-items: flex-start;
-  background: var(--surface-muted);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  color: inherit;
-  cursor: pointer;
-  display: grid;
-  gap: 3px;
-  font: inherit;
-  min-height: 58px;
-  padding: 14px 16px;
-  text-align: left;
-  transition:
-    border-color 180ms ease,
-    background 180ms ease,
-    transform 160ms ease,
-    box-shadow 180ms ease;
-  width: 100%;
-}
-
-.login-card__demo:hover {
-  background: var(--color-brand-faint);
-  border-color: var(--color-brand-muted);
-  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.1);
-  transform: translateY(-1px);
-}
-
-.login-card__demo:active {
-  transform: translateY(0) scale(0.99);
-}
-
-.login-card__demo strong {
-  color: var(--color-brand-deep);
-  font-size: 0.92rem;
-  text-transform: capitalize;
-}
-
-.login-card__demo span {
-  color: var(--color-muted);
-  font-size: 0.86rem;
-  word-break: break-word;
-}
-
 /* ── Keyframes ─────────────────────────────────────────────── */
 
 @keyframes card-enter {
@@ -332,15 +267,13 @@
   .login-card__header,
   .login-card__field,
   .login-card__submit,
-  .login-card__demos,
   .login-card__field-error,
   .login-card__alert-wrap,
   .login-card input.is-invalid {
     animation: none !important;
   }
 
-  .login-card__submit:hover:not(:disabled),
-  .login-card__demo:hover {
+  .login-card__submit:hover:not(:disabled) {
     transform: none;
   }
 }

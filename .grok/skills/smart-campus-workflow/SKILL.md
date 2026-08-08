@@ -48,7 +48,9 @@ Read `references/page-flows.md` for the full route table and file map.
         └── failure                 → stay on login (error message)
 ```
 
-- Demo accounts are listed on the login form; clicking one fills email/password.
+- No demo chips on the login form — every student signs in with their **own
+  account** (created by an admin; only Chihea is pre-seeded). See
+  `smart-campus-student/SKILL.md`.
 - Session stored in `localStorage` key `smartcampus_auth_session`.
 
 ### 2) Admin / teacher shell (shared layout)
@@ -85,7 +87,7 @@ Read `references/page-flows.md` for the full route table and file map.
 | Any admin page | Sidebar → Reports | `/reports` (placeholder) |
 | Locations table | Select a row | Opens **location detail dialog** (same page, modal) |
 | Locations dialog | Close | Stay on `/locations` |
-| Students table | Toggle login | Same page; updates student status in memory |
+| Students table | Toggle login / Add student account | Same page; toggles persist via `PATCH /api/students/:id/access`, creation via `POST /api/students` |
 | Attendance | Apply filters | Same page; filters records client-side |
 | Any admin page | Sign out | `/auth/login` |
 
@@ -135,18 +137,20 @@ Pages do **not** yet call the Nest API for dashboard/students/attendance/locatio
 |------|---------|----------------|
 | Login | `AuthService` | Nest `POST /api/auth/login` + `localStorage` token |
 | Dashboard | `DashboardService` | `dashboard-attendance.json` |
-| Students | `StudentService` | `students.json` |
+| Students | `StudentService` | **Nest live** `GET/POST /api/students`, `PATCH /api/students/:id/access` (admin) |
 | Attendance | `AttendanceService` | `attendance-records.json` |
 | Locations | `LocationService` | `locations.json` + attendance/students for detail people |
 | Sessions | `SessionService` | Nest `/api/sessions` + `/api/locations` (Bearer token) |
 | Student scan | `StudentAttendanceService` | Nest open sessions + submit + me |
 
-Backend today: auth login, locations list, sessions/QR, and student attendance submit are live (in-memory).
-Dashboard/students/attendance admin pages still use mock JSON.
+Backend today: auth login, locations list, sessions/QR, student attendance submit,
+and the student directory/accounts API are live. Dashboard/attendance/locations
+admin pages still use mock JSON.
 
 ## How to explain the product to someone new
 
-1. Start at **login** with a demo account.
+1. Start at **login** — admin/teacher use the seeded accounts; students use the
+   personal account their admin created (only Chihea is pre-seeded).
 2. **Admin** lands on **Dashboard** → sidebar includes Students, Attendance, Locations, Sessions, Reports.
 3. **Teacher** lands on **Dashboard** → same shell **without Students**; primary live work is **Sessions** (QR).
 4. **Student** lands on **Scan** → sees same live QR as teacher → **Mark me present**.
@@ -166,6 +170,7 @@ Dashboard/students/attendance admin pages still use mock JSON.
 |-------|---------|
 | **`smart-campus-dev`** | File placement and coding conventions |
 | **`smart-campus-teacher`** | Teacher-only capabilities, Sessions/QR loop, restrictions |
+| **`smart-campus-student`** | Student accounts, provisioning, login control, scan flow |
 
 ## Teacher role (short)
 

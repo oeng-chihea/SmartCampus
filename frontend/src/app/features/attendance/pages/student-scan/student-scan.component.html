@@ -40,30 +40,66 @@
       </div>
     </header>
 
-    <!-- Intro + primary refresh action -->
+    <!-- Intro + primary actions -->
     <div class="student-scan__intro">
       <p class="student-scan__lead">
-        When your teacher opens a class session, the same live QR appears here. Check the class,
-        then mark yourself present.
+        Scan the teacher’s live QR with the <strong>iPhone Camera</strong> app (opens this page),
+        use <strong>Scan with camera</strong> below, or tap <strong>Mark me present</strong>.
       </p>
-      <button
-        type="button"
-        class="student-scan__btn student-scan__btn--ghost student-scan__btn--refresh"
-        (click)="refresh()"
-        [disabled]="state.loading()"
-      >
-        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" class="student-scan__refresh-icon">
-          <path
-            d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6M16.5 4.5v4h-4"
-            stroke="currentColor"
-            stroke-width="1.7"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-        {{ state.loading() ? 'Loading…' : 'Refresh sessions' }}
-      </button>
+      <div class="student-scan__intro-actions">
+        <button
+          type="button"
+          class="student-scan__btn student-scan__btn--camera"
+          (click)="toggleCamera()"
+          [disabled]="!!state.submittingId()"
+        >
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" class="student-scan__refresh-icon">
+            <path
+              d="M3.5 6.5h2l1-1.5h7l1 1.5h2A1.5 1.5 0 0 1 17 8v7a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 1 15V8A1.5 1.5 0 0 1 2.5 6.5ZM10 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linejoin="round"
+            />
+          </svg>
+          {{ state.cameraOpen() ? 'Stop camera' : 'Scan with camera' }}
+        </button>
+        <button
+          type="button"
+          class="student-scan__btn student-scan__btn--ghost student-scan__btn--refresh"
+          (click)="refresh()"
+          [disabled]="state.loading()"
+        >
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" class="student-scan__refresh-icon">
+            <path
+              d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6M16.5 4.5v4h-4"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          {{ state.loading() ? 'Loading…' : 'Refresh sessions' }}
+        </button>
+      </div>
     </div>
+
+    @if (state.cameraError()) {
+      <p class="student-scan__alert student-scan__alert--error" role="alert">
+        {{ state.cameraError() }}
+      </p>
+    }
+
+    @if (state.cameraOpen()) {
+      <section class="student-scan__camera" aria-label="Camera QR scanner">
+        <div class="student-scan__camera-frame">
+          <div [id]="cameraRegionId" #cameraHost class="student-scan__camera-region"></div>
+        </div>
+        <p class="student-scan__camera-hint">
+          Point your phone at the teacher’s QR. Attendance is recorded automatically when the code
+          is recognized.
+        </p>
+      </section>
+    }
 
     @if (state.error()) {
       <p class="student-scan__alert student-scan__alert--error" role="alert">{{ state.error() }}</p>
@@ -131,7 +167,7 @@
                       [alt]="'QR code for ' + session.title"
                     />
                     <p class="student-scan__qr-note">
-                      Same live code as your teacher · refreshes automatically
+                      Same live code as your teacher · scan with iPhone Camera or the button below
                     </p>
                     <p class="student-scan__expires">
                       Expires {{ session.qr.expiresAt | date: 'mediumTime' }}

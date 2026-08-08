@@ -10,6 +10,18 @@ export interface Student {
   status: 'Active' | 'Review' | 'Inactive';
   /** When false, student cannot sign in (FR-01 access control). */
   loginEnabled: boolean;
+  /** True when a login account exists for this student (users row linked). */
+  hasAccount?: boolean;
+}
+
+/** Payload for the admin “Add student account” form (creates profile + login). */
+export interface CreateStudentRequest {
+  studentId: string;
+  name: string;
+  email: string;
+  course: string;
+  year: string;
+  password: string;
 }
 
 export interface StudentFilters {

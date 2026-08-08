@@ -1,5 +1,5 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { CanActivateFn, Router, UrlTree } from '@angular/router';
 import { authLoginPath } from '../constants/app-routes';
 import { UserRole } from '../../models/user.model';
 import { AuthService } from '../../services/auth.service';
@@ -24,8 +24,19 @@ function loginPathForGuardRoles(roles: UserRole[]): string {
   return authLoginPath('student');
 }
 
+/** Keep deep-link query (e.g. ?payload=…) so Camera → login → scan still works. */
+function loginTreeWithReturn(
+  router: Router,
+  loginPath: string,
+  attemptedUrl: string,
+): UrlTree {
+  return router.createUrlTree([loginPath], {
+    queryParams: attemptedUrl ? { returnUrl: attemptedUrl } : undefined,
+  });
+}
+
 /** Requires an authenticated session (FR-01). */
-export const authGuard: CanActivateFn = () => {
+export const authGuard: CanActivateFn = (_route, state) => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
@@ -34,17 +45,21 @@ export const authGuard: CanActivateFn = () => {
   }
 
   // Generic auth wall — student portal is the safest default (no role chooser).
-  return router.createUrlTree([authLoginPath('student')]);
+  return loginTreeWithReturn(router, authLoginPath('student'), state.url);
 };
 
 /** Requires one of the given roles. */
 export const roleGuard = (roles: UserRole[]): CanActivateFn => {
-  return () => {
+  return (_route, state) => {
     const auth = inject(AuthService);
     const router = inject(Router);
 
     if (!auth.isAuthenticated()) {
-      return router.createUrlTree([loginPathForGuardRoles(roles)]);
+      return loginTreeWithReturn(
+        router,
+        loginPathForGuardRoles(roles),
+        state.url,
+      );
     }
 
     if (auth.hasRole(...roles)) {

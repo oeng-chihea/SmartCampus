@@ -10,18 +10,17 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-soft);
   color: #ffffff;
-  height: 100%;
   min-width: 0;
-  padding: clamp(16px, 2vw, 18px);
+  padding: clamp(16px, 2vw, 20px);
   width: 100%;
 }
 
-.student-form-card p,
-.student-form-card h2 {
+.student-form-card__header p,
+.student-form-card__header h2 {
   margin: 0;
 }
 
-.student-form-card p {
+.student-form-card__header p {
   color: var(--color-brand-muted);
   font-size: 0.7rem;
   font-weight: 700;
@@ -29,17 +28,32 @@
   text-transform: uppercase;
 }
 
-.student-form-card h2 {
+.student-form-card__header h2 {
   color: #ffffff;
   font-size: 1.08rem;
   font-weight: 700;
   margin-top: 4px;
 }
 
+.student-form-card__header span {
+  color: rgba(255, 255, 255, 0.72);
+  display: block;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin-top: 8px;
+  max-width: 72ch;
+}
+
 .student-form-card form {
   display: grid;
   gap: 12px;
   margin-top: 16px;
+}
+
+.student-form-card__grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .student-form-card label {
@@ -79,17 +93,43 @@
   color: var(--color-brand-deep);
 }
 
+.student-form-card__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .student-form-card button {
-  background: var(--color-brand);
   border: 0;
   color: #ffffff;
   cursor: pointer;
   font-weight: 700;
-  margin-top: 2px;
+  min-height: 42px;
+  padding: 0 18px;
+  width: auto;
 }
 
-.student-form-card button:hover {
+.student-form-card .student-form-card__submit {
+  background: var(--color-brand);
+}
+
+.student-form-card .student-form-card__submit:hover {
   background: #22c55e;
+}
+
+.student-form-card .student-form-card__cancel {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.student-form-card .student-form-card__cancel:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 640px) {
+  .student-form-card__grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @keyframes slide-up {

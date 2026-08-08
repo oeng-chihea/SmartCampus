@@ -1,19 +1,65 @@
 <section class="student-form-card" aria-labelledby="student-form-heading">
-  <p>Quick action</p>
-  <h2 id="student-form-heading">Add student draft</h2>
-  <form>
-    <label>
-      Full name
-      <input type="text" placeholder="Student full name" />
-    </label>
-    <label>
-      Class
-      <select>
-        @for (course of courseOptions(); track course) {
-          <option>{{ course }}</option>
-        }
-      </select>
-    </label>
-    <button type="button">Create draft</button>
+  <header class="student-form-card__header">
+    <p>Quick action</p>
+    <h2 id="student-form-heading">Add student account</h2>
+    <span>
+      Creates the student profile and a login account (role: student) so the
+      student can sign in with their own credentials and scan attendance.
+    </span>
+  </header>
+
+  <form (ngSubmit)="submit()" novalidate>
+    <div class="student-form-card__grid">
+      <label>
+        Full name
+        <input type="text" name="name" [(ngModel)]="name" required placeholder="Student full name" />
+      </label>
+
+      <label>
+        Student ID
+        <input type="text" name="studentId" [(ngModel)]="studentId" required placeholder="e.g. SC-1002" />
+      </label>
+
+      <label>
+        Email
+        <input type="email" name="email" [(ngModel)]="email" required placeholder="name@smartcampus.edu" />
+      </label>
+
+      <label>
+        Class
+        <select name="course" [(ngModel)]="course">
+          @if (courseOptions().length === 0) {
+            <option value="">No classes yet</option>
+          }
+          @for (course of courseOptions(); track course) {
+            <option [value]="course">{{ course }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        Year
+        <input type="text" name="year" [(ngModel)]="year" required placeholder="e.g. Year 1" />
+      </label>
+
+      <label>
+        Login password
+        <input
+          type="text"
+          name="password"
+          [(ngModel)]="password"
+          required
+          minlength="6"
+          placeholder="Temporary password for the student"
+        />
+      </label>
+    </div>
+
+    <div class="student-form-card__actions">
+      <button type="button" class="student-form-card__cancel" (click)="cancel.emit()">
+        Cancel
+      </button>
+      <button type="submit" class="student-form-card__submit">Create account</button>
+    </div>
   </form>
 </section>

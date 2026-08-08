@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { USER_ROLES } from '../../common/constants/roles.constant';
 import { hashPassword } from '../../common/utils/password.util';
 import { LOCATION_SEED } from '../../modules/locations/data/locations.seed';
@@ -9,12 +9,33 @@ import { StudentEntity } from '../entities/student.entity';
 import { UserEntity } from '../entities/user.entity';
 
 /**
- * Idempotent demo rows so login + locations work after a fresh schema sync.
+ * Idempotent seed rows so login + locations work after a fresh schema sync.
  * Safe to run on every boot: skips existing primary keys.
+ *
+ * Student login accounts are NOT demo data — only the initial student
+ * (Chihea) is seeded. Every other student account is created by an admin
+ * through the real `POST /students` flow.
  */
 @Injectable()
 export class DemoSeeder implements OnModuleInit {
   private readonly logger = new Logger(DemoSeeder.name);
+
+  /** Legacy demo student login accounts (removed from the real flow). */
+  private readonly LEGACY_STUDENT_USER_IDS = [
+    'u-student-1',
+    'u-student-2',
+    'u-student-3',
+    'u-student-4',
+  ];
+
+  /** Legacy demo student profiles (superseded by the initial Chihea seed). */
+  private readonly LEGACY_STUDENT_PROFILE_IDS = [
+    'SC-1024',
+    'SC-1088',
+    'SC-1132',
+    'SC-1196',
+    'SC-1201',
+  ];
 
   constructor(
     @InjectRepository(UserEntity)
@@ -26,10 +47,32 @@ export class DemoSeeder implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
+    await this.removeLegacyDemoStudents();
     await this.seedUsers();
     await this.seedStudents();
     await this.seedLocations();
-    this.logger.log('Demo seed completed (users, students, locations)');
+    this.logger.log('Seed completed (users, students, locations)');
+  }
+
+  /** Delete leftover demo student accounts/profiles from earlier seeds. */
+  private async removeLegacyDemoStudents(): Promise<void> {
+    const users = await this.users.find({
+      where: { id: In(this.LEGACY_STUDENT_USER_IDS) },
+    });
+    if (users.length) {
+      await this.users.remove(users);
+      this.logger.log(`Removed ${users.length} legacy demo student account(s)`);
+    }
+
+    const profiles = await this.students.find({
+      where: { studentId: In(this.LEGACY_STUDENT_PROFILE_IDS) },
+    });
+    if (profiles.length) {
+      await this.students.remove(profiles);
+      this.logger.log(
+        `Removed ${profiles.length} legacy demo student profile(s)`,
+      );
+    }
   }
 
   private async seedUsers(): Promise<void> {
@@ -58,12 +101,12 @@ export class DemoSeeder implements OnModuleInit {
         studentId: null,
       },
       {
-        id: 'u-student-1',
-        name: 'Sok Dara',
-        email: 'student@smartcampus.edu',
-        password: 'student123',
+        id: 'u-chihea',
+        name: 'Chihea',
+        email: 'chihea@smartcampus.edu',
+        password: 'chihea123',
         role: USER_ROLES.student,
-        studentId: 'SC-1024',
+        studentId: 'SC-1001',
       },
     ];
 
@@ -89,59 +132,15 @@ export class DemoSeeder implements OnModuleInit {
   private async seedStudents(): Promise<void> {
     const rows: Array<Partial<StudentEntity>> = [
       {
-        studentId: 'SC-1024',
-        name: 'Sok Dara',
-        email: 'sok.dara@smartcampus.edu',
+        studentId: 'SC-1001',
+        name: 'Chihea',
+        email: 'chihea@smartcampus.edu',
         course: 'SE401',
-        year: 'Year 3',
-        attendanceRate: 94,
-        status: 'Active',
-        loginEnabled: true,
-        userId: 'u-student-1',
-      },
-      {
-        studentId: 'SC-1088',
-        name: 'Maly Chan',
-        email: 'maly.chan@smartcampus.edu',
-        course: 'SE401',
-        year: 'Year 2',
-        attendanceRate: 87,
-        status: 'Review',
-        loginEnabled: true,
-        userId: null,
-      },
-      {
-        studentId: 'SC-1132',
-        name: 'Rithy Kun',
-        email: 'rithy.kun@smartcampus.edu',
-        course: 'SE302',
-        year: 'Year 4',
-        attendanceRate: 91,
-        status: 'Active',
-        loginEnabled: true,
-        userId: null,
-      },
-      {
-        studentId: 'SC-1196',
-        name: 'Nita Lim',
-        email: 'nita.lim@smartcampus.edu',
-        course: 'CS201',
         year: 'Year 1',
-        attendanceRate: 72,
-        status: 'Review',
-        loginEnabled: false,
-        userId: null,
-      },
-      {
-        studentId: 'SC-1201',
-        name: 'Vannak Sok',
-        email: 'vannak.sok@smartcampus.edu',
-        course: 'SE401',
-        year: 'Year 3',
-        attendanceRate: 96,
+        attendanceRate: 100,
         status: 'Active',
         loginEnabled: true,
-        userId: null,
+        userId: 'u-chihea',
       },
     ];
 
@@ -150,6 +149,11 @@ export class DemoSeeder implements OnModuleInit {
         where: { studentId: row.studentId as string },
       });
       if (existing) {
+        // Backfill the user-account link when the account is added later.
+        if (existing.userId !== row.userId) {
+          existing.userId = row.userId ?? existing.userId;
+          await this.students.save(existing);
+        }
         continue;
       }
       await this.students.save(this.students.create(row));

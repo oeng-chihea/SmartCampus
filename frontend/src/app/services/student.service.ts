@@ -1,56 +1,85 @@
-import studentsMock from '../../assets/mock-data/students.json';
-import { Student, StudentFilters, StudentManagement } from '../models/student.model';
-import { StatCard } from '../shared/components/stat-card/stat-card.model';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
+import { API_ENDPOINTS } from '../core/constants/api-endpoints';
+import {
+  CreateStudentRequest,
+  Student,
+} from '../models/student.model';
+import { AuthService } from './auth.service';
 
-interface StudentsMockFile {
-  title: string;
-  subtitle: string;
-  filters: StudentFilters;
-  students: Student[];
-}
+export {
+  buildStudentFilters,
+  buildStudentMetrics,
+} from '../core/utils/student-stats.util';
 
-const mock = studentsMock as StudentsMockFile;
-
+/**
+ * Live Nest APIs for the admin Students page:
+ * list the directory, create a student (+ login account), toggle login access.
+ */
+@Injectable({ providedIn: 'root' })
 export class StudentService {
-  getStudentManagement(): StudentManagement {
-    const students = mock.students;
+  private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
 
-    return {
-      title: mock.title,
-      subtitle: mock.subtitle,
-      metrics: this.buildMetrics(students),
-      filters: mock.filters,
-      students,
-    };
+  listStudents(): Promise<Student[]> {
+    return firstValueFrom(
+      this.http.get<Student[]>(this.url(API_ENDPOINTS.students), {
+        headers: this.authHeaders(),
+      }),
+    );
   }
 
-  private buildMetrics(students: Student[]): StatCard[] {
-    const total = students.length;
-    const active = students.filter((student) => student.status === 'Active').length;
-    const review = students.filter((student) => student.status === 'Review').length;
+  createStudent(request: CreateStudentRequest): Promise<Student> {
+    return firstValueFrom(
+      this.http.post<Student>(this.url(API_ENDPOINTS.students), request, {
+        headers: this.authHeaders(),
+      }),
+    );
+  }
 
-    return [
-      {
-        label: 'Total students',
-        value: String(total),
-        helper: 'Registered for attendance scanning',
-        icon: 'students',
-        tone: 'blue',
-      },
-      {
-        label: 'Active scanners',
-        value: String(active),
-        helper: 'Can submit attendance this term',
-        icon: 'attendance',
-        tone: 'green',
-      },
-      {
-        label: 'Needs review',
-        value: String(review),
-        helper: 'Profile or attendance issues',
-        icon: 'late',
-        tone: 'amber',
-      },
-    ];
+  setLoginEnabled(studentId: string, loginEnabled: boolean): Promise<Student> {
+    return firstValueFrom(
+      this.http.patch<Student>(
+        this.url(API_ENDPOINTS.studentAccess(studentId)),
+        { loginEnabled },
+        { headers: this.authHeaders() },
+      ),
+    );
+  }
+
+  mapError(error: unknown, fallback: string): string {
+    if (error instanceof HttpErrorResponse) {
+      if (error.status === 0) {
+        return 'Cannot reach the API. Start the backend on port 3000.';
+      }
+      if (error.status === 401) {
+        return 'Session expired. Sign out and sign in again.';
+      }
+      if (error.status === 403) {
+        return 'You need admin access for this action.';
+      }
+      const body = error.error as { message?: string | string[] } | null;
+      if (typeof body?.message === 'string') {
+        return body.message;
+      }
+      if (Array.isArray(body?.message)) {
+        return body.message.join(', ');
+      }
+    }
+    return fallback;
+  }
+
+  private url(path: string): string {
+    return `${environment.apiBaseUrl}${path}`;
+  }
+
+  private authHeaders(): HttpHeaders {
+    const token = this.auth.getAccessToken();
+    if (!token) {
+      return new HttpHeaders();
+    }
+    return new HttpHeaders({ Authorization: `Bearer ${token}` });
   }
 }

@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import * as QRCode from 'qrcode';
+import { buildAttendanceScanUrl } from '../../../../core/utils/qr-scan.util';
 import { FieldErrors } from '../../../../models/alert.model';
 import { AlertService } from '../../../../services/alert.service';
 import { SessionService } from '../../../../services/session.service';
@@ -84,11 +85,8 @@ export class SessionsPageFlow {
     this.state.beginQrLoad(sessionId);
     try {
       const qr = await this.sessionService.getQr(sessionId);
-      const dataUrl = await QRCode.toDataURL(qr.payload, {
-        width: 240,
-        margin: 2,
-        color: { dark: '#14532d', light: '#ffffff' },
-      });
+      // Deep-link URL so iPhone Camera can open /student/scan?payload=...
+      const dataUrl = await this.qrDataUrlFromPayload(qr.payload);
       this.state.setQrResult(qr, dataUrl);
       this.state.startQrRefresh(() => {
         void this.refreshQrQuiet(sessionId);
@@ -134,9 +132,10 @@ export class SessionsPageFlow {
       return;
     }
     try {
-      await navigator.clipboard.writeText(payload);
+      const link = buildAttendanceScanUrl(payload);
+      await navigator.clipboard.writeText(link);
       this.state.setPageSuccess(
-        'QR payload copied. Students can paste it on the scan page later.',
+        'Scan link copied. Students can open it (or scan the QR) to mark present.',
       );
     } catch {
       this.state.setPageError('Could not copy to clipboard.');
@@ -214,14 +213,19 @@ export class SessionsPageFlow {
     }
     try {
       const qr = await this.sessionService.getQr(sessionId);
-      const dataUrl = await QRCode.toDataURL(qr.payload, {
-        width: 240,
-        margin: 2,
-        color: { dark: '#14532d', light: '#ffffff' },
-      });
+      const dataUrl = await this.qrDataUrlFromPayload(qr.payload);
       this.state.setQrResult(qr, dataUrl);
     } catch {
       this.state.clearQrPanel();
     }
+  }
+
+  /** Encode a deep-link URL (not the raw token alone) into the QR image. */
+  private qrDataUrlFromPayload(rawPayload: string): Promise<string> {
+    return QRCode.toDataURL(buildAttendanceScanUrl(rawPayload), {
+      width: 240,
+      margin: 2,
+      color: { dark: '#14532d', light: '#ffffff' },
+    });
   }
 }

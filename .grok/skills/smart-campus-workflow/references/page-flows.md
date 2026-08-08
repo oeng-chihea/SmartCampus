@@ -11,7 +11,7 @@ Last reviewed against the Angular routes, Sessions live API, and role skills.
 | `/auth/login` | AuthLayout | `LoginComponent` | (via parent) | Active — **live API login** |
 | `/auth` (empty) | — | redirect → `login` | — | Active |
 | `/dashboard` | AdminLayout | `DashboardComponent` | auth + admin\|teacher | Active (mock data) |
-| `/students` | AdminLayout | `StudentsComponent` | auth + **admin only** | Active (mock data) |
+| `/students` | AdminLayout | `StudentsComponent` | auth + **admin only** | **Live API** directory + create account + login toggle |
 | `/attendance` | AdminLayout | `AdminRecordsComponent` | auth + admin\|teacher | Active (mock data) |
 | `/locations` | AdminLayout | `LocationsComponent` | auth + admin\|teacher | Active (mock data) |
 | `/sessions` | AdminLayout | `SessionsComponent` | auth + admin\|teacher | **Live API** create / QR / close |
@@ -111,13 +111,18 @@ Any /dashboard|/students|... request:
   → close → selectedDetail = null
 ```
 
-### F. Students in-page flow (no route change, admin only)
+### F. Students in-page flow (no route change, admin only, live API)
 
 ```text
-/students
-  → StudentTable shows list
+/students (loads)
+  → GET /api/students → directory + metrics + filters (hasAccount flag)
+  → “Add student account” → form card
+      → POST /api/students { studentId, name, email, course, year, password }
+      → profile + login account created → table refresh
   → login toggle → onLoginToggle(studentId)
-  → flips loginEnabled + status Active/Inactive (in-memory only)
+      → disabled when hasAccount=false (label “No account”)
+      → PATCH /api/students/:id/access { loginEnabled }
+      → status Active/Inactive follows the toggle
 ```
 
 ## Layouts
@@ -141,16 +146,21 @@ Any /dashboard|/students|... request:
 - Live: payload paste + Present/Late via Nest attendance API.
 - Planned later: GPS / Outside Location (FR-02 geofence phase).
 
-## Demo accounts (frontend + backend aligned)
+## Seeded accounts
 
 | Email | Password | Role | studentId |
 |-------|----------|------|-----------|
 | `admin@smartcampus.edu` | `admin123` | admin | — |
 | `teacher@smartcampus.edu` | `teacher123` | teacher | — |
-| `student@smartcampus.edu` | `student123` | student | `SC-1024` |
+| `chihea@smartcampus.edu` | `chihea123` | student | `SC-1001` |
 
-Frontend: `frontend/src/app/services/auth.service.ts`  
-Backend: `backend/src/modules/auth/auth.service.ts` (`POST /api/auth/login`)
+All other student accounts are **created by an admin** (Students → Add student
+account → `POST /api/students`). Login access is enforced via
+`students.login_enabled` — disabled students get 403 at login.
+
+Frontend: `frontend/src/app/services/auth.service.ts`, `services/student.service.ts`  
+Backend: `backend/src/modules/auth/auth.service.ts`, `modules/students/`  
+Detailed flow: `.grok/skills/smart-campus-student/references/student-account-flow.md`
 
 ## Feature requirement tags (from code comments)
 
@@ -169,6 +179,7 @@ Backend: `backend/src/modules/auth/auth.service.ts` (`POST /api/auth/login`)
 | Reports page | Placeholder | Export / analytics |
 | Dashboard / attendance / locations UI | Mock JSON | Optional live API later |
 | Teacher live feed of scans | Not built | Session-side attendance list |
+| Student account bulk import | Admin creates one-by-one | CSV/SIS import + first-login password reset |
 | Persistence | In-memory sessions/locations/scans | TypeORM / MySQL later |
 | Courses / requests / notifications | Mentioned in older plans | Not in attendance-first nav |
 
@@ -191,6 +202,7 @@ frontend/src/app/
   features/sessions/pages/sessions/      # live teacher QR flow
   features/attendance/pages/student-scan/ # live student submit
   services/auth.service.ts
+  services/student.service.ts      # live /students directory + accounts
   services/session.service.ts
   services/student-attendance.service.ts
   models/session.model.ts

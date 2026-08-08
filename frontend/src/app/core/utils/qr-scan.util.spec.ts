@@ -1,0 +1,39 @@
+import { describe, expect, it } from 'vitest';
+import {
+  buildAttendanceScanUrl,
+  extractAttendancePayload,
+  isRawAttendancePayload,
+  sessionIdFromPayload,
+} from './qr-scan.util';
+
+const RAW = 'SMARTCAMPUS|SES-001|token-abc';
+
+describe('qr-scan.util', () => {
+  it('detects raw attendance payloads', () => {
+    expect(isRawAttendancePayload(RAW)).toBe(true);
+    expect(isRawAttendancePayload('hello')).toBe(false);
+    expect(isRawAttendancePayload('SMARTCAMPUS|only-two')).toBe(false);
+  });
+
+  it('builds a deep-link URL with the payload query', () => {
+    const url = buildAttendanceScanUrl(RAW, 'https://campus.example');
+    expect(url).toBe(
+      'https://campus.example/student/scan?payload=SMARTCAMPUS%7CSES-001%7Ctoken-abc',
+    );
+  });
+
+  it('extracts payload from raw text and deep-link URLs', () => {
+    expect(extractAttendancePayload(RAW)).toBe(RAW);
+    expect(
+      extractAttendancePayload(
+        'https://campus.example/student/scan?payload=SMARTCAMPUS%7CSES-001%7Ctoken-abc',
+      ),
+    ).toBe(RAW);
+    expect(extractAttendancePayload('https://example.com/?x=1')).toBeNull();
+  });
+
+  it('reads session id from a valid payload', () => {
+    expect(sessionIdFromPayload(RAW)).toBe('SES-001');
+    expect(sessionIdFromPayload('nope')).toBeNull();
+  });
+});
