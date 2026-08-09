@@ -88,7 +88,9 @@ export class SessionsComponent implements OnInit, OnDestroy {
         key: 'status',
         header: 'Status',
         type: 'badge',
-        width: 'minmax(72px, 0.5fr)',
+        // Wider track + left edge so the badge lines up under STATUS (away from Actions).
+        width: 'minmax(6.5rem, 0.7fr)',
+        align: 'start',
         value: (row) => row.status,
         badgeVariant: (row) => row.status.toLowerCase(),
       },
@@ -96,7 +98,9 @@ export class SessionsComponent implements OnInit, OnDestroy {
         key: 'actions',
         header: 'Actions',
         type: 'actions',
-        width: 'minmax(160px, 0.95fr)',
+        // Keep Actions compact and independent of Status alignment.
+        width: '4.5rem',
+        align: 'center',
         actions: (row) => {
           if (row.status !== 'Open') {
             return [];
