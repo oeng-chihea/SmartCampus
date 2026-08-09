@@ -14,8 +14,11 @@ export type SessionStatus =
  */
 export const QR_TTL_SECONDS = 300;
 
-/** Default minutes after session open when scans become Late. */
-export const DEFAULT_LATE_AFTER_MINUTES = 15;
+/**
+ * Minimum lead time when creating a session due time (minutes ahead of now).
+ * Teachers must set attendance open-until slightly in the future.
+ */
+export const MIN_DUE_AHEAD_MINUTES = 1;
 
 /** Prefix encoded into the QR payload for student scanners. */
 export const QR_PAYLOAD_PREFIX = 'SMARTCAMPUS';

@@ -6,7 +6,7 @@ export interface AttendancePreviewResponseDto {
   sessionId: string;
   title: string;
   locationName: string;
-  lateAfterMinutes: number;
+  dueAt: string | null;
   /** True when this student already has a record for the session. */
   alreadySubmitted: boolean;
 }

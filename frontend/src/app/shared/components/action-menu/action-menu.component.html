@@ -1,0 +1,50 @@
+<div
+  class="action-menu"
+  [class.action-menu--open]="open()"
+  (mouseenter)="onMenuMouseEnter()"
+  (mouseleave)="onMenuMouseLeave()"
+>
+  <button
+    type="button"
+    class="action-menu__trigger"
+    [attr.aria-label]="ariaLabel()"
+    [attr.aria-expanded]="open()"
+    [attr.aria-haspopup]="'menu'"
+    [attr.aria-controls]="open() ? listId() : null"
+    [disabled]="visibleItems().length === 0"
+    (click)="toggle($event)"
+    (keydown)="onTriggerKeydown($event)"
+  >
+    <span class="action-menu__dots" aria-hidden="true">
+      <span></span>
+      <span></span>
+      <span></span>
+    </span>
+  </button>
+
+  @if (open() && visibleItems().length > 0) {
+    <div
+      class="action-menu__panel"
+      role="presentation"
+      [class.action-menu__panel--up]="openUpward()"
+      (click)="$event.stopPropagation()"
+    >
+      <ul [id]="listId()" class="action-menu__list" role="menu">
+        @for (item of visibleItems(); track item.id) {
+          <li role="none">
+            <button
+              type="button"
+              class="action-menu__item"
+              role="menuitem"
+              [class.action-menu__item--danger]="item.variant === 'danger'"
+              [disabled]="item.disabled === true"
+              (click)="selectItem(item, $event)"
+            >
+              {{ item.label }}
+            </button>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</div>

@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Post,
   UseGuards,
@@ -61,5 +64,12 @@ export class SessionsController {
   @Roles(USER_ROLES.admin, USER_ROLES.teacher)
   close(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.sessionsService.close(id, user);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles(USER_ROLES.admin, USER_ROLES.teacher)
+  remove(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.sessionsService.remove(id, user);
   }
 }

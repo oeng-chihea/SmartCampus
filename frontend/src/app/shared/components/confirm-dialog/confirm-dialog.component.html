@@ -1,0 +1,55 @@
+<app-modal-dialog
+  [eyebrow]="eyebrow()"
+  [title]="title()"
+  size="md"
+  [spacious]="false"
+  [lockDismiss]="lockDismiss()"
+  closeAriaLabel="Close confirmation dialog"
+  (closed)="cancel()"
+>
+  <div class="confirm-dialog">
+    <span class="confirm-dialog__icon" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        width="22"
+        height="22"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+        />
+        <line x1="12" y1="9" x2="12" y2="13" />
+        <line x1="12" y1="17" x2="12.01" y2="17" />
+      </svg>
+    </span>
+    <div class="confirm-dialog__copy">
+      <p class="confirm-dialog__message">{{ message() }}</p>
+      @if (detail()) {
+        <p class="confirm-dialog__detail">{{ detail() }}</p>
+      }
+    </div>
+  </div>
+
+  <footer modalFooter class="confirm-dialog__footer">
+    <button
+      type="button"
+      class="confirm-dialog__btn confirm-dialog__btn--secondary"
+      (click)="cancel()"
+      [disabled]="busy()"
+    >
+      {{ cancelLabel() }}
+    </button>
+    <button
+      type="button"
+      class="confirm-dialog__btn confirm-dialog__btn--danger"
+      (click)="confirm()"
+      [disabled]="busy()"
+    >
+      {{ busy() ? busyLabel() || confirmLabel() : confirmLabel() }}
+    </button>
+  </footer>
+</app-modal-dialog>

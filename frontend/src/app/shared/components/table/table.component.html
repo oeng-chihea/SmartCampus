@@ -26,7 +26,13 @@
           [style.grid-template-columns]="gridTemplate()"
         >
           @for (column of columns(); track column.key) {
-            <span role="columnheader">{{ column.header }}</span>
+            <span
+              role="columnheader"
+              class="data-table__cell"
+              [class.data-table__cell--start]="isStartAligned(column)"
+              [class.data-table__cell--end]="isEndAligned(column)"
+              [class.data-table__cell--center]="isCenterAligned(column)"
+            >{{ column.header }}</span>
           }
         </div>
 
@@ -45,9 +51,12 @@
               @switch (cellType(column)) {
                 @case ('primary') {
                   <div
-                    class="data-table__primary"
+                    class="data-table__primary data-table__cell"
                     role="cell"
                     [attr.data-label]="column.header"
+                    [class.data-table__cell--start]="isStartAligned(column)"
+                    [class.data-table__cell--end]="isEndAligned(column)"
+                    [class.data-table__cell--center]="isCenterAligned(column)"
                   >
                     <strong>{{ primaryValue(column, row).title }}</strong>
                     @if (primaryValue(column, row).subtitle; as subtitle) {
@@ -57,39 +66,32 @@
                 }
                 @case ('badge') {
                   <div
-                    class="data-table__status-cell"
+                    class="data-table__status-cell data-table__cell"
                     role="cell"
                     [attr.data-label]="column.header"
-                    [class.data-table__status-cell--end]="column.align !== 'start'"
+                    [class.data-table__cell--start]="isStartAligned(column)"
+                    [class.data-table__cell--end]="isEndAligned(column)"
+                    [class.data-table__cell--center]="isCenterAligned(column)"
                   >
                     <span [class]="badgeClass(column, row)">{{ badgeLabel(column, row) }}</span>
                   </div>
                 }
                 @case ('actions') {
                   <div
-                    class="data-table__actions-cell"
+                    class="data-table__actions-cell data-table__cell"
                     role="cell"
                     [attr.data-label]="column.header"
+                    [class.data-table__cell--start]="isStartAligned(column)"
+                    [class.data-table__cell--end]="isEndAligned(column)"
+                    [class.data-table__cell--center]="isCenterAligned(column)"
                   >
                     @if (visibleActions(column, row); as actions) {
                       @if (actions.length > 0) {
-                        <div
-                          class="data-table__action-group"
-                          role="group"
-                          [attr.aria-label]="column.header"
-                        >
-                          @for (action of actions; track action.id) {
-                            <button
-                              type="button"
-                              class="data-table__action-label"
-                              [class.data-table__action-label--danger]="action.variant === 'danger'"
-                              [disabled]="action.disabled === true"
-                              (click)="onAction($event, action.id, row)"
-                            >
-                              {{ action.label }}
-                            </button>
-                          }
-                        </div>
+                        <app-action-menu
+                          [items]="actions"
+                          [ariaLabel]="column.header"
+                          (itemSelect)="onAction($event, row)"
+                        />
                       } @else {
                         <span class="data-table__muted">—</span>
                       }
@@ -97,9 +99,14 @@
                   </div>
                 }
                 @default {
-                  <span role="cell" [attr.data-label]="column.header">{{
-                    textValue(column, row)
-                  }}</span>
+                  <span
+                    role="cell"
+                    class="data-table__cell"
+                    [attr.data-label]="column.header"
+                    [class.data-table__cell--start]="isStartAligned(column)"
+                    [class.data-table__cell--end]="isEndAligned(column)"
+                    [class.data-table__cell--center]="isCenterAligned(column)"
+                  >{{ textValue(column, row) }}</span>
                 }
               }
             }

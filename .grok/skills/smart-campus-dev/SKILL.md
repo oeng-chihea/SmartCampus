@@ -99,7 +99,7 @@ frontend/src/app/
 
 Shared components to reuse first:
 
-- `stat-card`, `student-table`, `student-filter`, `attendance-filter`, `table` (shared data table for locations / attendance / sessions), `attendance-chart`, `recent-scan-list`, `location-filter`, `location-detail-dialog`, `modal-dialog`, `select-dropdown`, `quick-lookup`
+- `stat-card`, `student-table`, `student-filter`, `attendance-filter`, `table` (shared data table for locations / attendance / sessions), `attendance-chart`, `recent-scan-list`, `location-filter`, `location-detail-dialog`, `modal-dialog`, `confirm-dialog`, `select-dropdown`, `quick-lookup`
 
 ### Generic modal dialog (`app-modal-dialog`)
 
@@ -140,11 +140,28 @@ When implementing API modules:
 5. Prefer gradual replacement of mock services with `HttpClient` + `environment.apiBaseUrl`.
 6. All HTTP routes are served below the global `/api` prefix.
 7. Live teacher flow: `SessionService` + Sessions page use auth Bearer token for
-   locations/sessions/QR (in-memory backend; no TypeORM yet).
+   locations/sessions/QR/delete. Page layout:
+   - State → `sessions.state.ts`, flow → `sessions.flow.ts`, shell → component
+   - Session log via shared `app-table`; ⋮ actions: **Show QR**, **Close**, **Delete**
+   - Create form: title, location, **due time** (today) → `dueAt` ISO
+     (replaces removed **Late after** minutes field)
+   - Display helpers: `formatSessionOpened` → `8-8-26/6:32Pm`;
+     `formatSessionDue` → `7:30Pm`; `isSessionPastDue` for student gate;
+     `formatCampusLocationLabel` → `Building A-Room 201` (table + create dialog)
+   - APIs: `POST/GET /api/sessions`, `GET …/:id/qr`, `POST …/:id/close`,
+     `DELETE …/:id`
+   - After `dueAt`, submit is rejected; session stays Open until teacher Close
+     (student UI keeps the card; mark/scan shows `app-confirm-dialog`)
+   - **Delete cascade:** `SessionsService.remove` deletes `attendance_records`
+     for that `session_id`, then removes the session (student history follows)
 8. Live student flow: `StudentAttendanceService` loads `GET /api/sessions/open`
-   (same live QR as teacher), then `POST /api/attendance/submit` and
-   `GET /api/attendance/me` (in-memory). Keep mock admin `AttendanceService`
-   separate until admin records go live.
+   (all Open sessions + same live QR as teacher — **do not filter out past due**),
+   then `POST /api/attendance/submit` (Present only before due; API 403 after due)
+   and `GET /api/attendance/me` (only rows for sessions that still exist; **purges
+   orphan records**). Past-due mark/scan opens shared `app-confirm-dialog`.
+   My attendance UI: shared `app-table` (Session · Location · Recorded · Status);
+   location `formatCampusLocationLabel` → `Building B-Room 105`.
+   Keep mock admin `AttendanceService` separate until admin records go live.
 9. Live student accounts: `StudentService` (frontend) ↔ `StudentsModule`/
    `UsersModule` (Nest, TypeORM users + students tables). When adding account
    features, keep the link `users.student_id` ↔ `students.student_id` and

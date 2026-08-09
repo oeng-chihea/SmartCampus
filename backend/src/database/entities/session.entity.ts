@@ -29,8 +29,13 @@ export class SessionEntity {
   @Column({ type: 'varchar', length: 20 })
   status!: string;
 
-  @Column({ name: 'late_after_minutes', type: 'int', default: 15 })
-  lateAfterMinutes!: number;
+  /**
+   * When student mark-present / scan stops being accepted.
+   * Session may stay Open until the teacher closes it manually.
+   * Nullable for rows created before the due-time feature.
+   */
+  @Column({ name: 'due_at', type: 'datetime', nullable: true })
+  dueAt!: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

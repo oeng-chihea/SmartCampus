@@ -1,10 +1,15 @@
 import { Injectable, inject } from '@angular/core';
 import * as QRCode from 'qrcode';
+import { buildDueAtFromLocalTime } from '../../../../core/utils/date.util';
 import { buildAttendanceScanUrl } from '../../../../core/utils/qr-scan.util';
 import { FieldErrors } from '../../../../models/alert.model';
+import { AttendanceSession } from '../../../../models/session.model';
 import { AlertService } from '../../../../services/alert.service';
 import { SessionService } from '../../../../services/session.service';
 import { SessionsPageState } from './sessions.state';
+
+/** Must stay ahead of backend MIN_DUE_AHEAD_MINUTES. */
+const MIN_DUE_AHEAD_MINUTES = 1;
 
 /**
  * Sessions page flow only — API calls + orchestration.
@@ -44,7 +49,7 @@ export class SessionsPageFlow {
   }
 
   /** Clear a single field error while the teacher edits. */
-  onFieldInput(field: 'title' | 'locationId' | 'lateAfterMinutes'): void {
+  onFieldInput(field: 'title' | 'locationId' | 'dueTime'): void {
     this.state.clearFieldError(field);
     if (this.state.dialogError() && !this.hasAnyFieldError()) {
       this.state.setDialogError(null);
@@ -55,7 +60,7 @@ export class SessionsPageFlow {
     const validation = this.validateCreateForm();
     this.state.setFieldErrors(validation.fieldErrors);
 
-    if (!validation.valid) {
+    if (!validation.valid || !validation.dueAt) {
       this.state.setDialogError(validation.summary || 'Please fix the highlighted fields.');
       return;
     }
@@ -67,7 +72,7 @@ export class SessionsPageFlow {
       const session = await this.sessionService.createSession({
         title: form.title,
         locationId: form.locationId,
-        lateAfterMinutes: form.lateAfterMinutes,
+        dueAt: validation.dueAt,
       });
       this.state.createSucceeded(session.title);
       await this.reload();
@@ -126,6 +131,46 @@ export class SessionsPageFlow {
     }
   }
 
+  async deleteSession(sessionId: string): Promise<boolean> {
+    this.state.beginDelete(sessionId);
+    try {
+      await this.sessionService.deleteSession(sessionId);
+      this.state.removeSession(sessionId);
+      this.state.setPageSuccess('Session deleted and removed from the log.');
+      await this.reload();
+      return true;
+    } catch (error) {
+      this.state.setPageError(
+        this.sessionService.mapError(error, 'Could not delete the session.'),
+      );
+      return false;
+    } finally {
+      this.state.endDelete();
+    }
+  }
+
+  /** Open the confirmation dialog before any destructive API call. */
+  askDelete(session: AttendanceSession): void {
+    this.state.requestDelete(session);
+  }
+
+  /** Close the confirmation dialog without deleting. */
+  cancelDelete(): void {
+    this.state.closeDeleteDialog();
+  }
+
+  /** Run the confirmed delete, then close the dialog (kept open on failure). */
+  async deleteConfirmedSession(): Promise<void> {
+    const target = this.state.deleteTarget();
+    if (!target) {
+      return;
+    }
+    const deleted = await this.deleteSession(target.id);
+    if (deleted) {
+      this.state.closeDeleteDialog();
+    }
+  }
+
   async copyPayload(): Promise<void> {
     const payload = this.state.qr()?.payload;
     if (!payload) {
@@ -150,13 +195,15 @@ export class SessionsPageFlow {
     valid: boolean;
     fieldErrors: FieldErrors;
     summary: string;
+    dueAt: string | null;
   } {
     const form = this.state.getForm();
     const fieldErrors: FieldErrors = {
       title: null,
       locationId: null,
-      lateAfterMinutes: null,
+      dueTime: null,
     };
+    let dueAt: string | null = null;
 
     if (this.alerts.isBlank(form.title)) {
       fieldErrors['title'] = this.alerts.requiredMessage('Session title');
@@ -172,31 +219,30 @@ export class SessionsPageFlow {
       fieldErrors['locationId'] = 'Choose an active campus location.';
     }
 
-    if (
-      form.lateAfterMinutes === null ||
-      form.lateAfterMinutes === undefined ||
-      Number.isNaN(form.lateAfterMinutes)
-    ) {
-      fieldErrors['lateAfterMinutes'] = this.alerts.requiredMessage('Late after (minutes)');
-    } else if (
-      !Number.isFinite(form.lateAfterMinutes) ||
-      form.lateAfterMinutes < 0 ||
-      form.lateAfterMinutes > 180 ||
-      !Number.isInteger(form.lateAfterMinutes)
-    ) {
-      fieldErrors['lateAfterMinutes'] =
-        'Late after must be a whole number between 0 and 180.';
+    if (this.alerts.isBlank(form.dueTime)) {
+      fieldErrors['dueTime'] = this.alerts.requiredMessage('Due time');
+    } else {
+      dueAt = buildDueAtFromLocalTime(form.dueTime);
+      if (!dueAt) {
+        fieldErrors['dueTime'] = 'Enter a valid due time for today.';
+      } else {
+        const minDueMs = Date.now() + MIN_DUE_AHEAD_MINUTES * 60 * 1000;
+        if (new Date(dueAt).getTime() < minDueMs) {
+          fieldErrors['dueTime'] =
+            `Due time must be at least ${MIN_DUE_AHEAD_MINUTES} minute(s) from now.`;
+          dueAt = null;
+        }
+      }
     }
 
     const firstError =
-      fieldErrors['title'] ||
-      fieldErrors['locationId'] ||
-      fieldErrors['lateAfterMinutes'];
+      fieldErrors['title'] || fieldErrors['locationId'] || fieldErrors['dueTime'];
 
     return {
-      valid: !firstError,
+      valid: !firstError && Boolean(dueAt),
       fieldErrors,
       summary: firstError ?? '',
+      dueAt,
     };
   }
 

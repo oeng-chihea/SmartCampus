@@ -19,13 +19,17 @@ export class SessionsPageState {
   readonly loading = signal(true);
   readonly creating = signal(false);
   readonly closingId = signal<string | null>(null);
+  readonly deletingId = signal<string | null>(null);
   readonly error = signal<string | null>(null);
   readonly success = signal<string | null>(null);
   readonly dialogError = signal<string | null>(null);
   readonly createDialogOpen = signal(false);
   readonly qrLoading = signal(false);
 
-  /** Per-field create-form errors (title / locationId / lateAfterMinutes). */
+  /** Session awaiting delete confirmation (null = confirm dialog closed). */
+  readonly deleteTarget = signal<AttendanceSession | null>(null);
+
+  /** Per-field create-form errors (title / locationId / dueTime). */
   readonly fieldErrors = signal<FieldErrors>({});
 
   // ── Domain data ───────────────────────────────────────────
@@ -38,8 +42,8 @@ export class SessionsPageState {
   // ── Dialog form (ngModel; plain fields) ───────────────────
   title = '';
   locationId = '';
-  /** Empty until the teacher enters a value (required field). */
-  lateAfterMinutes: number | null = 15;
+  /** HTML `type="time"` value (local HH:mm) — when attendance stops. */
+  dueTime = '';
 
   /** Interval handle for QR rotation — not shown in the template. */
   qrRefreshTimer: ReturnType<typeof setInterval> | null = null;
@@ -87,7 +91,9 @@ export class SessionsPageState {
   resetCreateForm(): void {
     this.title = '';
     this.locationId = '';
-    this.lateAfterMinutes = 15;
+    // Default: 30 minutes from now so teachers rarely hit "must be in the future".
+    const due = new Date(Date.now() + 30 * 60 * 1000);
+    this.dueTime = `${String(due.getHours()).padStart(2, '0')}:${String(due.getMinutes()).padStart(2, '0')}`;
     this.dialogError.set(null);
     this.fieldErrors.set({});
   }
@@ -222,15 +228,44 @@ export class SessionsPageState {
     this.closingId.set(null);
   }
 
+  beginDelete(sessionId: string): void {
+    this.error.set(null);
+    this.success.set(null);
+    this.deletingId.set(sessionId);
+  }
+
+  endDelete(): void {
+    this.deletingId.set(null);
+  }
+
+  /** Open the delete confirmation dialog for a session. */
+  requestDelete(session: AttendanceSession): void {
+    this.error.set(null);
+    this.success.set(null);
+    this.deleteTarget.set(session);
+  }
+
+  /** Close the delete confirmation dialog (no-op while the delete is running). */
+  closeDeleteDialog(): void {
+    if (this.deletingId()) {
+      return;
+    }
+    this.deleteTarget.set(null);
+  }
+
+  /** Drop a row locally after a successful API delete (before reload). */
+  removeSession(sessionId: string): void {
+    this.sessions.set(this.sessions().filter((row) => row.id !== sessionId));
+    if (this.selectedSessionId() === sessionId) {
+      this.clearQrPanel();
+    }
+  }
+
   getForm(): SessionsFormState {
-    const late =
-      this.lateAfterMinutes === null || this.lateAfterMinutes === undefined
-        ? NaN
-        : Number(this.lateAfterMinutes);
     return {
       title: this.title.trim(),
       locationId: this.locationId,
-      lateAfterMinutes: late,
+      dueTime: this.dueTime.trim(),
     };
   }
 

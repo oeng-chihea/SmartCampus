@@ -1,4 +1,5 @@
 import { Component, computed, input, output } from '@angular/core';
+import { ActionMenuComponent } from '../action-menu/action-menu.component';
 import { TableAction, TableActionEvent, TableColumn } from './table.model';
 
 /**
@@ -7,6 +8,7 @@ import { TableAction, TableActionEvent, TableColumn } from './table.model';
  */
 @Component({
   selector: 'app-table',
+  imports: [ActionMenuComponent],
   templateUrl: './table.component.html',
   styleUrl: './table.component.scss',
 })
@@ -70,6 +72,30 @@ export class TableComponent<T = unknown> {
     return column.type ?? 'text';
   }
 
+  /**
+   * Resolved horizontal alignment for a column.
+   * Badge / actions default to `end` so they sit on the trailing side of the row.
+   */
+  cellAlign(column: TableColumn<T>): 'start' | 'center' | 'end' {
+    if (column.align) {
+      return column.align;
+    }
+    const type = this.cellType(column);
+    return type === 'badge' || type === 'actions' ? 'end' : 'start';
+  }
+
+  isStartAligned(column: TableColumn<T>): boolean {
+    return this.cellAlign(column) === 'start';
+  }
+
+  isEndAligned(column: TableColumn<T>): boolean {
+    return this.cellAlign(column) === 'end';
+  }
+
+  isCenterAligned(column: TableColumn<T>): boolean {
+    return this.cellAlign(column) === 'center';
+  }
+
   textValue(column: TableColumn<T>, row: T): string {
     const raw = column.value?.(row);
     if (raw == null || raw === '') {
@@ -114,8 +140,7 @@ export class TableComponent<T = unknown> {
     }
   }
 
-  onAction(event: Event, actionId: string, row: T): void {
-    event.stopPropagation();
+  onAction(actionId: string, row: T): void {
     this.actionClick.emit({ actionId, row });
   }
 

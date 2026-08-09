@@ -12,6 +12,10 @@ import { LOCATION_SEED } from '../locations/data/locations.seed';
 import { SessionsService } from '../sessions/sessions.service';
 import { AttendanceService } from './attendance.service';
 
+function dueInMinutes(minutes: number): string {
+  return new Date(Date.now() + minutes * 60 * 1000).toISOString();
+}
+
 describe('AttendanceService', () => {
   let attendance: AttendanceService;
   let sessions: SessionsService;
@@ -80,7 +84,21 @@ describe('AttendanceService', () => {
       ),
     } as unknown as Repository<SessionEntity>;
 
-    sessions = new SessionsService(sessionRepo, locations, auth);
+    const attendanceForSessions = {
+      createQueryBuilder: jest.fn(() => ({
+        delete: jest.fn().mockReturnThis(),
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        execute: jest.fn(async () => ({ affected: 0 })),
+      })),
+    } as unknown as Repository<AttendanceRecordEntity>;
+
+    sessions = new SessionsService(
+      sessionRepo,
+      attendanceForSessions,
+      locations,
+      auth,
+    );
 
     const recordRepo = {
       create: jest.fn((data: Partial<AttendanceRecordEntity>) =>
@@ -119,12 +137,33 @@ describe('AttendanceService', () => {
               row.sessionId === where.sessionId,
           ) ?? null,
       ),
+      delete: jest.fn(async (ids: string | string[]) => {
+        const idList = Array.isArray(ids) ? ids : [ids];
+        recordStore = recordStore.filter((row) => !idList.includes(row.id));
+        return { affected: idList.length };
+      }),
     } as unknown as Repository<AttendanceRecordEntity>;
 
-    attendance = new AttendanceService(recordRepo, sessions, auth);
+    const sessionLookupRepo = {
+      find: jest.fn(async ({ where }: { where: { id: unknown } }) => {
+        // Used by findMine orphan filter — return all open sessions by id.
+        const ids = Array.isArray((where as { id?: { _value?: string[] } }).id)
+          ? ((where as { id: string[] }).id as string[])
+          : [];
+        // TypeORM In() criteria is opaque in unit tests; keep all session ids from store.
+        return sessionStore.map((row) => ({ id: row.id }));
+      }),
+    } as unknown as Repository<SessionEntity>;
+
+    attendance = new AttendanceService(
+      recordRepo,
+      sessionLookupRepo,
+      sessions,
+      auth,
+    );
   });
 
-  async function openSessionWithPayload(lateAfterMinutes = 15): Promise<{
+  async function openSessionWithPayload(dueMinutes = 45): Promise<{
     sessionId: string;
     payload: string;
   }> {
@@ -132,7 +171,7 @@ describe('AttendanceService', () => {
       {
         title: 'SE401 · Morning Lecture',
         locationId: 'LOC-001',
-        lateAfterMinutes,
+        dueAt: dueInMinutes(dueMinutes),
       },
       teacher,
     );
@@ -140,8 +179,8 @@ describe('AttendanceService', () => {
     return { sessionId: created.id, payload: qr.payload };
   }
 
-  it('submits Present when within the late window', async () => {
-    const { payload } = await openSessionWithPayload(15);
+  it('submits Present when before the due time', async () => {
+    const { payload } = await openSessionWithPayload(45);
 
     const record = await attendance.submit({ payload }, student);
 
@@ -154,24 +193,21 @@ describe('AttendanceService', () => {
     expect(record.id).toMatch(/^att-/);
   });
 
-  it('marks Late when past the late window', async () => {
+  it('rejects submit after the due time', async () => {
     const created = await sessions.create(
       {
-        title: 'Late lab',
+        title: 'Due soon lab',
         locationId: 'LOC-002',
-        lateAfterMinutes: 15,
+        dueAt: dueInMinutes(15),
       },
       teacher,
     );
     const qr = await sessions.getQr(created.id, teacher);
-    const lateClock = new Date(Date.now() + 20 * 60 * 1000);
+    const afterDue = new Date(Date.now() + 20 * 60 * 1000);
 
-    const record = await attendance.submit(
-      { payload: qr.payload },
-      student,
-      lateClock,
-    );
-    expect(record.status).toBe('Late');
+    await expect(
+      attendance.submit({ payload: qr.payload }, student, afterDue),
+    ).rejects.toThrow(ForbiddenException);
   });
 
   it('rejects duplicate submit for the same student and session', async () => {
@@ -191,7 +227,11 @@ describe('AttendanceService', () => {
 
   it('rejects scan when session is closed', async () => {
     const created = await sessions.create(
-      { title: 'Closed', locationId: 'LOC-001' },
+      {
+        title: 'Closed',
+        locationId: 'LOC-001',
+        dueAt: dueInMinutes(30),
+      },
       teacher,
     );
     const qr = await sessions.getQr(created.id, teacher);

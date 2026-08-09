@@ -39,6 +39,7 @@ Login uses Nest `POST /api/auth/login` and stores Bearer token in
 | **Create attendance session** (dialog) | `/sessions` | **Live API** |
 | **Show short-lived QR** (auto-refresh ~30s) | `/sessions` | **Live API** |
 | **Close session** (invalidates QR) | `/sessions` | **Live API** |
+| **Delete session** (row + store + **cascade attendance**) | `/sessions` ⋮ menu | **Live API** |
 | List **own** sessions only | `GET /api/sessions` | Live API |
 | Read active locations for session form | `GET /api/locations` | Live API |
 | Open Reports placeholder | `/reports` | Placeholder UI |
@@ -49,12 +50,27 @@ Login uses Nest `POST /api/auth/login` and stores Bearer token in
 Login as teacher
   → Dashboard (optional)
   → Sessions
-  → Create session (dialog: title, location, late minutes)
+  → Create session (dialog: title, location, due time today)
   → Live QR on left (payload SMARTCAMPUS|sessionId|token)
   → Students see same live QR on /student/scan → Mark me present
-  → Close session when class ends
+       · Before dueAt → Present
+       · After dueAt  → card stays visible; mark/scan blocked (confirm dialog)
+  → Close session when class ends → session leaves student open list
+       (attendance history kept until Delete)
+  → Delete session → removes log row **and** all student attendance for that sessionId
+       (student “My attendance” table drops those rows on next load/refresh)
   → Sign out
 ```
+
+### Session due time (replaces Late after)
+
+| Concept | Meaning |
+|---------|---------|
+| **Due time** | Clock time **today** set at create (`dueAt` ISO). Students may mark present only **before** this time. |
+| **After due** | Submit rejected (API 403). Session can stay **Open** until teacher **Close**. Students still see the card. |
+| **Close session** | Status Closed; QR stops; session **removed** from student open list. |
+| **QR TTL (300s)** | Short-lived QR **token** rotation only — not the same as due time. Do not show QR Expires on student UI. |
+| **Late after** | **Removed** — no Present/Late split from minutes; accepted marks are always **Present**. |
 
 ## What a teacher **cannot** do
 
@@ -92,31 +108,59 @@ Defined in `admin-navigation.ts`; filtered in `AdminLayoutComponent` via
 | `GET /api/sessions/:id` | Yes (own / admin) |
 | `GET /api/sessions/:id/qr` | Yes (own / admin) |
 | `POST /api/sessions/:id/close` | Yes (own / admin) |
+| `DELETE /api/sessions/:id` | Yes (own / admin) — removes record |
 | Student attendance submit | Yes (`POST /api/attendance/submit`, student role) |
 
 Requires `Authorization: Bearer <accessToken>`.
 
 ## UI notes for Sessions (teacher)
 
-- **Left:** Live QR · Short-lived session code  
+- **Left:** Live QR · Short-lived session code · **Due** time for selected session  
 - **Right:** Open attendance → **Create session** button → dialog form  
+- Create form fields: **title**, **location**, **due time** (`type="time"`, required, ≥1 min ahead)  
 - Not an always-visible create form  
-- After create: QR shown, session row in table, **Show QR** / **Close** actions  
+- Session log table (`app-table`) columns: Session · Location · Teacher · Opened · **Due** · Status · Actions  
+- **Actions (⋮ menu):**  
+  - Open row → **Show QR**, **Close**, **Delete**  
+  - Closed row → **Delete** only  
+- **Delete** (`DELETE /api/sessions/:id`):
+  1. Deletes all `attendance_records` with that `session_id`
+  2. Removes the session row
+  3. Decrements location usage if it was Open  
+  → Student **My attendance** no longer shows those scans (cascade + `GET /api/attendance/me` also purges orphans)  
+  → Clears Live QR if that session was selected  
+- **Close** only ends the session (status Closed; QR no longer issued) — row stays in the log until Delete; students stop seeing it on open list; **attendance history kept** until Delete  
+
+| Action | Session log | Student open cards | Student My attendance |
+|--------|-------------|--------------------|------------------------|
+| Close | Stays (Closed) | Removed | **Kept** |
+| Delete | Removed | Removed | **Removed** (cascade by `sessionId`) |
+
+### Display formats (Sessions page)
+
+| Field | Format | Example |
+|-------|--------|---------|
+| Opened | `M-D-YY/h:mmAm\|Pm` (no leading zeros; `Pm`/`Am` suffix) | `8-8-26/6:32Pm` |
+| Due | Clock only | `7:30Pm` |
+| Location (table + QR panel) | `Building-Room N` | `Building A-Room 201` |
+| Campus location (create dialog dropdown) | same | `Building A-Room 201` |
+
+Helpers: `formatSessionOpened`, `formatSessionDue` (`core/utils/date.util.ts`), `formatCampusLocationLabel` (`core/utils/format.util.ts`).
 
 ## Planned later (not teacher-capable yet)
 
 - Live attendance feed on Sessions after student scan  
 - GPS / Outside Location on student submit  
 - Reports export  
-- Editing/deleting closed sessions history in DB (sessions + scans are in-memory today)  
 
 ## When coding for teachers
 
 1. Keep teacher on **AdminLayout** children; do not invent a separate teacher layout.  
 2. Never grant `/students` without product decision.  
-3. Session create / QR / close go through `SessionService` + Bearer token.  
+3. Session create / QR / close / **delete** go through `SessionService` + Bearer token.  
 4. Prefer dialogs for create forms (match Sessions + Locations detail).  
-5. Update this skill + `smart-campus-workflow` when teacher routes change.  
+5. Keep Sessions display formats via the shared helpers above (do not reintroduce locale `short` dates or `, Room ` labels on this page).  
+6. Update this skill + `smart-campus-workflow` when teacher routes or Sessions actions change.  
 
 ## Related skills
 

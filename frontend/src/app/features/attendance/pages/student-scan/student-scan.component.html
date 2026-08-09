@@ -1,68 +1,53 @@
 <section class="student-scan" aria-labelledby="scan-title">
-  <div class="student-scan__shell">
-    <!-- Top bar: brand + account (sign out always visible) -->
-    <header class="student-scan__top">
-      <div class="student-scan__brand">
-        <p class="student-scan__eyebrow">Smart Campus</p>
-        <h1 id="scan-title">Mark attendance</h1>
-      </div>
+  <!-- Full-width top bar: brand + account (sign out always visible) -->
+  <header class="student-scan__top">
+    <div class="student-scan__brand">
+      <p class="student-scan__eyebrow">Smart Campus</p>
+      <h1 id="scan-title">Mark attendance</h1>
+    </div>
 
-      <div class="student-scan__account" aria-label="Account">
-        <div class="student-scan__avatar" aria-hidden="true">
-          {{ (user()?.name || 'S').charAt(0) }}
-        </div>
-        <div class="student-scan__user-text">
-          <span class="student-scan__user-name">{{ user()?.name }}</span>
-          <span class="student-scan__user-id">{{ user()?.studentId || user()?.email }}</span>
-        </div>
-        <button
-          type="button"
-          class="student-scan__signout"
-          (click)="logout()"
-          aria-label="Sign out of Smart Campus"
+    <div class="student-scan__account" aria-label="Account">
+      <div class="student-scan__avatar" aria-hidden="true">
+        {{ (user()?.name || 'S').charAt(0) }}
+      </div>
+      <div class="student-scan__user-text">
+        <span class="student-scan__user-name">{{ user()?.name }}</span>
+        <span class="student-scan__user-id">{{ user()?.studentId || user()?.email }}</span>
+      </div>
+      <button
+        type="button"
+        class="student-scan__signout"
+        (click)="logout()"
+        aria-label="Sign out of Smart Campus"
+      >
+        <svg
+          class="student-scan__signout-icon"
+          viewBox="0 0 20 20"
+          fill="none"
+          aria-hidden="true"
         >
-          <svg
-            class="student-scan__signout-icon"
-            viewBox="0 0 20 20"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d="M7.5 4.5H5.5A1.5 1.5 0 0 0 4 6v8a1.5 1.5 0 0 0 1.5 1.5h2M12 13.5 15.5 10 12 6.5M15.25 10H8"
-              stroke="currentColor"
-              stroke-width="1.6"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-          <span>Sign out</span>
-        </button>
-      </div>
-    </header>
+          <path
+            d="M7.5 4.5H5.5A1.5 1.5 0 0 0 4 6v8a1.5 1.5 0 0 0 1.5 1.5h2M12 13.5 15.5 10 12 6.5M15.25 10H8"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <span>Sign out</span>
+      </button>
+    </div>
+  </header>
 
+  <!-- Centered content column (full-width header stays above) -->
+  <div class="student-scan__content">
     <!-- Intro + primary actions -->
     <div class="student-scan__intro">
       <p class="student-scan__lead">
-        Scan the teacher’s live QR with the <strong>iPhone Camera</strong> app (opens this page),
-        use <strong>Scan with camera</strong> below, or tap <strong>Mark me present</strong>.
+        Tap <strong>Mark me present</strong> below to record your attendance for any live class
+        session.
       </p>
       <div class="student-scan__intro-actions">
-        <button
-          type="button"
-          class="student-scan__btn student-scan__btn--camera"
-          (click)="toggleCamera()"
-          [disabled]="!!state.submittingId()"
-        >
-          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" class="student-scan__refresh-icon">
-            <path
-              d="M3.5 6.5h2l1-1.5h7l1 1.5h2A1.5 1.5 0 0 1 17 8v7a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 1 15V8A1.5 1.5 0 0 1 2.5 6.5ZM10 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linejoin="round"
-            />
-          </svg>
-          {{ state.cameraOpen() ? 'Stop camera' : 'Scan with camera' }}
-        </button>
         <button
           type="button"
           class="student-scan__btn student-scan__btn--ghost student-scan__btn--refresh"
@@ -82,24 +67,6 @@
         </button>
       </div>
     </div>
-
-    @if (state.cameraError()) {
-      <p class="student-scan__alert student-scan__alert--error" role="alert">
-        {{ state.cameraError() }}
-      </p>
-    }
-
-    @if (state.cameraOpen()) {
-      <section class="student-scan__camera" aria-label="Camera QR scanner">
-        <div class="student-scan__camera-frame">
-          <div [id]="cameraRegionId" #cameraHost class="student-scan__camera-region"></div>
-        </div>
-        <p class="student-scan__camera-hint">
-          Point your phone at the teacher’s QR. Attendance is recorded automatically when the code
-          is recognized.
-        </p>
-      </section>
-    }
 
     @if (state.error()) {
       <p class="student-scan__alert student-scan__alert--error" role="alert">{{ state.error() }}</p>
@@ -131,14 +98,15 @@
           <div class="student-scan__empty-icon" aria-hidden="true">QR</div>
           <strong>No open class yet</strong>
           <p>
-            Ask your teacher to create a session on the Sessions page. The live QR will show here at
-            the same time.
+            Ask your teacher to create a session on the Sessions page. It will show here as soon as
+            it is live.
           </p>
         </article>
       } @else {
+        <!-- Page layout: session cards sit side-by-side in horizontal rows -->
         <ul class="student-scan__session-list">
           @for (session of state.openSessions(); track session.id) {
-            <li>
+            <li class="student-scan__session-item-wrap">
               <article
                 class="student-scan__card student-scan__card--session"
                 [attr.aria-labelledby]="'session-' + session.id"
@@ -156,57 +124,62 @@
                   </div>
                 </header>
 
-                <!-- Horizontal body: QR | details + action -->
-                <div class="student-scan__card-body">
-                  <div class="student-scan__qr-wrap">
-                    <img
-                      class="student-scan__qr"
-                      [src]="session.qrDataUrl"
-                      width="200"
-                      height="200"
-                      [alt]="'QR code for ' + session.title"
-                    />
-                    <p class="student-scan__qr-note">
-                      Same live code as your teacher · scan with iPhone Camera or the button below
-                    </p>
-                    <p class="student-scan__expires">
-                      Expires {{ session.qr.expiresAt | date: 'mediumTime' }}
-                      <span>({{ session.qr.ttlSeconds }}s)</span>
-                    </p>
+                <div class="student-scan__qr-wrap">
+                  <img
+                    class="student-scan__qr"
+                    [src]="session.qrDataUrl"
+                    width="168"
+                    height="168"
+                    [alt]="'QR code for ' + session.title"
+                  />
+                  <p class="student-scan__qr-note">Scan with iPhone Camera</p>
+                </div>
+
+                <div class="student-scan__session-meta">
+                  <div class="student-scan__session-item">
+                    <span>Location</span>
+                    <strong>{{ session.locationName }}</strong>
                   </div>
+                  <div class="student-scan__session-item">
+                    <span>Due</span>
+                    <strong>{{ formatDue(session.dueAt) }}</strong>
+                  </div>
+                </div>
 
-                  <div class="student-scan__card-side">
-                    <div class="student-scan__session-grid">
-                      <div class="student-scan__session-item">
-                        <span>Location</span>
-                        <strong>{{ session.locationName }}</strong>
-                      </div>
-                      <div class="student-scan__session-item">
-                        <span>Late after</span>
-                        <strong>{{ session.lateAfterMinutes }} min</strong>
-                      </div>
+                <div class="student-scan__card-action">
+                  @if (alreadyDone(session.title)) {
+                    <div class="student-scan__done">
+                      <span class="student-scan__status-pill student-scan__status-pill--present">
+                        Already recorded
+                      </span>
+                      <p>You already marked attendance for this class.</p>
                     </div>
-
-                    @if (alreadyDone(session.title)) {
-                      <div class="student-scan__done">
-                        <span class="student-scan__status-pill student-scan__status-pill--present">
-                          Already recorded
-                        </span>
-                        <p>You already marked attendance for this class.</p>
-                      </div>
-                    } @else {
+                  } @else if (isPastDue(session)) {
+                    <div class="student-scan__done">
+                      <span class="student-scan__status-pill student-scan__status-pill--due">
+                        Due passed
+                      </span>
+                      <p>Due time has passed. Mark present is closed for this session.</p>
                       <button
                         type="button"
-                        class="student-scan__btn student-scan__btn--present"
+                        class="student-scan__btn student-scan__btn--present student-scan__btn--due"
                         (click)="markPresent(session)"
-                        [disabled]="state.submittingId() === session.id"
                       >
-                        {{
-                          state.submittingId() === session.id ? 'Recording…' : 'Mark me present'
-                        }}
+                        Mark me present
                       </button>
-                    }
-                  </div>
+                    </div>
+                  } @else {
+                    <button
+                      type="button"
+                      class="student-scan__btn student-scan__btn--present"
+                      (click)="markPresent(session)"
+                      [disabled]="state.submittingId() === session.id"
+                    >
+                      {{
+                        state.submittingId() === session.id ? 'Recording…' : 'Mark me present'
+                      }}
+                    </button>
+                  }
                 </div>
               </article>
             </li>
@@ -215,46 +188,32 @@
       }
     </section>
 
-    @if (state.lastRecord(); as record) {
-      <article class="student-scan__card student-scan__card--result" aria-labelledby="result-title">
-        <div class="student-scan__result-hero">
-          <span
-            class="student-scan__status-pill"
-            [class.student-scan__status-pill--present]="record.status === 'Present'"
-            [class.student-scan__status-pill--late]="record.status === 'Late'"
-          >
-            {{ record.status }}
-          </span>
-          <h2 id="result-title">{{ record.session }}</h2>
-          <p>{{ record.location }} · {{ record.recordedAt | date: 'medium' }}</p>
-        </div>
-      </article>
-    }
-
-    @if (state.myRecords().length > 0) {
-      <section class="student-scan__section student-scan__history" aria-labelledby="history-title">
-        <div class="student-scan__section-head">
-          <h2 id="history-title" class="student-scan__section-title">My attendance</h2>
-          <span class="student-scan__count">{{ state.myRecords().length }}</span>
-        </div>
-        <ul class="student-scan__history-list">
-          @for (row of state.myRecords(); track row.id) {
-            <li class="student-scan__history-row">
-              <div class="student-scan__history-main">
-                <strong>{{ row.session }}</strong>
-                <span>{{ row.location }}</span>
-              </div>
-              <span
-                class="student-scan__badge"
-                [class.student-scan__badge--present]="row.status === 'Present'"
-                [class.student-scan__badge--late]="row.status === 'Late'"
-              >
-                {{ row.status }}
-              </span>
-            </li>
-          }
-        </ul>
-      </section>
-    }
+    <section class="student-scan__history-workspace" aria-label="My attendance history">
+      <app-table
+        eyebrow="My attendance"
+        title="Your recorded scans"
+        [countLabel]="state.myRecords().length + ' records'"
+        tableAriaLabel="Your attendance records"
+        [columns]="attendanceColumns"
+        [rows]="state.myRecords()"
+        [loading]="state.loading()"
+        loadingMessage="Loading your attendance…"
+        emptyTitle="No attendance yet"
+        emptyMessage="Mark present for a live session and your records will show up here."
+      />
+    </section>
   </div>
 </section>
+
+@if (state.dueBlocked(); as notice) {
+  <app-confirm-dialog
+    eyebrow="Due time passed"
+    title="Cannot mark present"
+    [message]="dueDialogMessage(notice.fromScan)"
+    [detail]="dueDialogDetail(notice.sessionTitle, notice.dueAt)"
+    confirmLabel="Got it"
+    cancelLabel="Close"
+    (confirmed)="dismissDueBlocked()"
+    (cancelled)="dismissDueBlocked()"
+  />
+}

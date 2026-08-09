@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -7,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomBytes } from 'crypto';
 import { Repository } from 'typeorm';
 import {
-  DEFAULT_LATE_AFTER_MINUTES,
+  MIN_DUE_AHEAD_MINUTES,
   QR_PAYLOAD_PREFIX,
   QR_TTL_SECONDS,
   SESSION_STATUS,
@@ -16,6 +17,7 @@ import {
 import { USER_ROLES } from '../../common/constants/roles.constant';
 import { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { toIsoDate } from '../../common/utils/date.util';
+import { AttendanceRecordEntity } from '../../database/entities/attendance-record.entity';
 import { SessionEntity } from '../../database/entities/session.entity';
 import { AuthService } from '../auth/auth.service';
 import { LocationsService } from '../locations/locations.service';
@@ -36,6 +38,8 @@ export class SessionsService {
   constructor(
     @InjectRepository(SessionEntity)
     private readonly sessions: Repository<SessionEntity>,
+    @InjectRepository(AttendanceRecordEntity)
+    private readonly attendanceRecords: Repository<AttendanceRecordEntity>,
     private readonly locationsService: LocationsService,
     private readonly authService: AuthService,
   ) {}
@@ -49,6 +53,7 @@ export class SessionsService {
     const teacherName = teacher?.name ?? 'Unknown teacher';
 
     const now = new Date();
+    const dueAt = this.parseAndValidateDueAt(dto.dueAt, now);
     const qr = this.issueQrToken(now);
     const session = this.sessions.create({
       id: this.nextSessionId(),
@@ -58,7 +63,7 @@ export class SessionsService {
       teacherId: actor.userId,
       teacherName,
       status: SESSION_STATUS.open,
-      lateAfterMinutes: dto.lateAfterMinutes ?? DEFAULT_LATE_AFTER_MINUTES,
+      dueAt,
       createdAt: now,
       openedAt: now,
       closedAt: null,
@@ -153,12 +158,40 @@ export class SessionsService {
   }
 
   /**
+   * Permanently delete a session (open or closed).
+   * Also deletes every student attendance row for that session so “My attendance”
+   * on the student scan page no longer shows those records.
+   * Open sessions also release the location usage counter.
+   */
+  async remove(id: string, actor: AuthenticatedUser): Promise<void> {
+    const session = await this.requireSession(id);
+    this.assertCanManage(session, actor);
+
+    const wasOpen = session.status === SESSION_STATUS.open;
+
+    // Cascade: remove every student attendance row for this session (column session_id).
+    await this.attendanceRecords
+      .createQueryBuilder()
+      .delete()
+      .from(AttendanceRecordEntity)
+      .where('session_id = :sessionId', { sessionId: id })
+      .execute();
+
+    await this.sessions.remove(session);
+
+    if (wasOpen) {
+      await this.locationsService.decrementSessionsUsing(session.locationId);
+    }
+  }
+
+  /**
    * Validate a student scan against an open session's current QR.
    * Used by AttendanceService only — no teacher ownership check.
    */
   async resolveOpenSessionForScan(
     sessionId: string,
     token: string,
+    now: Date = new Date(),
   ): Promise<SessionScanContext> {
     const session = await this.requireSession(sessionId);
 
@@ -168,9 +201,15 @@ export class SessionsService {
       );
     }
 
+    if (this.isPastDue(session, now)) {
+      throw new ForbiddenException(
+        'Attendance for this session is closed. The due time has passed.',
+      );
+    }
+
     if (
       !session.qrToken ||
-      this.isQrExpired(session) ||
+      this.isQrExpired(session, now) ||
       session.qrToken !== token
     ) {
       throw new ForbiddenException(
@@ -183,7 +222,7 @@ export class SessionsService {
       title: session.title,
       locationName: session.locationName,
       openedAt: session.openedAt,
-      lateAfterMinutes: session.lateAfterMinutes,
+      dueAt: session.dueAt,
     };
   }
 
@@ -264,7 +303,7 @@ export class SessionsService {
       title: session.title,
       locationName: session.locationName,
       teacherName: session.teacherName,
-      lateAfterMinutes: session.lateAfterMinutes,
+      dueAt: session.dueAt ? toIsoDate(session.dueAt) : null,
       openedAt: toIsoDate(session.openedAt),
       qr: this.toQrResponse(session),
     };
@@ -305,12 +344,41 @@ export class SessionsService {
       teacherId: session.teacherId,
       teacherName: session.teacherName,
       status: session.status as SessionStatus,
-      lateAfterMinutes: session.lateAfterMinutes,
+      dueAt: session.dueAt ? toIsoDate(session.dueAt) : null,
       createdAt: toIsoDate(session.createdAt),
       openedAt: toIsoDate(session.openedAt),
       closedAt: session.closedAt ? toIsoDate(session.closedAt) : null,
       ...(canSeeQr ? { currentQr } : {}),
     };
+  }
+
+  /**
+   * Parse teacher-provided ISO dueAt and require it to be at least
+   * MIN_DUE_AHEAD_MINUTES in the future.
+   */
+  private parseAndValidateDueAt(raw: string, now: Date = new Date()): Date {
+    const dueAt = new Date(raw);
+    if (Number.isNaN(dueAt.getTime())) {
+      throw new BadRequestException(
+        'Due time is invalid. Choose a valid time for today.',
+      );
+    }
+
+    const minDueMs = now.getTime() + MIN_DUE_AHEAD_MINUTES * 60 * 1000;
+    if (dueAt.getTime() < minDueMs) {
+      throw new BadRequestException(
+        `Due time must be at least ${MIN_DUE_AHEAD_MINUTES} minute(s) from now.`,
+      );
+    }
+
+    return dueAt;
+  }
+
+  private isPastDue(session: SessionEntity, now: Date = new Date()): boolean {
+    if (!session.dueAt) {
+      return false;
+    }
+    return now.getTime() >= new Date(session.dueAt).getTime();
   }
 
   private nextSessionId(): string {

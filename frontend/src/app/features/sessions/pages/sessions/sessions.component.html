@@ -55,15 +55,12 @@
           <div class="sessions-page__qr-meta">
             @if (state.selectedSession(); as session) {
               <p class="sessions-page__qr-title">{{ session.title }}</p>
-              <p class="sessions-page__muted sessions-page__muted--tight">{{ session.locationName }}</p>
+              <p class="sessions-page__muted sessions-page__muted--tight">{{ formatLocation(session.locationName) }}</p>
+              <p class="sessions-page__expires">
+                <span class="sessions-page__label">Due</span>
+                {{ formatDue(session.dueAt) }}
+              </p>
             }
-            <p class="sessions-page__expires">
-              <span class="sessions-page__label">Expires</span>
-              {{ liveQr.expiresAt | date: 'mediumTime' }}
-              <span class="sessions-page__muted sessions-page__muted--inline"
-                >({{ liveQr.ttlSeconds }}s TTL)</span
-              >
-            </p>
             <code class="sessions-page__payload">{{ liveQr.payload }}</code>
             <div class="sessions-page__qr-actions">
               <button type="button" class="sessions-page__btn-secondary" (click)="refreshQrNow()">
@@ -100,7 +97,7 @@
         </p>
         <ul class="sessions-page__open-points">
           <li>Pick a campus zone with geofence radius</li>
-          <li>Set the late threshold in minutes</li>
+          <li>Set when attendance closes today (due time)</li>
           <li>Display a rotating QR (opens student scan link)</li>
         </ul>
         <button
@@ -218,31 +215,28 @@
 
       <label
         class="session-create-form__field"
-        [class.session-create-form__field--invalid]="state.hasFieldError('lateAfterMinutes')"
+        [class.session-create-form__field--invalid]="state.hasFieldError('dueTime')"
       >
         <span class="session-create-form__label">
-          Late after (minutes)
+          Due time
           <abbr class="session-create-form__required" title="required">*</abbr>
         </span>
         <input
-          type="number"
-          name="lateAfterMinutes"
-          [(ngModel)]="state.lateAfterMinutes"
-          (ngModelChange)="onFieldInput('lateAfterMinutes')"
-          min="0"
-          max="180"
-          step="1"
-          placeholder="e.g. 15"
-          [class.is-invalid]="state.hasFieldError('lateAfterMinutes')"
-          [attr.aria-invalid]="state.hasFieldError('lateAfterMinutes')"
+          type="time"
+          name="dueTime"
+          [(ngModel)]="state.dueTime"
+          (ngModelChange)="onFieldInput('dueTime')"
+          [class.is-invalid]="state.hasFieldError('dueTime')"
+          [attr.aria-invalid]="state.hasFieldError('dueTime')"
           [attr.aria-describedby]="
-            state.hasFieldError('lateAfterMinutes') ? 'session-late-error' : null
+            state.hasFieldError('dueTime') ? 'session-due-error' : 'session-due-hint'
           "
         />
-        @if (state.fieldError('lateAfterMinutes'); as lateErr) {
-          <span id="session-late-error" class="session-create-form__field-error">{{
-            lateErr
-          }}</span>
+        <span id="session-due-hint" class="session-create-form__hint">
+          Students can mark present until this time today.
+        </span>
+        @if (state.fieldError('dueTime'); as dueErr) {
+          <span id="session-due-error" class="session-create-form__field-error">{{ dueErr }}</span>
         }
       </label>
 
@@ -260,4 +254,18 @@
       </footer>
     </form>
   </app-modal-dialog>
+}
+
+@if (state.deleteTarget(); as target) {
+  <app-confirm-dialog
+    eyebrow="Delete session"
+    title="Delete this attendance session?"
+    [message]="'Delete the session “' + target.title + '” permanently? This cannot be undone.'"
+    [detail]="target.id"
+    confirmLabel="Delete session"
+    [busy]="state.deletingId() === target.id"
+    busyLabel="Deleting…"
+    (confirmed)="deleteConfirmedSession()"
+    (cancelled)="cancelDelete()"
+  />
 }

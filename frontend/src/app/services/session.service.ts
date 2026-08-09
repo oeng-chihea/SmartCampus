@@ -54,6 +54,15 @@ export class SessionService {
     );
   }
 
+  /** Permanently remove a session from the log and backend store. */
+  deleteSession(sessionId: string): Promise<void> {
+    return firstValueFrom(
+      this.http.delete<void>(this.url(API_ENDPOINTS.sessionDelete(sessionId)), {
+        headers: this.authHeaders(),
+      }),
+    );
+  }
+
   listLocations(): Promise<CampusLocation[]> {
     return firstValueFrom(
       this.http.get<CampusLocation[]>(this.url(API_ENDPOINTS.locations), {

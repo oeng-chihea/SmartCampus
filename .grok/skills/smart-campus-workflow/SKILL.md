@@ -63,7 +63,7 @@ Read `references/page-flows.md` for the full route table and file map.
     /students    → StudentsComponent       (admin only — extra roleGuard)
     /attendance  → AdminRecordsComponent   (records + filters)
     /locations   → LocationsComponent      (zones + detail dialog)
-    /sessions    → SessionsComponent       (create session, live short-lived QR, close)
+    /sessions    → SessionsComponent       (create session, live QR, close, delete)
     /reports     → AdminPlaceholderPage    ("Attendance reports")
     **           → redirect to dashboard
 ```
@@ -82,8 +82,10 @@ Read `references/page-flows.md` for the full route table and file map.
 | Any admin page | Sidebar → Students | `/students` (admin only; teacher blocked by guard → home) |
 | Any admin page | Sidebar → Attendance | `/attendance` |
 | Any admin page | Sidebar → Locations | `/locations` |
-| Any admin page | Sidebar → Sessions | `/sessions` (live API: create / QR / close) |
-| Sessions | Create session / Show QR | Same page; QR auto-refreshes ~30s |
+| Any admin page | Sidebar → Sessions | `/sessions` (live: create + due time / QR / close / delete) |
+| Sessions | Create session (title, location, due time) | Same page; dueAt ISO; QR auto-refreshes ~30s |
+| Sessions | ⋮ → Close | Same page; Closed; students lose open card; history kept |
+| Sessions | ⋮ → Delete | Same page; session removed; **attendance for that sessionId cascaded** |
 | Any admin page | Sidebar → Reports | `/reports` (placeholder) |
 | Locations table | Select a row | Opens **location detail dialog** (same page, modal) |
 | Locations dialog | Close | Stay on `/locations` |
@@ -101,13 +103,21 @@ Read `references/page-flows.md` for the full route table and file map.
 - No admin sidebar. Header shows student name / studentId + **Sign out**.
 - Scan page is **live**: open sessions load the **same live QR** as the teacher
   (`GET /api/sessions/open`) → student taps **Mark me present**.
-- GPS / Outside Location validation is planned later; Present/Late only for now.
+- **Due time:** after `dueAt`, card stays; mark/QR opens **`app-confirm-dialog`**
+  (cannot mark present). Only teacher **Close** / **Delete** removes open cards.
+- Successful mark before due → **Present** only (no Late-after minutes).
+- **My attendance:** shared `app-table` (not a hero card); location `Building X-Room N`.
+- **Delete cascade:** teacher Delete removes student history for that session; `GET /api/attendance/me` also drops orphans.
+- GPS / Outside Location validation is planned later.
 - No other student routes are registered yet (`student/history` constant exists but is unused).
 
 | From | User action | To |
 |------|-------------|-----|
 | Login as student | Auto redirect | `/student/scan` |
-| Student scan | Live open session QR + Mark present | Same QR as teacher; Present/Late |
+| Student scan | Mark present **before** due | `POST …/submit` → Present; row in My attendance `app-table` |
+| Student scan | Mark present / QR **after** due | Confirm dialog (blocked); card kept |
+| Student scan | Teacher closed session | Open card gone; **history kept** |
+| Student scan | Teacher deleted session | Open card gone; **history row removed** (cascade / me purge) |
 | Student scan | Sign out | `/auth/login` |
 | Student tries `/dashboard` etc. | `roleGuard` fails | Redirect to `/student/scan` |
 
@@ -153,7 +163,8 @@ admin pages still use mock JSON.
    personal account their admin created (only Chihea is pre-seeded).
 2. **Admin** lands on **Dashboard** → sidebar includes Students, Attendance, Locations, Sessions, Reports.
 3. **Teacher** lands on **Dashboard** → same shell **without Students**; primary live work is **Sessions** (QR).
-4. **Student** lands on **Scan** → sees same live QR as teacher → **Mark me present**.
+4. **Student** lands on **Scan** → sees same live QR as teacher → **Mark me present**
+   (before due); after due, dialog blocks mark/scan until teacher closes the session.
 5. Everything protected by **auth + role**; wrong role never stays on the wrong shell.
 
 ## When implementing new navigation
@@ -175,6 +186,11 @@ admin pages still use mock JSON.
 ## Teacher role (short)
 
 Teachers share the admin shell but **cannot** open `/students`. Their primary
-live workflow is **`/sessions`** (create session dialog → short-lived QR → close).
+live workflow is **`/sessions`**: create session dialog (**title, location, due time**)
+→ short-lived QR → **Close** (end class; drops student open list; history kept) and/or
+**Delete** (remove log row + cascade attendance by `sessionId`).
+
+Sessions table display: location `Building A-Room 201`, opened `8-8-26/6:32Pm`,
+due `7:30Pm`.
 
 Full teacher map: **`smart-campus-teacher`** + `references/teacher-workflow.md`.

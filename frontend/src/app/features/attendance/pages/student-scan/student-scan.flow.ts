@@ -2,6 +2,10 @@ import { Injectable, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import * as QRCode from 'qrcode';
 import {
+  formatSessionDue,
+  isSessionPastDue,
+} from '../../../../core/utils/date.util';
+import {
   buildAttendanceScanUrl,
   extractAttendancePayload,
   sessionIdFromPayload,
@@ -16,7 +20,10 @@ const POLL_MS = 12_000;
 /**
  * Student attendance flow:
  * load open sessions (same live QR as teacher) → mark present
- * OR submit payload from iPhone Camera deep link / in-app camera scan.
+ * OR submit payload from the teacher-QR deep link (iPhone Camera app).
+ *
+ * Past-due sessions stay visible until the teacher closes them; mark/scan
+ * is blocked with a confirm dialog instead of removing the card.
  */
 @Injectable()
 export class StudentScanPageFlow {
@@ -45,6 +52,8 @@ export class StudentScanPageFlow {
         this.attendance.listMine().catch(() => []),
       ]);
 
+      // Keep all open sessions (including past due). Closed sessions leave the
+      // open list on the API after the teacher closes them.
       const cards: OpenLiveSessionCard[] = await Promise.all(
         open.map(async (session) => ({
           ...session,
@@ -62,9 +71,6 @@ export class StudentScanPageFlow {
 
       this.state.setOpenSessions(cards);
       this.state.setHistory(mine);
-      if (!this.state.lastRecord() && mine.length > 0) {
-        this.state.lastRecord.set(mine[0]);
-      }
     } catch (error) {
       this.state.setError(
         this.attendance.mapError(
@@ -85,12 +91,30 @@ export class StudentScanPageFlow {
       return;
     }
 
+    if (isSessionPastDue(session.dueAt)) {
+      this.state.openDueBlocked({
+        sessionTitle: session.title,
+        dueAt: session.dueAt,
+        fromScan: false,
+      });
+      return;
+    }
+
     this.state.beginSubmit(session.id);
     try {
       // Refresh once so we use the latest live QR token if it just rotated.
       await this.reload(false);
       const live =
         this.state.openSessions().find((row) => row.id === session.id) ?? session;
+
+      if (isSessionPastDue(live.dueAt)) {
+        this.state.openDueBlocked({
+          sessionTitle: live.title,
+          dueAt: live.dueAt,
+          fromScan: false,
+        });
+        return;
+      }
 
       const record = await this.attendance.submit({
         payload: live.qr.payload,
@@ -101,6 +125,12 @@ export class StudentScanPageFlow {
       if (this.attendance.isConflict(error)) {
         await this.reload(false);
         this.state.alreadySubmitted(this.state.recordForSession(session.title));
+      } else if (this.isDueTimeRejected(error)) {
+        this.state.openDueBlocked({
+          sessionTitle: session.title,
+          dueAt: session.dueAt,
+          fromScan: false,
+        });
       } else {
         this.state.setError(
           this.attendance.mapError(
@@ -114,20 +144,8 @@ export class StudentScanPageFlow {
     }
   }
 
-  /**
-   * Submit a payload from the iPhone Camera deep link or in-app scanner.
-   * Accepts raw SMARTCAMPUS|… or a full scan URL containing ?payload=.
-   */
-  async submitScannedText(scanned: string): Promise<boolean> {
-    const payload = extractAttendancePayload(scanned);
-    if (!payload) {
-      this.state.setError(
-        'That QR is not a Smart Campus attendance code. Point at the teacher’s live QR.',
-      );
-      return false;
-    }
-
-    return this.submitRawPayload(payload, 'camera');
+  dismissDueBlocked(): void {
+    this.state.closeDueBlocked();
   }
 
   logout(): void {
@@ -161,19 +179,30 @@ export class StudentScanPageFlow {
       return;
     }
 
+    const sessionId = sessionIdFromPayload(payload);
+    if (sessionId) {
+      const live = this.state.openSessions().find((row) => row.id === sessionId);
+      if (live && isSessionPastDue(live.dueAt)) {
+        this.state.openDueBlocked({
+          sessionTitle: live.title,
+          dueAt: live.dueAt,
+          fromScan: true,
+        });
+        this.clearPayloadFromUrl();
+        return;
+      }
+    }
+
     this.state.setInfo('QR link detected — recording your attendance…');
-    const ok = await this.submitRawPayload(payload, 'deeplink');
+    const ok = await this.submitRawPayload(payload);
     this.clearPayloadFromUrl();
     if (ok) {
       this.state.setInfo(null);
     }
   }
 
-  private async submitRawPayload(
-    payload: string,
-    source: 'camera' | 'deeplink',
-  ): Promise<boolean> {
-    const sessionId = sessionIdFromPayload(payload) ?? source;
+  private async submitRawPayload(payload: string): Promise<boolean> {
+    const sessionId = sessionIdFromPayload(payload) ?? 'deeplink';
     this.state.beginSubmit(sessionId);
     try {
       const record = await this.attendance.submit({ payload });
@@ -189,13 +218,24 @@ export class StudentScanPageFlow {
           .find((row) => row.id === sessionId);
         const match =
           (open ? this.state.recordForSession(open.title) : null) ??
-          this.state.lastRecord() ??
           this.state.myRecords()[0] ??
           null;
         this.state.alreadySubmitted(match);
         return true;
       }
-      if (sessionId !== source && this.attendance.isQrRejected(error)) {
+      if (this.isDueTimeRejected(error)) {
+        const open = this.state
+          .openSessions()
+          .find((row) => row.id === sessionId);
+        this.state.openDueBlocked({
+          sessionTitle: open?.title ?? 'this session',
+          dueAt: open?.dueAt ?? null,
+          fromScan: true,
+        });
+        this.state.setInfo(null);
+        return false;
+      }
+      if (sessionId !== 'deeplink' && this.attendance.isQrRejected(error)) {
         // Scanned token rotated/expired (or session just closed) — retry once
         // with the current live token from the API before surfacing an error.
         const fresh = await this.submitWithFreshPayload(sessionId);
@@ -233,6 +273,16 @@ export class StudentScanPageFlow {
       return false;
     }
 
+    if (isSessionPastDue(live.dueAt)) {
+      this.state.openDueBlocked({
+        sessionTitle: live.title,
+        dueAt: live.dueAt,
+        fromScan: true,
+      });
+      this.state.setInfo(null);
+      return false;
+    }
+
     try {
       const record = await this.attendance.submit({
         payload: live.qr.payload,
@@ -240,9 +290,25 @@ export class StudentScanPageFlow {
       this.state.submitSucceeded(record);
       await this.reload(false);
       return true;
-    } catch {
+    } catch (error) {
+      if (this.isDueTimeRejected(error)) {
+        this.state.openDueBlocked({
+          sessionTitle: live.title,
+          dueAt: live.dueAt,
+          fromScan: true,
+        });
+        this.state.setInfo(null);
+      }
       return false;
     }
+  }
+
+  private isDueTimeRejected(error: unknown): boolean {
+    if (!this.attendance.isQrRejected(error)) {
+      return false;
+    }
+    const message = this.attendance.mapError(error, '').toLowerCase();
+    return message.includes('due time') || message.includes('due');
   }
 
   private clearPayloadFromUrl(): void {
@@ -267,4 +333,23 @@ export class StudentScanPageFlow {
       this.pollTimer = null;
     }
   }
+}
+
+/** Message helpers used by the student-scan template for the due dialog. */
+export function dueBlockedMessage(fromScan: boolean): string {
+  if (fromScan) {
+    return 'You cannot mark present from this QR code. The session due time has passed.';
+  }
+  return 'You cannot mark present for this session. The due time has passed.';
+}
+
+export function dueBlockedDetail(
+  sessionTitle: string,
+  dueAt: string | null,
+): string {
+  const dueLabel = formatSessionDue(dueAt);
+  if (dueLabel === '—') {
+    return `Session: ${sessionTitle}`;
+  }
+  return `Session: ${sessionTitle} · Due ${dueLabel}`;
 }

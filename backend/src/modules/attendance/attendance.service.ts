@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomBytes } from 'crypto';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { QR_PAYLOAD_PREFIX } from '../../common/constants/session.constant';
 import {
   ATTENDANCE_STATUS,
@@ -15,6 +15,7 @@ import {
 import { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { toIsoDate } from '../../common/utils/date.util';
 import { AttendanceRecordEntity } from '../../database/entities/attendance-record.entity';
+import { SessionEntity } from '../../database/entities/session.entity';
 import { AuthService } from '../auth/auth.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { AttendancePreviewResponseDto } from './dto/attendance-preview-response.dto';
@@ -34,6 +35,8 @@ export class AttendanceService {
   constructor(
     @InjectRepository(AttendanceRecordEntity)
     private readonly records: Repository<AttendanceRecordEntity>,
+    @InjectRepository(SessionEntity)
+    private readonly sessions: Repository<SessionEntity>,
     private readonly sessionsService: SessionsService,
     private readonly authService: AuthService,
   ) {}
@@ -53,7 +56,7 @@ export class AttendanceService {
       sessionId: session.id,
       title: session.title,
       locationName: session.locationName,
-      lateAfterMinutes: session.lateAfterMinutes,
+      dueAt: session.dueAt ? toIsoDate(session.dueAt) : null,
       alreadySubmitted: Boolean(
         await this.findByStudentAndSession(studentId, session.id),
       ),
@@ -77,6 +80,7 @@ export class AttendanceService {
     const session = await this.sessionsService.resolveOpenSessionForScan(
       sessionId,
       token,
+      now,
     );
 
     if (await this.findByStudentAndSession(studentId, session.id)) {
@@ -85,11 +89,8 @@ export class AttendanceService {
       );
     }
 
-    const status = this.resolveStatus(
-      session.openedAt,
-      session.lateAfterMinutes,
-      now,
-    );
+    // Due-time gate lives in resolveOpenSessionForScan; accepted scans are Present.
+    const status = ATTENDANCE_STATUS.present;
 
     const record = this.records.create({
       id: this.nextRecordId(),
@@ -119,6 +120,11 @@ export class AttendanceService {
     return this.toResponse(record);
   }
 
+  /**
+   * Student “My attendance” history.
+   * Only returns rows whose session still exists. Also purges orphan rows left
+   * when a teacher deleted a session (cascade + self-heal for older data).
+   */
   async findMine(
     actor: AuthenticatedUser,
   ): Promise<AttendanceRecordResponseDto[]> {
@@ -126,7 +132,26 @@ export class AttendanceService {
       where: { userId: actor.userId },
       order: { recordedAt: 'DESC' },
     });
-    return rows.map((row) => this.toResponse(row));
+
+    if (rows.length === 0) {
+      return [];
+    }
+
+    const sessionIds = [...new Set(rows.map((row) => row.sessionId))];
+    const existing = await this.sessions.find({
+      where: { id: In(sessionIds) },
+      select: { id: true },
+    });
+    const existingIds = new Set(existing.map((session) => session.id));
+
+    const orphans = rows.filter((row) => !existingIds.has(row.sessionId));
+    if (orphans.length > 0) {
+      await this.records.delete(orphans.map((row) => row.id));
+    }
+
+    return rows
+      .filter((row) => existingIds.has(row.sessionId))
+      .map((row) => this.toResponse(row));
   }
 
   parsePayload(raw: string): ParsedPayload {
@@ -159,17 +184,6 @@ export class AttendanceService {
       );
     }
     return studentId;
-  }
-
-  private resolveStatus(
-    openedAt: Date,
-    lateAfterMinutes: number,
-    now: Date,
-  ): AttendanceStatus {
-    const deadlineMs = openedAt.getTime() + lateAfterMinutes * 60 * 1000;
-    return now.getTime() <= deadlineMs
-      ? ATTENDANCE_STATUS.present
-      : ATTENDANCE_STATUS.late;
   }
 
   private async findByStudentAndSession(
