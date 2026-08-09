@@ -12,12 +12,18 @@ import {
   ATTENDANCE_STATUS,
   AttendanceStatus,
 } from '../../common/constants/status.constant';
+import { USER_ROLES } from '../../common/constants/roles.constant';
 import { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { toIsoDate } from '../../common/utils/date.util';
 import { AttendanceRecordEntity } from '../../database/entities/attendance-record.entity';
 import { SessionEntity } from '../../database/entities/session.entity';
 import { AuthService } from '../auth/auth.service';
 import { SessionsService } from '../sessions/sessions.service';
+import { AdminAttendanceFilterDto } from './dto/admin-attendance-filter.dto';
+import {
+  AdminAttendanceMetricsDto,
+  AdminAttendanceResponseDto,
+} from './dto/admin-attendance-response.dto';
 import { AttendancePreviewResponseDto } from './dto/attendance-preview-response.dto';
 import { AttendanceRecordResponseDto } from './dto/attendance-record-response.dto';
 import { SubmitAttendanceDto } from './dto/submit-attendance.dto';
@@ -152,6 +158,113 @@ export class AttendanceService {
     return rows
       .filter((row) => existingIds.has(row.sessionId))
       .map((row) => this.toResponse(row));
+  }
+
+  /**
+   * Admin/teacher attendance log with server-side filtering.
+   * Date ranges are resolved in server-local time so "Today" matches the
+   * day the records were actually created (no client clock drift).
+   * Teachers only see rows belonging to their own sessions.
+   */
+  async findAdminRecords(
+    dto: AdminAttendanceFilterDto,
+    actor: AuthenticatedUser,
+  ): Promise<AdminAttendanceResponseDto> {
+    const qb = this.records
+      .createQueryBuilder('record')
+      .orderBy('record.recorded_at', 'DESC');
+
+    if (dto.search?.trim()) {
+      const needle = `%${dto.search.trim()}%`;
+      qb.andWhere(
+        '(record.student LIKE :needle OR record.student_id LIKE :needle)',
+        { needle },
+      );
+    }
+
+    if (dto.sessionId) {
+      qb.andWhere('record.session_id = :sessionId', {
+        sessionId: dto.sessionId,
+      });
+    }
+
+    if (dto.status) {
+      qb.andWhere('record.status = :status', { status: dto.status });
+    }
+
+    if (dto.date) {
+      const { start, end } = this.dateRangeFor(dto.date);
+      qb.andWhere('record.recorded_at >= :rangeStart', { rangeStart: start });
+      qb.andWhere('record.recorded_at < :rangeEnd', { rangeEnd: end });
+    }
+
+    if (actor.role === USER_ROLES.teacher) {
+      qb.innerJoin(
+        SessionEntity,
+        'session',
+        'session.id = record.session_id',
+      ).andWhere('session.teacher_id = :teacherId', {
+        teacherId: actor.userId,
+      });
+    }
+
+    const rows = await qb.getMany();
+
+    return {
+      records: rows.map((row) => this.toResponse(row)),
+      metrics: this.buildAdminMetrics(rows),
+      statusOptions: this.uniqueStatuses(rows),
+    };
+  }
+
+  /**
+   * Local-day boundaries for the "Today / Yesterday / This week" filters.
+   * Week starts on Monday so the label matches the UI option.
+   */
+  private dateRangeFor(
+    date: 'today' | 'yesterday' | 'week',
+    now: Date = new Date(),
+  ): { start: Date; end: Date } {
+    const dayMs = 24 * 60 * 60 * 1000;
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+
+    if (date === 'today') {
+      return { start: todayStart, end: new Date(todayStart.getTime() + dayMs) };
+    }
+
+    if (date === 'yesterday') {
+      const yesterdayStart = new Date(todayStart.getTime() - dayMs);
+      return { start: yesterdayStart, end: todayStart };
+    }
+
+    // This week: Monday 00:00 → next Monday 00:00.
+    const daysSinceMonday = (todayStart.getDay() + 6) % 7;
+    const weekStart = new Date(todayStart.getTime() - daysSinceMonday * dayMs);
+    return { start: weekStart, end: new Date(weekStart.getTime() + 7 * dayMs) };
+  }
+
+  private buildAdminMetrics(rows: AttendanceRecordEntity[]): AdminAttendanceMetricsDto {
+    return {
+      present: this.countStatus(rows, ATTENDANCE_STATUS.present),
+      late: this.countStatus(rows, ATTENDANCE_STATUS.late),
+      absent: this.countStatus(rows, ATTENDANCE_STATUS.absent),
+    };
+  }
+
+  private countStatus(
+    rows: AttendanceRecordEntity[],
+    status: AttendanceStatus,
+  ): number {
+    return rows.reduce((total, row) => total + (row.status === status ? 1 : 0), 0);
+  }
+
+  /** Real statuses in stable canonical order (Present, Late, Absent, Outside Location). */
+  private uniqueStatuses(rows: AttendanceRecordEntity[]): AttendanceStatus[] {
+    const present = new Set(rows.map((row) => row.status as AttendanceStatus));
+    return (Object.values(ATTENDANCE_STATUS) as AttendanceStatus[]).filter(
+      (status) => present.has(status),
+    );
   }
 
   parsePayload(raw: string): ParsedPayload {

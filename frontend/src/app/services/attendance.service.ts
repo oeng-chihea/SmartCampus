@@ -1,125 +1,97 @@
-import attendanceRecordsMock from '../../assets/mock-data/attendance-records.json';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
+import { API_ENDPOINTS } from '../core/constants/api-endpoints';
 import {
-  AdminAttendancePage,
+  AdminAttendanceFilterRequest,
+  AdminAttendanceResponse,
   AttendanceFilterState,
-  AttendanceRecord,
-  AttendanceStatus,
 } from '../models/attendance.model';
-import { StatCard } from '../shared/components/stat-card/stat-card.model';
-
-interface AttendanceRecordsFile {
-  records: AttendanceRecord[];
-}
-
-const mock = attendanceRecordsMock as AttendanceRecordsFile;
+import { AuthService } from './auth.service';
 
 const DEFAULT_FILTERS: AttendanceFilterState = {
   search: '',
-  session: 'All sessions',
-  status: 'All statuses',
-  date: 'All dates',
+  sessionId: 'all',
+  status: 'all',
+  date: 'all',
 };
 
+/**
+ * Live Nest attendance log for the admin/teacher records page.
+ * Filtering (search, session, status, date) happens server-side; the
+ * request body mirrors the backend `AdminAttendanceFilterDto`.
+ */
+@Injectable({ providedIn: 'root' })
 export class AttendanceService {
-  getAdminAttendancePage(): AdminAttendancePage {
-    const records = mock.records;
-    return {
-      title: 'Attendance records',
-      subtitle:
-        'Review student scans with identity, exact timestamps, location checks, and attendance status.',
-      metrics: this.buildMetrics(records),
-      filters: {
-        searchPlaceholder: 'Search student name or ID',
-        sessionOptions: ['All sessions', ...unique(records.map((row) => row.session))],
-        statusOptions: ['All statuses', 'Present', 'Late', 'Absent', 'Outside Location'],
-        dateOptions: ['All dates', 'Today', 'Yesterday', 'This week'],
-      },
-      records,
-    };
-  }
+  private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
 
-  filterRecords(
-    records: AttendanceRecord[],
+  fetchAdminRecords(
     filters: Partial<AttendanceFilterState> = {},
-  ): AttendanceRecord[] {
+  ): Promise<AdminAttendanceResponse> {
     const state = { ...DEFAULT_FILTERS, ...filters };
-    const query = state.search.trim().toLowerCase();
+    const body = this.toFilterRequest(state);
 
-    return records.filter((row) => {
-      const matchesSearch =
-        !query ||
-        row.student.toLowerCase().includes(query) ||
-        row.studentId.toLowerCase().includes(query);
-
-      const matchesSession =
-        state.session === 'All sessions' || row.session === state.session;
-
-      const matchesStatus =
-        state.status === 'All statuses' || row.status === state.status;
-
-      const matchesDate = this.matchesDateFilter(row, state.date);
-
-      return matchesSearch && matchesSession && matchesStatus && matchesDate;
-    });
+    return firstValueFrom(
+      this.http.post<AdminAttendanceResponse>(
+        this.url(API_ENDPOINTS.attendanceAdmin),
+        body,
+        { headers: this.authHeaders() },
+      ),
+    );
   }
 
-  private buildMetrics(records: AttendanceRecord[]): StatCard[] {
-    const count = (status: AttendanceStatus) =>
-      records.filter((row) => row.status === status).length;
+  /** Drop UI `all`/empty values so the payload only carries real filters. */
+  private toFilterRequest(
+    state: AttendanceFilterState,
+  ): AdminAttendanceFilterRequest {
+    const request: AdminAttendanceFilterRequest = {};
 
-    return [
-      {
-        label: 'Present',
-        value: String(count('Present')),
-        helper: 'Valid scans inside zone',
-        icon: 'present',
-        tone: 'green',
-      },
-      {
-        label: 'Late',
-        value: String(count('Late')),
-        helper: 'After late threshold',
-        icon: 'late',
-        tone: 'amber',
-      },
-      {
-        label: 'Absent',
-        value: String(count('Absent')),
-        helper: 'No successful check-in',
-        icon: 'attendance',
-        tone: 'violet',
-      },
-      {
-        label: 'Outside location',
-        value: String(count('Outside Location')),
-        helper: 'Failed geofence check',
-        icon: 'locations',
-        tone: 'blue',
-      },
-    ];
+    if (state.search.trim()) {
+      request.search = state.search.trim();
+    }
+    if (state.sessionId !== 'all') {
+      request.sessionId = state.sessionId;
+    }
+    if (state.status !== 'all') {
+      request.status = state.status as AdminAttendanceFilterRequest['status'];
+    }
+    if (state.date !== 'all') {
+      request.date = state.date as AdminAttendanceFilterRequest['date'];
+    }
+
+    return request;
   }
 
-  private matchesDateFilter(row: AttendanceRecord, date: string): boolean {
-    if (date === 'All dates') {
-      return true;
+  mapError(error: unknown, fallback: string): string {
+    if (error instanceof HttpErrorResponse) {
+      if (error.status === 0) {
+        return 'Cannot reach the API. Start the backend on port 3000.';
+      }
+      if (error.status === 401) {
+        return 'Session expired. Sign out and sign in again.';
+      }
+      const body = error.error as { message?: string | string[] } | null;
+      if (typeof body?.message === 'string') {
+        return body.message;
+      }
+      if (Array.isArray(body?.message)) {
+        return body.message.join(', ');
+      }
     }
-    if (date === 'Today') {
-      return row.submittedAt.toLowerCase().startsWith('today');
-    }
-    if (date === 'Yesterday') {
-      return row.submittedAt.toLowerCase().startsWith('yesterday');
-    }
-    if (date === 'This week') {
-      return (
-        row.submittedAt.toLowerCase().startsWith('today') ||
-        row.submittedAt.toLowerCase().startsWith('yesterday') ||
-        row.submittedAt.toLowerCase().includes('mon')
-      );
-    }
-    return true;
+    return fallback;
   }
-}
 
-function unique(values: string[]): string[] {
-  return [...new Set(values)];
+  private url(path: string): string {
+    return `${environment.apiBaseUrl}${path}`;
+  }
+
+  private authHeaders(): HttpHeaders {
+    const token = this.auth.getAccessToken();
+    if (!token) {
+      return new HttpHeaders();
+    }
+    return new HttpHeaders({ Authorization: `Bearer ${token}` });
+  }
 }

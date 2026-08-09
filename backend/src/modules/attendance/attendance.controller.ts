@@ -6,6 +6,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { AttendanceService } from './attendance.service';
+import { AdminAttendanceFilterDto } from './dto/admin-attendance-filter.dto';
 import { SubmitAttendanceDto } from './dto/submit-attendance.dto';
 
 @Controller('attendance')
@@ -43,5 +44,19 @@ export class AttendanceController {
   @Roles(USER_ROLES.student)
   findMine(@CurrentUser() user: AuthenticatedUser) {
     return this.attendanceService.findMine(user);
+  }
+
+  /**
+   * Admin/teacher attendance log — server-side search, session, status,
+   * and date filters. Filters arrive as a JSON body so the exact request
+   * is easy to inspect; date ranges are resolved on the database.
+   */
+  @Post('admin')
+  @Roles(USER_ROLES.admin, USER_ROLES.teacher)
+  findAdmin(
+    @Body() body: AdminAttendanceFilterDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.attendanceService.findAdminRecords(body, user);
   }
 }
