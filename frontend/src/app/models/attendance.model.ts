@@ -25,7 +25,7 @@ export interface AttendancePreview {
   sessionId: string;
   title: string;
   locationName: string;
-  lateAfterMinutes: number;
+  dueAt: string | null;
   alreadySubmitted: boolean;
 }
 

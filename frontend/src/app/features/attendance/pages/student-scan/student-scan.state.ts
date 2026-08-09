@@ -2,6 +2,14 @@ import { Injectable, signal } from '@angular/core';
 import { AttendanceRecord } from '../../../../models/attendance.model';
 import { OpenLiveSessionCard } from '../../../../models/session.model';
 
+/** Shown when student tries to mark/scan after the session due time. */
+export interface DueBlockedNotice {
+  sessionTitle: string;
+  dueAt: string | null;
+  /** Whether the attempt came from a Camera deep-link QR. */
+  fromScan: boolean;
+}
+
 /**
  * Student attendance page state — open live sessions + results.
  */
@@ -12,12 +20,11 @@ export class StudentScanPageState {
   readonly error = signal<string | null>(null);
   readonly success = signal<string | null>(null);
   readonly info = signal<string | null>(null);
-  /** In-app camera scanner open on this page. */
-  readonly cameraOpen = signal(false);
-  readonly cameraError = signal<string | null>(null);
   readonly openSessions = signal<OpenLiveSessionCard[]>([]);
-  readonly lastRecord = signal<AttendanceRecord | null>(null);
   readonly myRecords = signal<AttendanceRecord[]>([]);
+
+  /** Non-null while the due-time blocked confirm dialog is open. */
+  readonly dueBlocked = signal<DueBlockedNotice | null>(null);
 
   beginLoad(): void {
     this.loading.set(true);
@@ -48,7 +55,6 @@ export class StudentScanPageState {
   }
 
   submitSucceeded(record: AttendanceRecord): void {
-    this.lastRecord.set(record);
     this.success.set(`You’re marked ${record.status} for “${record.session}”.`);
     this.myRecords.update((rows) => [
       record,
@@ -60,7 +66,6 @@ export class StudentScanPageState {
     this.info.set('You already submitted attendance for this session.');
     this.error.set(null);
     if (record) {
-      this.lastRecord.set(record);
       this.myRecords.update((rows) => {
         if (rows.some((r) => r.id === record.id)) {
           return rows;
@@ -78,19 +83,14 @@ export class StudentScanPageState {
     this.info.set(message);
   }
 
-  openCamera(): void {
-    this.cameraError.set(null);
+  openDueBlocked(notice: DueBlockedNotice): void {
+    this.dueBlocked.set(notice);
     this.error.set(null);
-    this.cameraOpen.set(true);
+    this.info.set(null);
   }
 
-  closeCamera(): void {
-    this.cameraOpen.set(false);
-    this.cameraError.set(null);
-  }
-
-  setCameraError(message: string | null): void {
-    this.cameraError.set(message);
+  closeDueBlocked(): void {
+    this.dueBlocked.set(null);
   }
 
   hasSubmittedFor(sessionTitle: string): boolean {

@@ -389,6 +389,14 @@
   color: var(--color-danger-deep);
 }
 
+.session-create-form__hint {
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 550;
+  line-height: 1.4;
+  margin: 0;
+}
+
 .session-create-form__field-error {
   animation: session-error-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
   color: var(--color-danger);

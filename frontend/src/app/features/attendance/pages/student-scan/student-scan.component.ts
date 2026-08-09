@@ -1,28 +1,31 @@
-import { DatePipe } from '@angular/common';
+import { Component, OnDestroy, OnInit, computed, inject } from '@angular/core';
 import {
-  Component,
-  ElementRef,
-  OnDestroy,
-  OnInit,
-  ViewChild,
-  computed,
-  inject,
-} from '@angular/core';
-import { Html5Qrcode } from 'html5-qrcode';
-import { AuthService } from '../../../../services/auth.service';
+  formatSessionDue,
+  formatSessionOpened,
+  isSessionPastDue,
+} from '../../../../core/utils/date.util';
+import { formatCampusLocationLabel } from '../../../../core/utils/format.util';
+import { AttendanceRecord } from '../../../../models/attendance.model';
 import { OpenLiveSessionCard } from '../../../../models/session.model';
-import { StudentScanPageFlow } from './student-scan.flow';
+import { AuthService } from '../../../../services/auth.service';
+import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { TableComponent } from '../../../../shared/components/table/table.component';
+import { TableColumn } from '../../../../shared/components/table/table.model';
+import {
+  StudentScanPageFlow,
+  dueBlockedDetail,
+  dueBlockedMessage,
+} from './student-scan.flow';
 import { StudentScanPageState } from './student-scan.state';
-
-const CAMERA_REGION_ID = 'student-scan-camera-region';
 
 /**
  * Student attendance page.
- * Mark present via button, iPhone Camera deep link, or in-app camera scan.
+ * Mark present via the button, or via the teacher-QR deep link (iPhone Camera).
+ * History uses shared `app-table` (no separate last-record hero card).
  */
 @Component({
   selector: 'app-student-scan',
-  imports: [DatePipe],
+  imports: [ConfirmDialogComponent, TableComponent],
   templateUrl: './student-scan.component.html',
   styleUrl: './student-scan.component.scss',
   providers: [StudentScanPageState, StudentScanPageFlow],
@@ -33,19 +36,44 @@ export class StudentScanComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
 
   readonly user = computed(() => this.auth.user());
-  readonly cameraRegionId = CAMERA_REGION_ID;
 
-  @ViewChild('cameraHost') cameraHost?: ElementRef<HTMLDivElement>;
-
-  private scanner: Html5Qrcode | null = null;
-  private scanBusy = false;
+  /** My attendance columns — titles owned by this page. */
+  readonly attendanceColumns: TableColumn<AttendanceRecord>[] = [
+    {
+      key: 'session',
+      header: 'Session',
+      type: 'primary',
+      width: 'minmax(0, 1.4fr)',
+      primary: (row) => ({ title: row.session, subtitle: row.id }),
+    },
+    {
+      key: 'location',
+      header: 'Location',
+      width: 'minmax(120px, 1.1fr)',
+      value: (row) => formatCampusLocationLabel(row.location),
+    },
+    {
+      key: 'time',
+      header: 'Recorded',
+      width: 'minmax(110px, 0.9fr)',
+      value: (row) => formatSessionOpened(row.recordedAt),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      type: 'badge',
+      width: 'minmax(6.5rem, 0.7fr)',
+      align: 'start',
+      value: (row) => row.status,
+      badgeVariant: (row) => row.status.toLowerCase().replace(/\s+/g, '-'),
+    },
+  ];
 
   async ngOnInit(): Promise<void> {
     await this.flow.init();
   }
 
   ngOnDestroy(): void {
-    void this.stopCamera(false);
     this.flow.destroy();
   }
 
@@ -61,110 +89,27 @@ export class StudentScanComponent implements OnInit, OnDestroy {
     return this.state.hasSubmittedFor(sessionTitle);
   }
 
+  isPastDue(session: OpenLiveSessionCard): boolean {
+    return isSessionPastDue(session.dueAt);
+  }
+
+  formatDue(value: string | null | undefined): string {
+    return formatSessionDue(value);
+  }
+
+  dueDialogMessage(fromScan: boolean): string {
+    return dueBlockedMessage(fromScan);
+  }
+
+  dueDialogDetail(sessionTitle: string, dueAt: string | null): string {
+    return dueBlockedDetail(sessionTitle, dueAt);
+  }
+
+  dismissDueBlocked(): void {
+    this.flow.dismissDueBlocked();
+  }
+
   logout(): void {
-    void this.stopCamera(false);
     this.flow.logout();
-  }
-
-  async toggleCamera(): Promise<void> {
-    if (this.state.cameraOpen()) {
-      await this.stopCamera(true);
-      return;
-    }
-    await this.startCamera();
-  }
-
-  private async startCamera(): Promise<void> {
-    this.state.openCamera();
-    // Wait a tick so the camera region is in the DOM.
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => resolve());
-    });
-
-    try {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error(
-          'This browser cannot use the camera. Open Smart Campus in Safari on your iPhone, or use the Mark me present button.',
-        );
-      }
-
-      this.scanner = new Html5Qrcode(CAMERA_REGION_ID);
-      await this.scanner.start(
-        { facingMode: 'environment' },
-        {
-          fps: 8,
-          qrbox: { width: 240, height: 240 },
-          aspectRatio: 1,
-        },
-        (decoded) => {
-          void this.onDecoded(decoded);
-        },
-        () => {
-          // Ignore per-frame "not found" noise.
-        },
-      );
-    } catch (error) {
-      await this.stopCamera(false);
-      this.state.closeCamera();
-      this.state.setCameraError(this.mapCameraError(error));
-    }
-  }
-
-  private async onDecoded(decoded: string): Promise<void> {
-    if (this.scanBusy || this.state.submittingId()) {
-      return;
-    }
-    this.scanBusy = true;
-    try {
-      const ok = await this.flow.submitScannedText(decoded);
-      if (ok) {
-        await this.stopCamera(true);
-      }
-    } finally {
-      this.scanBusy = false;
-    }
-  }
-
-  private async stopCamera(updateState: boolean): Promise<void> {
-    const active = this.scanner;
-    this.scanner = null;
-    if (active) {
-      try {
-        if (active.isScanning) {
-          await active.stop();
-        }
-        active.clear();
-      } catch {
-        // Scanner may already be stopped.
-      }
-    }
-    if (updateState) {
-      this.state.closeCamera();
-    }
-  }
-
-  private mapCameraError(error: unknown): string {
-    const message =
-      error instanceof Error ? error.message : String(error ?? '');
-    const lower = message.toLowerCase();
-
-    if (
-      lower.includes('permission') ||
-      lower.includes('notallowed') ||
-      lower.includes('denied')
-    ) {
-      return 'Camera permission denied. Allow camera access in Safari settings, then try again.';
-    }
-    if (
-      lower.includes('secure') ||
-      lower.includes('https') ||
-      lower.includes('getusermedia')
-    ) {
-      return 'Camera needs a secure page (HTTPS or localhost). Prefer scanning the teacher QR with the iPhone Camera app, or use Mark me present.';
-    }
-    if (message.trim()) {
-      return message;
-    }
-    return 'Could not start the camera. Use the iPhone Camera app on the teacher QR, or tap Mark me present.';
   }
 }

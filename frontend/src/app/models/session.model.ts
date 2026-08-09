@@ -17,7 +17,8 @@ export interface AttendanceSession {
   teacherId: string;
   teacherName: string;
   status: SessionStatus;
-  lateAfterMinutes: number;
+  /** When student mark-present stops being accepted (ISO). Null on legacy rows. */
+  dueAt: string | null;
   createdAt: string;
   openedAt: string;
   closedAt: string | null;
@@ -27,7 +28,8 @@ export interface AttendanceSession {
 export interface CreateSessionRequest {
   title: string;
   locationId: string;
-  lateAfterMinutes?: number;
+  /** Absolute due instant (ISO) built from local today + time input. */
+  dueAt: string;
 }
 
 export interface SessionQrResponse {
@@ -46,7 +48,7 @@ export interface OpenLiveSession {
   title: string;
   locationName: string;
   teacherName: string;
-  lateAfterMinutes: number;
+  dueAt: string | null;
   openedAt: string;
   qr: SessionQrResponse;
 }
@@ -60,7 +62,8 @@ export interface OpenLiveSessionCard extends OpenLiveSession {
 export interface SessionsFormState {
   title: string;
   locationId: string;
-  lateAfterMinutes: number;
+  /** HTML time input value `HH:mm` (local). */
+  dueTime: string;
 }
 
 /** Snapshot of reactive sessions page data (state / docs). */

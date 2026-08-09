@@ -10,22 +10,14 @@
     radial-gradient(circle at 100% 12%, rgba(21, 128, 61, 0.08), transparent 38%),
     var(--page-bg);
   min-height: 100dvh;
-  padding: clamp(16px, 3vw, 28px) clamp(14px, 3vw, 24px) 48px;
+  padding: clamp(14px, 2vw, 24px) clamp(14px, 2.5vw, 28px) 48px;
 }
 
-.student-scan__shell {
-  display: grid;
-  gap: 18px;
-  margin: 0 auto;
-  max-width: 720px;
-  width: 100%;
-}
-
-/* ── Header / account ───────────────────────────────────────── */
+/* ── Full-width header / account ─────────────────────────────── */
 
 .student-scan__top {
   align-items: center;
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(10px);
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
@@ -34,9 +26,10 @@
   flex-wrap: wrap;
   gap: 14px 18px;
   justify-content: space-between;
-  padding: 14px 16px;
+  padding: 14px clamp(16px, 2.4vw, 28px);
   position: sticky;
   top: 10px;
+  width: 100%;
   z-index: 20;
 }
 
@@ -55,7 +48,7 @@
 
 .student-scan__top h1 {
   color: var(--color-brand-deep);
-  font-size: clamp(1.35rem, 4vw, 1.7rem);
+  font-size: clamp(1.4rem, 3.4vw, 2rem);
   line-height: 1.15;
   margin: 0;
 }
@@ -149,7 +142,17 @@
   width: 16px;
 }
 
-/* ── Intro + refresh ────────────────────────────────────────── */
+/* ── Content column ──────────────────────────────────────────── */
+
+.student-scan__content {
+  display: grid;
+  gap: 18px;
+  margin: 18px auto 0;
+  max-width: 1200px;
+  width: 100%;
+}
+
+/* ── Intro + refresh ─────────────────────────────────────────── */
 
 .student-scan__intro {
   align-items: flex-start;
@@ -165,62 +168,13 @@
   font-size: 0.94rem;
   line-height: 1.55;
   margin: 0;
-  max-width: 36rem;
+  max-width: 38rem;
 }
 
 .student-scan__intro-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-.student-scan__btn--camera {
-  background: linear-gradient(135deg, #0f766e, #115e59);
-  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.28);
-  color: #fff;
-  flex-shrink: 0;
-  min-height: 42px;
-  padding: 0 14px;
-}
-
-.student-scan__btn--camera:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
-/* ── In-app camera ──────────────────────────────────────────── */
-
-.student-scan__camera {
-  background: #fff;
-  border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  box-shadow: var(--shadow-soft);
-  display: grid;
-  gap: 12px;
-  padding: 14px;
-}
-
-.student-scan__camera-frame {
-  background: #0f172a;
-  border-radius: 14px;
-  overflow: hidden;
-}
-
-.student-scan__camera-region {
-  min-height: 280px;
-  width: 100%;
-}
-
-.student-scan__camera-region video {
-  border-radius: 14px !important;
-  object-fit: cover;
-}
-
-.student-scan__camera-hint {
-  color: var(--color-muted);
-  font-size: 0.86rem;
-  line-height: 1.45;
-  margin: 0;
-  text-align: center;
 }
 
 .student-scan__btn {
@@ -273,8 +227,9 @@
   background: linear-gradient(135deg, #16a34a, #15803d);
   box-shadow: 0 12px 28px rgba(22, 163, 74, 0.28);
   color: #fff;
-  font-size: 1.02rem;
-  min-height: 52px;
+  font-size: 0.98rem;
+  min-height: 48px;
+  white-space: nowrap;
   width: 100%;
 }
 
@@ -347,14 +302,22 @@
   padding: 4px 10px;
 }
 
-/* ── Cards / session list ───────────────────────────────────── */
+/* ── Session list: horizontal row of cards on the page ───────── */
 
 .student-scan__session-list {
+  align-items: stretch;
   display: grid;
-  gap: 14px;
+  gap: 16px;
+  grid-template-columns: 1fr;
   list-style: none;
   margin: 0;
   padding: 0;
+  width: 100%;
+}
+
+.student-scan__session-item-wrap {
+  display: flex;
+  min-width: 0;
 }
 
 .student-scan__card {
@@ -365,7 +328,14 @@
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
   display: grid;
   gap: 14px;
-  padding: 18px;
+  padding: 16px;
+  width: 100%;
+}
+
+/* Equal-height cards when sitting side-by-side in a row */
+.student-scan__card--session {
+  grid-template-rows: auto auto auto 1fr;
+  height: 100%;
 }
 
 .student-scan__card--empty {
@@ -403,10 +373,12 @@
 .student-scan__card-head {
   align-items: flex-start;
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 10px 12px;
 }
 
 .student-scan__card-titles {
+  flex: 1 1 140px;
   min-width: 0;
 }
 
@@ -421,7 +393,7 @@
 
 .student-scan__session-title {
   color: var(--color-brand-deep);
-  font-size: 1.12rem;
+  font-size: 1.05rem;
   font-weight: 750;
   line-height: 1.25;
   margin: 0;
@@ -453,58 +425,52 @@
   width: 7px;
 }
 
-/* Horizontal body: QR left, meta + CTA right (stacks on narrow) */
-.student-scan__card-body {
-  display: grid;
-  gap: 14px;
-  grid-template-columns: 1fr;
+/* Expiry timer — red so students notice the QR is time-limited */
+.student-scan__expires {
+  color: #dc2626;
+  font-size: 0.88rem;
+  font-weight: 750;
+  line-height: 1.35;
+  margin: 2px 0 0;
+  text-align: center;
+}
+
+.student-scan__expires span {
+  color: #b91c1c;
+  font-weight: 800;
 }
 
 .student-scan__qr-wrap {
   background: #f8fafc;
   border: 1px solid var(--border-subtle);
-  border-radius: 16px;
+  border-radius: 14px;
   display: grid;
   gap: 8px;
   justify-items: center;
-  padding: 16px;
+  padding: 14px 12px;
 }
 
 .student-scan__qr {
   background: #fff;
-  border-radius: 12px;
+  border-radius: 10px;
   display: block;
   height: auto;
   max-width: 100%;
-  width: 200px;
+  width: 168px;
 }
 
 .student-scan__qr-note {
   color: var(--color-brand-strong);
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 750;
+  line-height: 1.4;
   margin: 0;
+  max-width: 16rem;
   text-align: center;
 }
 
-.student-scan__expires {
-  color: var(--color-muted);
-  font-size: 0.78rem;
-  margin: 0;
-  text-align: center;
-}
-
-.student-scan__expires span {
-  opacity: 0.85;
-}
-
-.student-scan__card-side {
-  display: grid;
-  gap: 14px;
-  align-content: start;
-}
-
-.student-scan__session-grid {
+/* Location + late after chips (side-by-side inside each card) */
+.student-scan__session-meta {
   display: grid;
   gap: 10px;
   grid-template-columns: 1fr 1fr;
@@ -516,7 +482,7 @@
   border-radius: 12px;
   display: grid;
   gap: 4px;
-  padding: 12px;
+  padding: 10px 12px;
 }
 
 .student-scan__session-item span {
@@ -529,36 +495,29 @@
 
 .student-scan__session-item strong {
   color: var(--color-brand-deep);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 700;
   overflow-wrap: anywhere;
 }
 
+.student-scan__card-action {
+  align-content: end;
+  display: grid;
+  gap: 10px;
+  margin-top: auto;
+  min-width: 0;
+}
+
 .student-scan__done {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   justify-items: start;
 }
 
 .student-scan__done p {
   color: var(--color-muted);
-  margin: 0;
-}
-
-.student-scan__result-hero {
-  display: grid;
-  gap: 8px;
-}
-
-.student-scan__result-hero h2 {
-  color: var(--color-brand-deep);
-  font-size: 1.15rem;
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.student-scan__result-hero p {
-  color: var(--color-muted);
+  font-size: 0.84rem;
+  line-height: 1.4;
   margin: 0;
 }
 
@@ -581,59 +540,21 @@
   color: #9a3412;
 }
 
-/* ── History ────────────────────────────────────────────────── */
-
-.student-scan__history-list {
-  display: grid;
-  gap: 8px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.student-scan__status-pill--due {
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
-.student-scan__history-row {
-  align-items: center;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  padding: 12px 14px;
+.student-scan__btn--due {
+  margin-top: 4px;
+  opacity: 0.92;
 }
 
-.student-scan__history-main {
-  display: grid;
-  gap: 2px;
+/* ── History (shared app-table) ─────────────────────────────── */
+
+.student-scan__history-workspace {
   min-width: 0;
-}
-
-.student-scan__history-main strong {
-  color: var(--color-brand-deep);
-  font-size: 0.9rem;
-}
-
-.student-scan__history-main span {
-  color: var(--color-muted);
-  font-size: 0.78rem;
-}
-
-.student-scan__badge {
-  border-radius: 999px;
-  flex-shrink: 0;
-  font-size: 0.72rem;
-  font-weight: 800;
-  padding: 5px 9px;
-}
-
-.student-scan__badge--present {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.student-scan__badge--late {
-  background: #ffedd5;
-  color: #9a3412;
+  width: 100%;
 }
 
 /* ── Motion ─────────────────────────────────────────────────── */
@@ -663,32 +584,23 @@
   }
 }
 
-/* ── Responsive: horizontal session card on wider screens ───── */
+/* ── Responsive breakpoints (phone → iPad → desktop) ─────────── */
 
-@media (min-width: 640px) {
-  .student-scan__card-body {
-    align-items: stretch;
-    grid-template-columns: minmax(200px, 240px) 1fr;
-    gap: 16px;
+/* Phones (portrait) */
+@media (max-width: 639px) {
+  .student-scan {
+    padding: 12px 12px 36px;
   }
 
-  .student-scan__qr-wrap {
-    align-content: center;
-    height: 100%;
+  .student-scan__content {
+    margin-top: 14px;
   }
 
-  .student-scan__card-side {
-    align-content: space-between;
-    min-height: 100%;
+  .student-scan__session-list {
+    grid-template-columns: 1fr;
   }
 
-  .student-scan__btn--present {
-    margin-top: auto;
-  }
-}
-
-@media (max-width: 420px) {
-  .student-scan__session-grid {
+  .student-scan__session-meta {
     grid-template-columns: 1fr;
   }
 
@@ -706,5 +618,110 @@
 
   .student-scan__btn--refresh {
     width: 100%;
+  }
+
+  .student-scan__qr {
+    width: 150px;
+  }
+
+  .student-scan__qr-note {
+    font-size: 0.95rem;
+    max-width: 15rem;
+  }
+
+  .student-scan__expires {
+    font-size: 0.84rem;
+  }
+}
+
+/* Large phones / small tablets (landscape phone, narrow iPad) */
+@media (min-width: 640px) and (max-width: 767px) {
+  .student-scan__session-list {
+    grid-template-columns: 1fr;
+  }
+
+  .student-scan__qr {
+    width: 160px;
+  }
+}
+
+/* iPad portrait / tablets: 2 cards per horizontal row */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .student-scan__content {
+    max-width: 100%;
+  }
+
+  .student-scan__session-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .student-scan__qr {
+    width: 150px;
+  }
+
+  .student-scan__qr-note {
+    font-size: 0.95rem;
+    max-width: 14rem;
+  }
+
+  .student-scan__expires {
+    font-size: 0.84rem;
+  }
+
+  .student-scan__session-title {
+    font-size: 0.98rem;
+  }
+}
+
+/* iPad landscape / small laptop: 2 cards per row, more room */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .student-scan__session-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .student-scan__qr {
+    width: 168px;
+  }
+}
+
+/* Desktop: up to 3 cards per horizontal row when many sessions open */
+@media (min-width: 1200px) {
+  .student-scan__session-list {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 18px;
+  }
+
+  .student-scan__qr {
+    width: 176px;
+  }
+
+  .student-scan__qr-note {
+    font-size: 1.05rem;
+  }
+
+  .student-scan__expires {
+    font-size: 0.9rem;
+  }
+}
+
+/* Very narrow phones */
+@media (max-width: 380px) {
+  .student-scan__top {
+    padding: 12px 12px;
+  }
+
+  .student-scan__top h1 {
+    font-size: 1.25rem;
+  }
+
+  .student-scan__card--session {
+    padding: 12px;
+  }
+
+  .student-scan__btn--present {
+    min-height: 46px;
+    font-size: 0.92rem;
   }
 }

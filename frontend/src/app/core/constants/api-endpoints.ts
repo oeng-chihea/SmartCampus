@@ -15,5 +15,6 @@ export const API_ENDPOINTS = {
   sessionById: (id: string) => `/sessions/${id}`,
   sessionQr: (id: string) => `/sessions/${id}/qr`,
   sessionClose: (id: string) => `/sessions/${id}/close`,
+  sessionDelete: (id: string) => `/sessions/${id}`,
   reports: '/reports',
 } as const;

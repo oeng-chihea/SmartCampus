@@ -1,0 +1,115 @@
+:host {
+  display: contents;
+}
+
+.confirm-dialog {
+  align-items: flex-start;
+  display: flex;
+  gap: clamp(14px, 2vw, 18px);
+  min-width: 0;
+}
+
+.confirm-dialog__icon {
+  align-items: center;
+  background: var(--color-danger-faint);
+  border: 1px solid var(--color-danger-soft);
+  border-radius: 50%;
+  color: var(--color-danger);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 48px;
+  justify-content: center;
+  width: 48px;
+}
+
+.confirm-dialog__copy {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.confirm-dialog__message {
+  color: var(--color-brand-deep);
+  font-size: clamp(0.95rem, 1.5vw, 1.02rem);
+  font-weight: 650;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.confirm-dialog__detail {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.confirm-dialog__footer {
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(10px, 1.5vw, 12px);
+  justify-content: flex-end;
+  padding: clamp(14px, 2vw, 18px) clamp(24px, 3.5vw, 36px) clamp(18px, 2.4vw, 24px);
+}
+
+.confirm-dialog__btn {
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  min-height: 42px;
+  padding: 0 clamp(16px, 2.2vw, 22px);
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.confirm-dialog__btn:focus-visible {
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+.confirm-dialog__btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.confirm-dialog__btn--secondary {
+  background: var(--color-brand-faint);
+  border: 1px solid var(--color-brand-muted);
+  color: var(--color-brand-deep);
+}
+
+.confirm-dialog__btn--secondary:hover:not(:disabled) {
+  background: var(--color-brand-soft);
+}
+
+.confirm-dialog__btn--danger {
+  background: var(--color-danger);
+  border: 1px solid var(--color-danger);
+  color: #ffffff;
+}
+
+.confirm-dialog__btn--danger:hover:not(:disabled) {
+  background: var(--color-danger-strong);
+  border-color: var(--color-danger-strong);
+}
+
+.confirm-dialog__btn--danger:focus-visible {
+  box-shadow: var(--focus-ring-danger);
+}
+
+@media (max-width: 640px) {
+  .confirm-dialog__footer {
+    flex-direction: column-reverse;
+    padding: 14px 18px 18px;
+  }
+
+  .confirm-dialog__btn {
+    justify-content: center;
+    width: 100%;
+  }
+}

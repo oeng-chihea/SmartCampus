@@ -1,13 +1,20 @@
-import { DatePipe, formatDate } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import {
+  formatSessionDue,
+  formatSessionOpened,
+} from '../../../../core/utils/date.util';
+import { formatCampusLocationLabel } from '../../../../core/utils/format.util';
 import { AttendanceSession } from '../../../../models/session.model';
+import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ModalDialogComponent } from '../../../../shared/components/modal-dialog/modal-dialog.component';
 import { SelectDropdownComponent } from '../../../../shared/components/select-dropdown/select-dropdown.component';
 import { SelectOption } from '../../../../shared/components/select-dropdown/select-dropdown.model';
 import { StatCardComponent } from '../../../../shared/components/stat-card/stat-card.component';
 import { TableComponent } from '../../../../shared/components/table/table.component';
 import {
+  TableAction,
   TableActionEvent,
   TableColumn,
 } from '../../../../shared/components/table/table.model';
@@ -31,6 +38,7 @@ import { SessionsPageState } from './sessions.state';
     StatCardComponent,
     DatePipe,
     ModalDialogComponent,
+    ConfirmDialogComponent,
     SelectDropdownComponent,
     TableComponent,
   ],
@@ -47,17 +55,18 @@ export class SessionsComponent implements OnInit, OnDestroy {
   readonly locationOptions = computed<SelectOption[]>(() =>
     this.state.locations().map((location) => ({
       value: location.id,
-      label: `${location.building}, Room ${location.room}`,
+      label: formatCampusLocationLabel(location.building, location.room),
       hint: `${location.radiusMeters}m geofence radius`,
     })),
   );
 
   /**
    * Session log columns (titles owned by this page).
-   * Actions re-read closingId from state so labels stay in sync.
+   * Actions re-read closing/deleting ids from state so labels stay in sync.
    */
   readonly sessionColumns = computed<TableColumn<AttendanceSession>[]>(() => {
     const closingId = this.state.closingId();
+    const deletingId = this.state.deletingId();
     return [
       {
         key: 'session',
@@ -70,7 +79,7 @@ export class SessionsComponent implements OnInit, OnDestroy {
         key: 'location',
         header: 'Location',
         width: 'minmax(120px, 1fr)',
-        value: (row) => row.locationName,
+        value: (row) => formatCampusLocationLabel(row.locationName),
       },
       {
         key: 'teacher',
@@ -82,7 +91,13 @@ export class SessionsComponent implements OnInit, OnDestroy {
         key: 'opened',
         header: 'Opened',
         width: 'minmax(110px, 0.85fr)',
-        value: (row) => formatDate(row.openedAt, 'short', 'en-US'),
+        value: (row) => formatSessionOpened(row.openedAt),
+      },
+      {
+        key: 'due',
+        header: 'Due',
+        width: 'minmax(90px, 0.7fr)',
+        value: (row) => formatSessionDue(row.dueAt),
       },
       {
         key: 'status',
@@ -102,18 +117,29 @@ export class SessionsComponent implements OnInit, OnDestroy {
         width: '4.5rem',
         align: 'center',
         actions: (row) => {
-          if (row.status !== 'Open') {
-            return [];
+          const busy = closingId === row.id || deletingId === row.id;
+          const items: TableAction[] = [];
+
+          if (row.status === 'Open') {
+            items.push(
+              { id: 'show-qr', label: 'Show QR', disabled: busy },
+              {
+                id: 'close',
+                label: closingId === row.id ? 'Closing…' : 'Close',
+                variant: 'danger',
+                disabled: busy,
+              },
+            );
           }
-          return [
-            { id: 'show-qr', label: 'Show QR' },
-            {
-              id: 'close',
-              label: closingId === row.id ? 'Closing…' : 'Close',
-              variant: 'danger',
-              disabled: closingId === row.id,
-            },
-          ];
+
+          items.push({
+            id: 'delete',
+            label: deletingId === row.id ? 'Deleting…' : 'Delete',
+            variant: 'danger',
+            disabled: busy,
+          });
+
+          return items;
         },
       },
     ];
@@ -145,8 +171,20 @@ export class SessionsComponent implements OnInit, OnDestroy {
     this.flow.closeCreateDialog();
   }
 
-  onFieldInput(field: 'title' | 'locationId' | 'lateAfterMinutes'): void {
+  cancelDelete(): void {
+    this.flow.cancelDelete();
+  }
+
+  deleteConfirmedSession(): Promise<void> {
+    return this.flow.deleteConfirmedSession();
+  }
+
+  onFieldInput(field: 'title' | 'locationId' | 'dueTime'): void {
     this.flow.onFieldInput(field);
+  }
+
+  formatDue(value: string | null | undefined): string {
+    return formatSessionDue(value);
   }
 
   createSession(): Promise<void> {
@@ -169,6 +207,11 @@ export class SessionsComponent implements OnInit, OnDestroy {
     return this.flow.copyPayload();
   }
 
+  /** Display label for QR panel / any location name string. */
+  formatLocation(name: string): string {
+    return formatCampusLocationLabel(name);
+  }
+
   onSessionAction(event: TableActionEvent<AttendanceSession>): void {
     if (event.actionId === 'show-qr') {
       void this.showQr(event.row.id);
@@ -176,6 +219,10 @@ export class SessionsComponent implements OnInit, OnDestroy {
     }
     if (event.actionId === 'close') {
       void this.closeSession(event.row.id);
+      return;
+    }
+    if (event.actionId === 'delete') {
+      this.flow.askDelete(event.row);
     }
   }
 }
