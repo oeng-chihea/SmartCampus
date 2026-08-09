@@ -51,7 +51,7 @@ export class SessionsPageFlow {
   /** Clear a single field error while the teacher edits. */
   onFieldInput(field: 'title' | 'locationId' | 'dueTime'): void {
     this.state.clearFieldError(field);
-    if (this.state.dialogError() && !this.hasAnyFieldError()) {
+    if (this.state.dialogError() && !this.state.hasAnyFieldError()) {
       this.state.setDialogError(null);
     }
   }
@@ -135,7 +135,6 @@ export class SessionsPageFlow {
     this.state.beginDelete(sessionId);
     try {
       await this.sessionService.deleteSession(sessionId);
-      this.state.removeSession(sessionId);
       this.state.setPageSuccess('Session deleted and removed from the log.');
       await this.reload();
       return true;
@@ -244,13 +243,6 @@ export class SessionsPageFlow {
       summary: firstError ?? '',
       dueAt,
     };
-  }
-
-  private hasAnyFieldError(): boolean {
-    const errors = this.state.fieldErrors();
-    return Object.values(errors).some(
-      (message) => typeof message === 'string' && message.length > 0,
-    );
   }
 
   private async refreshQrQuiet(sessionId: string): Promise<void> {

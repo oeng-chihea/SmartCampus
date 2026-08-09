@@ -157,6 +157,12 @@ export class SessionsPageState {
     this.fieldErrors.set({ ...this.fieldErrors(), [field]: null });
   }
 
+  hasAnyFieldError(): boolean {
+    return Object.values(this.fieldErrors()).some(
+      (message) => typeof message === 'string' && message.length > 0,
+    );
+  }
+
   hasFieldError(field: string): boolean {
     const message = this.fieldErrors()[field];
     return typeof message === 'string' && message.length > 0;
@@ -251,14 +257,6 @@ export class SessionsPageState {
       return;
     }
     this.deleteTarget.set(null);
-  }
-
-  /** Drop a row locally after a successful API delete (before reload). */
-  removeSession(sessionId: string): void {
-    this.sessions.set(this.sessions().filter((row) => row.id !== sessionId));
-    if (this.selectedSessionId() === sessionId) {
-      this.clearQrPanel();
-    }
   }
 
   getForm(): SessionsFormState {

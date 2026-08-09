@@ -1,32 +1,36 @@
-import { Component, computed, signal } from '@angular/core';
-import { AttendanceFilterState, AttendanceRecord } from '../../../../models/attendance.model';
-import { AttendanceService } from '../../../../services/attendance.service';
+import { Component, OnInit, inject } from '@angular/core';
+import { formatSessionOpened } from '../../../../core/utils/date.util';
+import {
+  AttendanceFilterState,
+  AttendanceRecord,
+} from '../../../../models/attendance.model';
 import { AttendanceFilterComponent } from '../../../../shared/components/attendance-filter/attendance-filter.component';
 import { StatCardComponent } from '../../../../shared/components/stat-card/stat-card.component';
 import { TableComponent } from '../../../../shared/components/table/table.component';
 import { TableColumn } from '../../../../shared/components/table/table.model';
+import { AdminRecordsFlow } from './admin-records.flow';
+import { AdminRecordsState } from './admin-records.state';
 
+/**
+ * Thin UI shell for the Admin attendance records page.
+ *
+ * - State  → `admin-records.state.ts`  (signals, filters, derived)
+ * - Flow   → `admin-records.flow.ts`   (API + orchestration)
+ * - View   → this file + html/scss
+ * - Filter toolbar → shared `app-attendance-filter`
+ * - Scan log → shared `app-table`
+ */
 @Component({
   selector: 'app-admin-records',
   imports: [StatCardComponent, AttendanceFilterComponent, TableComponent],
   templateUrl: './admin-records.component.html',
   styleUrl: './admin-records.component.scss',
+  providers: [AdminRecordsState, AdminRecordsFlow],
 })
-export class AdminRecordsComponent {
-  private readonly attendanceService = new AttendanceService();
-  private readonly pageData = this.attendanceService.getAdminAttendancePage();
-  private readonly filterState = signal<AttendanceFilterState>({
-    search: '',
-    session: 'All sessions',
-    status: 'All statuses',
-    date: 'All dates',
-  });
-
-  readonly page = this.pageData;
-
-  readonly filteredRecords = computed(() =>
-    this.attendanceService.filterRecords(this.pageData.records, this.filterState()),
-  );
+export class AdminRecordsComponent implements OnInit {
+  /** Template binds to `state.*` for all reactive UI. */
+  readonly state = inject(AdminRecordsState);
+  private readonly flow = inject(AdminRecordsFlow);
 
   /** Attendance scan-log columns (titles owned by this page). */
   readonly attendanceColumns: TableColumn<AttendanceRecord>[] = [
@@ -52,8 +56,8 @@ export class AdminRecordsComponent {
     {
       key: 'time',
       header: 'Time',
-      width: 'minmax(90px, 0.7fr)',
-      value: (row) => row.submittedAt,
+      width: 'minmax(100px, 0.7fr)',
+      value: (row) => formatSessionOpened(row.recordedAt),
     },
     {
       key: 'distance',
@@ -71,7 +75,11 @@ export class AdminRecordsComponent {
     },
   ];
 
+  ngOnInit(): void {
+    void this.flow.load();
+  }
+
   onFilterApply(filters: AttendanceFilterState): void {
-    this.filterState.set(filters);
+    void this.flow.applyFilters(filters);
   }
 }

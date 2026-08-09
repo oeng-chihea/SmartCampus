@@ -34,6 +34,7 @@ import { SelectOption } from './select-dropdown.model';
     '[class.app-select-dropdown-host--open]': 'open()',
     '[class.app-select-dropdown-host--invalid]': 'invalid()',
     '[class.app-select-dropdown-host--disabled]': 'isDisabled()',
+    '[class.app-select-dropdown-host--compact]': 'compact()',
   },
 })
 export class SelectDropdownComponent implements ControlValueAccessor {
@@ -51,6 +52,9 @@ export class SelectDropdownComponent implements ControlValueAccessor {
 
   /** Optional id for aria-describedby / label association. */
   readonly inputId = input<string | null>(null);
+
+  /** Compact trigger geometry (42px) for filter toolbars and small form fields. */
+  readonly compact = input(false);
 
   /** Emitted when the value changes (in addition to CVA). */
   readonly valueChange = output<string>();

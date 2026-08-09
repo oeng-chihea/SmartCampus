@@ -13,39 +13,35 @@
 
     <label>
       <span>Session</span>
-      <select
+      <app-select-dropdown
         name="session"
-        [ngModel]="session()"
-        (ngModelChange)="session.set($event)"
-        aria-label="Session"
-      >
-        @for (option of filters().sessionOptions; track option) {
-          <option [value]="option">{{ option }}</option>
-        }
-      </select>
+        [options]="filters().sessionOptions"
+        [ngModel]="sessionId()"
+        (ngModelChange)="sessionId.set($event)"
+        [compact]="true"
+      />
     </label>
 
     <label>
       <span>Status</span>
-      <select
+      <app-select-dropdown
         name="status"
+        [options]="filters().statusOptions"
         [ngModel]="status()"
         (ngModelChange)="status.set($event)"
-        aria-label="Status"
-      >
-        @for (option of filters().statusOptions; track option) {
-          <option [value]="option">{{ option }}</option>
-        }
-      </select>
+        [compact]="true"
+      />
     </label>
 
     <label>
       <span>Date</span>
-      <select name="date" [ngModel]="date()" (ngModelChange)="date.set($event)" aria-label="Date">
-        @for (option of filters().dateOptions; track option) {
-          <option [value]="option">{{ option }}</option>
-        }
-      </select>
+      <app-select-dropdown
+        name="date"
+        [options]="filters().dateOptions"
+        [ngModel]="date()"
+        (ngModelChange)="date.set($event)"
+        [compact]="true"
+      />
     </label>
 
     <button type="submit">Apply</button>

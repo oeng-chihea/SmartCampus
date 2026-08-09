@@ -38,10 +38,25 @@
   max-width: 62ch;
 }
 
+.attendance-page__alert {
+  animation: fade-in 360ms ease both;
+  border-radius: var(--radius-md);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  margin: 0;
+  padding: 12px 14px;
+}
+
+.attendance-page__alert--error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
 .attendance-page__metrics {
   display: grid;
   gap: clamp(10px, 1.2vw, 14px);
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   min-width: 0;
 }
 
@@ -79,6 +94,11 @@
   .attendance-page__metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  /* Third summary card spans the full row so nothing dangles. */
+  .attendance-page__metrics > :last-child {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 640px) {
@@ -91,11 +111,13 @@
     gap: 12px;
     padding: 14px;
   }
-}
 
-@media (max-width: 420px) {
   .attendance-page__metrics {
     grid-template-columns: 1fr;
+  }
+
+  .attendance-page__metrics > :last-child {
+    grid-column: auto;
   }
 }
 

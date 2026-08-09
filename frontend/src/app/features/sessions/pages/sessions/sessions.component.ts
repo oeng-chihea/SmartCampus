@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
@@ -36,7 +35,6 @@ import { SessionsPageState } from './sessions.state';
   imports: [
     FormsModule,
     StatCardComponent,
-    DatePipe,
     ModalDialogComponent,
     ConfirmDialogComponent,
     SelectDropdownComponent,

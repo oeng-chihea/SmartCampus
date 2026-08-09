@@ -57,6 +57,13 @@
   opacity: 0.65;
 }
 
+/* Compact variant for toolbar/filter fields — matches 42px text inputs */
+.select-dropdown__trigger--compact {
+  font-size: 0.9rem;
+  min-height: 42px;
+  padding: 0 12px;
+}
+
 .select-dropdown__trigger--placeholder {
   color: var(--color-muted);
   font-weight: 500;

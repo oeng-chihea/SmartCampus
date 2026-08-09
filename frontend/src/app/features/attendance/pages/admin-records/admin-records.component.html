@@ -1,28 +1,37 @@
 <section class="attendance-page" aria-labelledby="attendance-title">
   <header class="attendance-page__header">
     <div class="attendance-page__copy">
-      <h1 id="attendance-title">{{ page.title }}</h1>
-      <p>{{ page.subtitle }}</p>
+      <h1 id="attendance-title">Attendance records</h1>
+      <p>
+        Review student scans with identity, exact timestamps, location checks, and attendance
+        status.
+      </p>
     </div>
   </header>
 
+  @if (state.error(); as message) {
+    <p class="attendance-page__alert attendance-page__alert--error" role="alert">{{ message }}</p>
+  }
+
   <section class="attendance-page__metrics" aria-label="Attendance status summary">
-    @for (metric of page.metrics; track metric.label; let index = $index) {
+    @for (metric of state.metrics(); track metric.label; let index = $index) {
       <app-stat-card [card]="metric" [animationDelay]="index * 70" />
     }
   </section>
 
   <section class="attendance-page__workspace" aria-label="Attendance filters and records">
     <div class="attendance-page__toolbar">
-      <app-attendance-filter [filters]="page.filters" (apply)="onFilterApply($event)" />
+      <app-attendance-filter [filters]="state.filters()" (apply)="onFilterApply($event)" />
     </div>
     <app-table
       eyebrow="Attendance records"
       title="Student scan log"
-      [countLabel]="filteredRecords().length + ' records'"
+      [countLabel]="state.records().length + ' records'"
       tableAriaLabel="Attendance scan records"
       [columns]="attendanceColumns"
-      [rows]="filteredRecords()"
+      [rows]="state.records()"
+      [loading]="state.loading()"
+      loadingMessage="Loading attendance records from API…"
       [showExport]="true"
       emptyTitle="No records match your filters"
       emptyMessage="Try another student ID, session, or status."

@@ -31,7 +31,6 @@
 }
 
 .attendance-filter input,
-.attendance-filter select,
 .attendance-filter button {
   border-radius: var(--radius-sm);
   font: inherit;
@@ -39,8 +38,7 @@
   min-width: 0;
 }
 
-.attendance-filter input,
-.attendance-filter select {
+.attendance-filter input {
   background: var(--surface-muted);
   border: 1px solid var(--border-subtle);
   color: var(--color-brand-deep);
@@ -48,8 +46,7 @@
   width: 100%;
 }
 
-.attendance-filter input:focus,
-.attendance-filter select:focus {
+.attendance-filter input:focus {
   background: var(--surface);
   border-color: var(--color-brand);
   box-shadow: var(--focus-ring);

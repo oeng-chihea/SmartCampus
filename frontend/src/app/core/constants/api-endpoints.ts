@@ -9,6 +9,7 @@ export const API_ENDPOINTS = {
   attendancePreview: '/attendance/preview',
   attendanceSubmit: '/attendance/submit',
   attendanceMe: '/attendance/me',
+  attendanceAdmin: '/attendance/admin',
   locations: '/locations',
   sessions: '/sessions',
   sessionsOpen: '/sessions/open',
