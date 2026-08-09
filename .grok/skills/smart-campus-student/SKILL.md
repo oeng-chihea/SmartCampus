@@ -56,12 +56,53 @@ Admin / teacher seeded accounts stay unchanged:
 Admin creates account (POST /api/students with password)
   → student signs in at /auth/student (POST /api/auth/login)
   → /student/scan
-  → GET /api/sessions/open (same live QR as teacher)
+  → GET /api/sessions/open (all open sessions + same live QR as teacher)
   → tap “Mark me present” or scan QR / Camera deep link
   → POST /api/attendance/submit (identity from Bearer token)
-  → Present | Late → history “My scans”
+  → Present if before session dueAt
+  → history in shared **app-table** (“My attendance” / Your recorded scans)
   → Sign out → /auth/student
 ```
+
+## Session due time on `/student/scan`
+
+Teacher sets **due time** at create (not “Late after”). Rules:
+
+| State | Student UI | Mark present / QR scan |
+|-------|------------|-------------------------|
+| Open, **before** due | Card listed (QR · Location · Due) | Works → status **Present** |
+| Open, **after** due | Card **stays listed** (“Due passed” pill) | Blocked → shared **`app-confirm-dialog`**: “Cannot mark present… due time has passed” |
+| Teacher **Closed** | Leaves open API list → **removed** from live cards | History **kept** in My attendance table |
+| Teacher **Deleted** session | Live card gone | Rows for that `sessionId` **removed** from My attendance |
+
+- Do **not** auto-hide past-due cards; only teacher **Close** / **Delete** removes them from the open list.  
+- Deep-link Camera scan after due also opens the same confirm dialog (`fromScan` message).  
+- QR 300s token rotation is separate; student UI does not show “Expires (300s)”.  
+- Helpers: `isSessionPastDue`, `formatSessionDue` in `core/utils/date.util.ts`.
+
+## My attendance table (`app-table`)
+
+History is **not** a custom list or last-result hero card. Use shared `app-table`:
+
+| Column | Source / format |
+|--------|-----------------|
+| Session | Title + attendance record id (primary cell) |
+| Location | `formatCampusLocationLabel` → `Building B-Room 105` |
+| Recorded | `formatSessionOpened` → `8-9-26/8:00Pm` |
+| Status | Badge (`present` / `late` / …) |
+
+Data: `GET /api/attendance/me` via `StudentAttendanceService.listMine()`.
+
+### Delete cascade + orphan cleanup (backend)
+
+1. **On teacher delete session:** `SessionsService.remove` deletes `attendance_records` where `session_id = :id`, then removes the session.  
+2. **On student history load:** `AttendanceService.findMine` keeps only rows whose session still exists and **deletes orphan rows** (sessions deleted before cascade existed, or any leftover).  
+3. Student UI updates on reload / ~12s poll — no special student-side delete API.
+
+| Teacher action | Live session cards | My attendance rows for that session |
+|----------------|--------------------|-------------------------------------|
+| Close | Removed | **Still shown** |
+| Delete | Removed | **Gone** (cascade + me-list purge) |
 
 ## Login access control (login_enabled)
 
@@ -84,7 +125,7 @@ Admin creates account (POST /api/students with password)
 | `PATCH` | `/api/students/:studentId/access` | admin | Toggle `loginEnabled` |
 | `GET` | `/api/sessions/open` | student+ | Live open sessions + QR |
 | `POST` | `/api/attendance/submit` | student | Mark attendance (identity from token) |
-| `GET` | `/api/attendance/me` | student | Own scan history |
+| `GET` | `/api/attendance/me` | student | Own scan history (only existing sessions; purges orphans) |
 
 ## Key files
 
@@ -94,11 +135,19 @@ backend/src/modules/students/students.service.ts  # directory + create + access 
 backend/src/modules/students/students.controller.ts
 backend/src/modules/users/users.service.ts    # createUser (account provisioning)
 backend/src/modules/users/users.controller.ts
+backend/src/modules/sessions/sessions.service.ts  # dueAt create + scan gate; delete cascades attendance
+backend/src/modules/attendance/attendance.service.ts  # submit Present; findMine filters + purges orphans
 backend/src/database/seeders/demo.seeder.ts   # seeds admin/teacher/Chihea; deletes legacy demo students
 
 frontend/src/app/features/auth/pages/login/          # no demo chips anymore
 frontend/src/app/services/auth.service.ts            # login, session, role paths
 frontend/src/app/services/student.service.ts         # live /students API + error mapping
+frontend/src/app/services/student-attendance.service.ts  # open sessions + submit + me
+frontend/src/app/features/attendance/pages/student-scan/  # scan UI + due dialog + history table
+frontend/src/app/shared/components/table/            # My attendance app-table
+frontend/src/app/shared/components/confirm-dialog/   # due blocked confirm shell
+frontend/src/app/core/utils/date.util.ts             # formatSessionDue, isSessionPastDue, formatSessionOpened
+frontend/src/app/core/utils/format.util.ts           # formatCampusLocationLabel (Building B-Room 105)
 frontend/src/app/core/utils/student-stats.util.ts    # pure metrics/filters helpers
 frontend/src/app/features/students/pages/students/   # directory + add-account form + toggles
 frontend/src/app/shared/components/student-form-card/  # “Add student account” form

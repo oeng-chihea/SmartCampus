@@ -27,11 +27,22 @@ Last reviewed against the implemented account-provisioning flow (backend + front
                                    ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │ SCAN (student)                                                      │
-│  /student/scan → GET /api/sessions/open (same live QR as teacher)   │
-│  → tap “Mark me present” or scan teacher QR / Camera deep link      │
-│  → POST /api/attendance/submit { payload: SMARTCAMPUS|<sessionId>|<token> }
-│  → server identity = users.student_id from Bearer token (NOT QR)    │
-│  → Present | Late → history “My scans”                              │
+│  /student/scan → GET /api/sessions/open (all Open sessions + QR)    │
+│  → card shows QR · Location · Due                                   │
+│  → Before dueAt:                                                    │
+│      tap “Mark me present” or Camera deep link                      │
+│      → POST /api/attendance/submit { payload: SMARTCAMPUS|… }       │
+│      → identity = users.student_id from Bearer (NOT QR)             │
+│      → Present → history “My attendance”                            │
+│  → After dueAt (session still Open):                                │
+│      card STAYS listed (“Due passed”)                               │
+│      mark / QR scan → app-confirm-dialog (cannot mark present)      │
+│      API also 403 if submit is forced                               │
+│  → Teacher Close → open card gone; My attendance row KEPT           │
+│  → Teacher Delete → open card gone; attendance rows CASCADE deleted │
+│      GET /api/attendance/me also purges orphan rows                 │
+│  → My attendance = shared app-table (Session · Location · Recorded  │
+│      · Status); location label Building X-Room N                    │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -116,6 +127,12 @@ databases converge to the new state.
 | `features/auth/pages/login/*` | No demo chips; plain email+password form |
 | `services/auth.service.ts` | Login, session, `homePathForRole` (student → `/student/scan`) |
 | `services/student.service.ts` | `listStudents`, `createStudent`, `setLoginEnabled`, `mapError` |
+| `services/student-attendance.service.ts` | Open sessions, submit, my records |
+| `features/attendance/pages/student-scan/*` | Scan UI; due dialog; history `app-table` |
+| `shared/components/table/*` | My attendance columns (Session · Location · Recorded · Status) |
+| `shared/components/confirm-dialog/*` | Due blocked / delete confirm shell |
+| `core/utils/date.util.ts` | `formatSessionDue`, `isSessionPastDue`, `formatSessionOpened` |
+| `core/utils/format.util.ts` | `formatCampusLocationLabel` → `Building B-Room 105` |
 | `core/utils/student-stats.util.ts` | Pure `buildStudentMetrics` / `buildStudentFilters` (unit-tested) |
 | `features/students/pages/students/*` | Directory page: metrics, filters, add-account form, toggles, alerts |
 | `shared/components/student-form-card/*` | “Add student account” form (name, ID, email, class, year, password) |
@@ -144,6 +161,9 @@ databases converge to the new state.
 3. Click **Add student account** → fill name/ID/email/class/year/password → Create
 4. Table shows the new row, toggle **Active**
 5. Open `/auth/student` in another browser/incognito → sign in as the new student
-6. Redirects to `/student/scan` → open sessions show teacher's live QR → Mark present
-7. Back in admin → toggle the student's **Login access off** → student's next login → 403 message
-8. Sign out from admin → try old demo students (`student@smartcampus.edu`/`student123`) → 401 (no such account)
+6. Redirects to `/student/scan` → open sessions show teacher's live QR → Mark present (before due)
+7. After due time: session card remains; Mark present / QR opens due confirm dialog
+8. Teacher closes session → card disappears; My attendance table still shows that scan
+9. Teacher deletes session → that scan disappears from My attendance (cascade + me purge)
+10. Back in admin → toggle the student's **Login access off** → student's next login → 403 message
+11. Sign out from admin → try old demo students (`student@smartcampus.edu`/`student123`) → 401 (no such account)

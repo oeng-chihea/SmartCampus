@@ -21,14 +21,14 @@ smart-campus-system/
 | `features/students` | students | `/students` | `StudentService` | **live API** (`GET/POST /api/students`, `PATCH /:id/access`) |
 | `features/attendance` | admin-records, student-scan | `/attendance`, `/student/scan` | `AttendanceService` (+ auth for scan) | `attendance-records.json` |
 | `features/locations` | locations | `/locations` | `LocationService` | `locations.json` (+ attendance/students for detail) |
-| `features/sessions` | empty folder | `/sessions` placeholder | — | — |
+| `features/sessions` | sessions (state + flow + UI) | `/sessions` | `SessionService` | **Live API** create / QR / close / delete |
 | `features/reports` | empty folder | `/reports` placeholder | — | — |
 
 ## Shared components → consumers
 
 | Component | Used by |
 |-----------|---------|
-| `stat-card` | Dashboard, Students, Attendance, Locations |
+| `stat-card` | Dashboard, Students, Attendance, Locations, Sessions |
 | `quick-lookup` | Dashboard |
 | `attendance-chart` | Dashboard |
 | `recent-scan-list` / `recent-scan-item` | Dashboard |
@@ -36,6 +36,9 @@ smart-campus-system/
 | `student-form-card` | Students (Add student account form — name, ID, email, class, year, password) |
 | `attendance-filter` / `attendance-records-table` | Admin attendance |
 | `location-filter` / `location-table` / `location-detail-dialog` | Locations |
+| `table` | Sessions log; student My attendance; locations/admin attendance |
+| `confirm-dialog` | Sessions delete; student due-time blocked mark/scan |
+| `modal-dialog` / `select-dropdown` | Sessions create form; other dialogs |
 
 ## Models
 
@@ -46,6 +49,7 @@ smart-campus-system/
 | `student.model.ts` | `Student` (+ `hasAccount`), `CreateStudentRequest` |
 | `attendance.model.ts` | `AttendanceRecord`, filter state, admin page shape |
 | `location.model.ts` | `CampusLocation`, `LocationDetail`, filters |
+| `session.model.ts` | `AttendanceSession`, `CreateSessionRequest`, QR types |
 | `api-response.model.ts` | generic API envelope (for future HTTP) |
 | `pagination.model.ts` | pagination shape (for future lists) |
 
@@ -62,11 +66,11 @@ smart-campus-system/
 | `users` | **Live** account provisioning: `POST /api/users` (admin); links student accounts to profiles |
 | `students` | **Live** directory: `GET /api/students`, `POST /api/students` (+ account), `PATCH /:id/access` |
 | `dashboard` | Registered module with frontend-aligned dashboard contract |
-| `attendance` | Registered module with frontend-aligned attendance contract |
-| `locations` | Registered module with frontend-aligned location contracts |
-| `sessions` | Registered boundary; frontend page is still a placeholder |
+| `attendance` | **Live** student submit + `GET /me` (existing sessions only; purges orphans) |
+| `locations` | Live list for session form (+ seed data) |
+| `sessions` | **Live** create / list / QR / close / **delete** (delete cascades attendance by `session_id`) |
 | `reports` | Registered boundary; frontend page is still a placeholder |
-| TypeORM / migrations | Users/students rows persist via TypeORM `synchronize: true`; sessions still in-memory |
+| TypeORM / migrations | Users/students/sessions/attendance persist via TypeORM (`synchronize: true` in dev) |
 
 All backend routes use the `/api` global prefix. Feature modules contain
 `<feature>.controller.ts`, `<feature>.service.ts`, and `<feature>.module.ts`.
@@ -89,6 +93,33 @@ LocationService.getLocationDetail(location)
 ```
 
 This cross-mock join is intentional for the admin “who is in this zone” view.
+
+## Sessions page structure (live)
+
+```text
+features/sessions/pages/sessions/
+  sessions.component.ts|html|scss   # thin UI shell + table column defs
+  sessions.state.ts                  # signals, form fields, metrics
+  sessions.flow.ts                  # reload / create / showQr / close / delete
+services/session.service.ts         # HTTP client (Bearer)
+core/utils/date.util.ts             # formatSessionOpened / formatSessionDue / isSessionPastDue
+core/utils/format.util.ts           # formatCampusLocationLabel → Building A-Room 201
+
+Student scan history:
+  features/attendance/pages/student-scan/  # live cards + due dialog + app-table
+  services/student-attendance.service.ts   # open / submit / me
+```
+
+Session log ⋮ menu:
+
+| Status | Actions |
+|--------|---------|
+| Open | Show QR · Close · Delete |
+| Closed | Delete |
+
+- **Close** → `POST /api/sessions/:id/close` (row stays Closed; student open card gone; history kept)  
+- **Delete** → `DELETE /api/sessions/:id` (session removed + **cascade** `attendance_records` for that `session_id`; student My attendance drops those rows)
+- Student `GET /api/attendance/me` only returns rows for sessions that still exist and deletes orphan rows
 
 ## Security notes (demo stage)
 

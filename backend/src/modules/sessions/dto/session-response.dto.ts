@@ -14,7 +14,8 @@ export interface SessionResponseDto {
   teacherId: string;
   teacherName: string;
   status: SessionStatus;
-  lateAfterMinutes: number;
+  /** When student attendance stops being accepted (ISO). Null for legacy rows. */
+  dueAt: string | null;
   createdAt: string;
   openedAt: string;
   closedAt: string | null;
@@ -41,7 +42,7 @@ export interface SessionScanContext {
   title: string;
   locationName: string;
   openedAt: Date;
-  lateAfterMinutes: number;
+  dueAt: Date | null;
 }
 
 /**
@@ -52,7 +53,7 @@ export interface OpenSessionLiveDto {
   title: string;
   locationName: string;
   teacherName: string;
-  lateAfterMinutes: number;
+  dueAt: string | null;
   openedAt: string;
   /** Live short-lived QR — same payload teacher shows. */
   qr: QrResponseDto;

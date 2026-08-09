@@ -7,8 +7,8 @@ This folder holds **Grok skills** for the Smart Campus Attendance System. Skills
 | Skill | Path | Purpose |
 |-------|------|---------|
 | **smart-campus-workflow** | `smart-campus-workflow/SKILL.md` | Page-to-page user flows by role (admin, teacher, student) |
-| **smart-campus-teacher** | `smart-campus-teacher/SKILL.md` | Teacher role: what they can/can’t do, Sessions/QR workflow |
-| **smart-campus-student** | `smart-campus-student/SKILL.md` | Student role: per-student login accounts, provisioning, scan flow |
+| **smart-campus-teacher** | `smart-campus-teacher/SKILL.md` | Teacher role: Sessions create + **due time** / QR / close / delete |
+| **smart-campus-student** | `smart-campus-student/SKILL.md` | Student accounts, scan flow, due-time dialog (keep past-due cards) |
 | **smart-campus-dev** | `smart-campus-dev/SKILL.md` | Where to put code, routes, services, and mock data when building features |
 
 ### Reference docs (detailed maps)
@@ -16,7 +16,7 @@ This folder holds **Grok skills** for the Smart Campus Attendance System. Skills
 | File | Contents |
 |------|----------|
 | `smart-campus-workflow/references/page-flows.md` | Full route map, guards, layouts, seeded accounts |
-| `smart-campus-teacher/references/teacher-workflow.md` | Teacher happy path, session/QR sequence, file index |
+| `smart-campus-teacher/references/teacher-workflow.md` | Teacher happy path, session/QR/close/delete sequence, display formats, file index |
 | `smart-campus-student/references/student-account-flow.md` | Student account provisioning, login control, scan sequence, test script |
 | `smart-campus-dev/references/architecture.md` | Folder layout, feature modules, backend status |
 
@@ -58,8 +58,8 @@ npm run backend:start
 **Smart Campus** is an **attendance-first** campus system:
 
 - **Frontend:** Angular (`frontend/`) — admin/teacher shell + student scan UI  
-- **Backend:** NestJS (`backend/`) — live auth, locations seed, sessions/QR (in-memory)  
-- **Data today:** login + sessions live; dashboard/attendance/locations pages still mostly **mock JSON**  
+- **Backend:** NestJS (`backend/`) — live auth, students, sessions/QR/close/delete, attendance submit  
+- **Data today:** login + sessions (+ delete) live; dashboard/attendance/locations pages still mostly **mock JSON**  
 - **Auth today:** Nest login + Bearer token in `localStorage`
 
 ### Roles and home pages
@@ -102,12 +102,18 @@ Every other student account is created by an admin from **Students → Add stude
      │  /students *   │  │ Sign out → login│
      │  /attendance   │  └─────────────────┘
      │  /locations    │
-     │  /sessions ★   │  ★ live create session + QR
+     │  /sessions ★   │  ★ live create + due time + QR + close + delete
      │  /reports †    │
      │ Sign out → login
      └────────────────┘
      * admin only
      † placeholder
+
+Student scan due rules:
+  before due → Mark present → Present (+ My attendance app-table row)
+  after due  → card stays; mark/QR → confirm dialog (blocked)
+  teacher Close → open card gone; history KEPT
+  teacher Delete → open card gone; history for that session REMOVED (cascade)
 ```
 
 **Sidebar navigation (admin/teacher)** is defined in  
@@ -125,9 +131,11 @@ Update the workflow skill when you:
 - Ship a real page that was a **placeholder**
 - Wire more frontend services to the **live API**
 
-Update **smart-campus-teacher** when teacher permissions, Sessions UI, or QR rules change.
+Update **smart-campus-teacher** when teacher permissions, Sessions UI (actions menu,
+due time, display formats), QR/close/delete rules, or attendance cascade change.
 
-Update **smart-campus-student** when account provisioning, login access control, or the scan flow changes.
+Update **smart-campus-student** when account provisioning, login access control,
+scan flow, due-time dialog, My attendance table, or delete-cascade history change.
 
 Update the dev skill when folder conventions or feature structure change.
 

@@ -1,15 +1,4 @@
-import { Type } from 'class-transformer';
-import {
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Max,
-  MaxLength,
-  Min,
-  MinLength,
-} from 'class-validator';
-import { DEFAULT_LATE_AFTER_MINUTES } from '../../../common/constants/session.constant';
+import { IsDateString, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreateSessionDto {
   @IsString()
@@ -22,10 +11,11 @@ export class CreateSessionDto {
   @IsNotEmpty()
   locationId!: string;
 
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  @Max(180)
-  lateAfterMinutes?: number = DEFAULT_LATE_AFTER_MINUTES;
+  /**
+   * Absolute due instant (ISO-8601) from the teacher browser.
+   * Students may mark present only while now &lt; dueAt.
+   */
+  @IsDateString()
+  @IsNotEmpty()
+  dueAt!: string;
 }

@@ -14,7 +14,7 @@ Last reviewed against the Angular routes, Sessions live API, and role skills.
 | `/students` | AdminLayout | `StudentsComponent` | auth + **admin only** | **Live API** directory + create account + login toggle |
 | `/attendance` | AdminLayout | `AdminRecordsComponent` | auth + admin\|teacher | Active (mock data) |
 | `/locations` | AdminLayout | `LocationsComponent` | auth + admin\|teacher | Active (mock data) |
-| `/sessions` | AdminLayout | `SessionsComponent` | auth + admin\|teacher | **Live API** create / QR / close |
+| `/sessions` | AdminLayout | `SessionsComponent` | auth + admin\|teacher | **Live API** create / QR / close / **delete** |
 | `/reports` | AdminLayout | `AdminPlaceholderPageComponent` | auth + admin\|teacher | Placeholder |
 | `/student/scan` | none (standalone page) | `StudentScanComponent` | auth + **student** | **Live** open session QR + Mark present |
 | Unknown under admin | AdminLayout | redirect → dashboard | — | Active |
@@ -35,7 +35,7 @@ Defined primarily in:
 | `/students` | ✓ | ✗ → home | ✗ → scan |
 | `/attendance` | ✓ | ✓ | ✗ → scan |
 | `/locations` | ✓ | ✓ | ✗ → scan |
-| `/sessions` create + QR + close | ✓ | ✓ (own sessions) | ✗ |
+| `/sessions` create + QR + close + delete | ✓ | ✓ (own sessions) | ✗ |
 | `/reports` placeholder | ✓ | ✓ | ✗ |
 | `/student/scan` | ✗ → dashboard | ✗ → dashboard | ✓ |
 | See Students in sidebar | ✓ | ✗ (filtered) | n/a |
@@ -81,9 +81,18 @@ If teacher navigates to /students manually:
 
 ```text
 Login teacher → /dashboard → sidebar Sessions → /sessions
-  → Create session (dialog) → POST /api/sessions
-  → Live QR left panel → GET /api/sessions/:id/qr (refresh ~30s)
-  → Close → POST /api/sessions/:id/close
+  → Create session (dialog: title, location, due time today)
+       → POST /api/sessions { title, locationId, dueAt }
+  → Session log: Location · Opened · Due · Status
+  → Live QR left panel → GET /api/sessions/:id/qr (refresh ~30s) + Due time
+  → ⋮ Actions on Open row:
+       Show QR  → load QR panel
+       Close    → POST /api/sessions/:id/close
+                  (row stays Closed; student open card gone; history kept)
+       Delete   → DELETE /api/sessions/:id
+                  (session removed + attendance_records for session_id cascaded)
+  → Closed rows: Delete only
+  → After dueAt: students cannot mark present (session may stay Open until Close)
 ```
 
 ### D. Student login → live QR + mark present
@@ -91,10 +100,22 @@ Login teacher → /dashboard → sidebar Sessions → /sessions
 ```text
 Login success (role=student)
   → homePathForRole → /student/scan
-  → GET /api/sessions/open (same live QR as teacher)
-  → Session card with QR image + details
-  → Tap “Mark me present”
-  → POST /api/attendance/submit → Present | Late
+  → GET /api/sessions/open (all Open sessions + same live QR as teacher)
+  → Session card: QR · Location · Due  (past-due cards STAY listed)
+  → Before dueAt:
+       Tap “Mark me present” / Camera QR deep link
+       → POST /api/attendance/submit → Present
+       → row appears in My attendance app-table
+  → After dueAt (session still Open):
+       “Due passed” on card
+       Mark present or QR scan → app-confirm-dialog
+         “Cannot mark present… due time has passed”
+       API also rejects submit (403) if forced
+  → Teacher Close → open card gone; My attendance row KEPT
+  → Teacher Delete → open card gone; My attendance row REMOVED
+       (cascade on delete + GET /api/attendance/me purges orphans)
+  → My attendance table columns:
+       Session · Location (Building X-Room N) · Recorded · Status
   → Sign out → /auth/login
 
 Any /dashboard|/students|... request:
@@ -143,7 +164,12 @@ Any /dashboard|/students|... request:
 ### Student scan (no shared layout folder)
 
 - Page is self-contained under `features/attendance/pages/student-scan/`.
-- Live: payload paste + Present/Late via Nest attendance API.
+- Live: open sessions + Mark present.
+- **Due time:** keep past-due cards; block mark/scan with `app-confirm-dialog`.
+- Open cards removed only when teacher **Close**/Delete (not on due alone).
+- Accepted mark before due → **Present** only.
+- **My attendance:** shared `app-table` (no last-result hero); location via `formatCampusLocationLabel`.
+- **Delete cascade:** teacher Delete removes attendance by `sessionId`; `GET /api/attendance/me` filters to existing sessions and purges orphans.
 - Planned later: GPS / Outside Location (FR-02 geofence phase).
 
 ## Seeded accounts
@@ -174,7 +200,7 @@ Detailed flow: `.grok/skills/smart-campus-student/references/student-account-flo
 
 | Flow | Current | Intended later |
 |------|---------|----------------|
-| Student scan GPS | Payload submit live (Present/Late) | Geofence → Outside Location |
+| Student scan GPS | Present before dueAt; after due dialog + keep card | Geofence → Outside Location |
 | Student history route | In-page “My scans” only | `/student/history` route |
 | Reports page | Placeholder | Export / analytics |
 | Dashboard / attendance / locations UI | Mock JSON | Optional live API later |
