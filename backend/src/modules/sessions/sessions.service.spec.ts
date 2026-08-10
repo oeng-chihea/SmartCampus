@@ -129,6 +129,63 @@ describe('SessionsService', () => {
         sessionStore = sessionStore.filter((row) => row.id !== entity.id);
         return entity;
       }),
+      /** In-memory QueryBuilder stand-in for findPage pagination + search. */
+      createQueryBuilder: jest.fn(() => {
+        let teacherId: string | undefined;
+        let searchQ: string | undefined;
+        let skipN = 0;
+        let takeN: number | undefined;
+
+        const applyFilters = (): SessionEntity[] => {
+          let rows = [...sessionStore].sort(
+            (a, b) => b.openedAt.getTime() - a.openedAt.getTime(),
+          );
+          if (teacherId) {
+            rows = rows.filter((row) => row.teacherId === teacherId);
+          }
+          if (searchQ) {
+            const needle = searchQ.toLowerCase();
+            rows = rows.filter(
+              (row) =>
+                row.title.toLowerCase().includes(needle) ||
+                row.locationName.toLowerCase().includes(needle) ||
+                row.teacherName.toLowerCase().includes(needle),
+            );
+          }
+          return rows;
+        };
+
+        const qb = {
+          orderBy: jest.fn().mockReturnThis(),
+          andWhere: jest.fn((clause: string, params?: Record<string, string>) => {
+            if (params?.teacherId) {
+              teacherId = params.teacherId;
+            }
+            if (params?.q) {
+              // Stored as `%needle%` from the service
+              searchQ = String(params.q).replace(/%/g, '');
+            }
+            return qb;
+          }),
+          skip: jest.fn((n: number) => {
+            skipN = n;
+            return qb;
+          }),
+          take: jest.fn((n: number) => {
+            takeN = n;
+            return qb;
+          }),
+          getCount: jest.fn(async () => applyFilters().length),
+          getMany: jest.fn(async () => {
+            const rows = applyFilters();
+            if (takeN == null) {
+              return rows.slice(skipN);
+            }
+            return rows.slice(skipN, skipN + takeN);
+          }),
+        };
+        return qb;
+      }),
     } as unknown as Repository<SessionEntity>;
 
     const attendanceRepo = {
@@ -342,6 +399,47 @@ describe('SessionsService', () => {
     );
     expect(await service.findAll(otherTeacher)).toHaveLength(0);
     expect((await service.findAll(admin)).length).toBeGreaterThan(0);
+  });
+
+  it('paginates sessions with a default page size of 10 and optional search', async () => {
+    for (let i = 0; i < 12; i += 1) {
+      await service.create(
+        {
+          title: i % 2 === 0 ? `Alpha class ${i}` : `Beta class ${i}`,
+          locationId: 'LOC-001',
+          dueAt: dueInMinutes(30 + i),
+        },
+        teacher,
+      );
+    }
+
+    const page1 = await service.findPage(teacher, { page: 1, limit: 10 });
+    expect(page1.items).toHaveLength(10);
+    expect(page1.pagination).toEqual({
+      page: 1,
+      limit: 10,
+      total: 12,
+      totalPages: 2,
+    });
+
+    const page2 = await service.findPage(teacher, { page: 2, limit: 10 });
+    expect(page2.items).toHaveLength(2);
+    expect(page2.pagination.page).toBe(2);
+
+    const search = await service.findPage(teacher, {
+      page: 1,
+      limit: 10,
+      q: 'alpha',
+    });
+    expect(search.pagination.total).toBe(6);
+    expect(search.items.every((row) => /alpha/i.test(row.title))).toBe(true);
+
+    const otherPage = await service.findPage(otherTeacher, {
+      page: 1,
+      limit: 10,
+    });
+    expect(otherPage.items).toHaveLength(0);
+    expect(otherPage.pagination.total).toBe(0);
   });
 
   it('resolves an open session for student scan with a valid QR token', async () => {

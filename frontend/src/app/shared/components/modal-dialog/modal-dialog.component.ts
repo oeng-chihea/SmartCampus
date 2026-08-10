@@ -18,6 +18,9 @@ import {
  * - Outside click / Escape: shake (lockDismiss) or emit closed
  * - Shake uses Web Animations API so it restarts on every outside click
  *   without replaying the CSS enter animation
+ * - Host is teleported to `document.body` so `position: fixed` is always
+ *   viewport-relative (page fade-in animations use `transform`, which would
+ *   otherwise trap the overlay inside a card / table region)
  */
 @Component({
   selector: 'app-modal-dialog',
@@ -26,6 +29,7 @@ import {
 })
 export class ModalDialogComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly host = inject(ElementRef<HTMLElement>);
 
   private readonly panelRef = viewChild<ElementRef<HTMLElement>>('dialogPanel');
 
@@ -64,11 +68,22 @@ export class ModalDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Escape ancestor transform/filter containing blocks (e.g. fade-in cards).
+    // After move, Angular's default detach looks at the *original* parent and
+    // can leave an orphan node on <body> — always remove ourselves on destroy.
+    const hostEl = this.host.nativeElement;
+    if (hostEl.parentElement !== document.body) {
+      document.body.appendChild(hostEl);
+    }
+
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     this.destroyRef.onDestroy(() => {
       this.cancelShake();
       document.body.style.overflow = previousOverflow;
+      if (hostEl.isConnected) {
+        hostEl.remove();
+      }
     });
   }
 

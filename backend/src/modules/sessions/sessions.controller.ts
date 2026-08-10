@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { USER_ROLES } from '../../common/constants/roles.constant';
@@ -16,6 +17,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CreateSessionDto } from './dto/create-session.dto';
+import { ListSessionsQueryDto } from './dto/list-sessions-query.dto';
 import { SessionsService } from './sessions.service';
 
 @Controller('sessions')
@@ -32,9 +34,23 @@ export class SessionsController {
     return this.sessionsService.create(body, user);
   }
 
+  /**
+   * Full list when no page/limit (Sessions page).
+   * Paginated envelope when `page` or `limit` is set (session picker).
+   */
   @Get()
   @Roles(USER_ROLES.admin, USER_ROLES.teacher)
-  findAll(@CurrentUser() user: AuthenticatedUser) {
+  findAll(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: ListSessionsQueryDto,
+  ) {
+    if (query.page != null || query.limit != null) {
+      return this.sessionsService.findPage(user, {
+        page: query.page ?? 1,
+        limit: query.limit ?? 10,
+        q: query.q,
+      });
+    }
     return this.sessionsService.findAll(user);
   }
 

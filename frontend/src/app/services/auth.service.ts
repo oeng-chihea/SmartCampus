@@ -118,7 +118,7 @@ export class AuthService {
   private mapLoginError(error: unknown): string {
     if (error instanceof HttpErrorResponse) {
       if (error.status === 0) {
-        return 'Cannot reach the API. Start the backend on port 3000.';
+        return 'Cannot reach the API. Start the Nest backend (port 3000) and use the Angular dev server so /api is proxied.';
       }
       if (error.status === 401) {
         return 'Invalid email or password.';

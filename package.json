@@ -3,8 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "frontend:start": "npm --prefix frontend start",
+    "frontend:start": "npm --prefix frontend start -- --host 0.0.0.0 --port 4200",
     "frontend:start:local": "npm --prefix frontend start -- --host 127.0.0.1 --port 4200",
+    "frontend:start:lan": "npm --prefix frontend run serve:lan -- --port 4200",
     "frontend:build": "npm --prefix frontend run build",
     "frontend:build:dev": "npm --prefix frontend run build -- --configuration development",
     "frontend:test": "npm --prefix frontend test",

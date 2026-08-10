@@ -11,16 +11,30 @@
       />
     </label>
 
-    <label>
-      <span>Session</span>
-      <app-select-dropdown
-        name="session"
-        [options]="filters().sessionOptions"
-        [ngModel]="sessionId()"
-        (ngModelChange)="sessionId.set($event)"
-        [compact]="true"
-      />
-    </label>
+    <div class="attendance-filter__session">
+      <span id="attendance-session-label">Session</span>
+      <button
+        type="button"
+        class="attendance-filter__session-trigger"
+        aria-haspopup="dialog"
+        [attr.aria-expanded]="pickerOpen()"
+        aria-labelledby="attendance-session-label"
+        (click)="openSessionPicker()"
+      >
+        <span class="attendance-filter__session-value">{{ sessionLabel() }}</span>
+        <span class="attendance-filter__session-chevron" aria-hidden="true">
+          <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M5.5 7.75L10 12.25L14.5 7.75"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+      </button>
+    </div>
 
     <label>
       <span>Status</span>
@@ -47,3 +61,12 @@
     <button type="submit">Apply</button>
   </div>
 </form>
+
+@if (pickerOpen()) {
+  <app-session-picker-dialog
+    [selectedId]="sessionId()"
+    [selectedTitle]="sessionLabel()"
+    (closed)="closeSessionPicker()"
+    (confirmed)="onSessionConfirmed($event)"
+  />
+}
