@@ -34,7 +34,8 @@ not expose placeholder endpoints.
 
 - Base path: `/api`
 - Working endpoint: `POST /api/auth/login`
-- Angular development base URL: `http://localhost:3000/api`
+- Angular dev uses relative `/api` via `frontend/proxy.conf.json` → `http://127.0.0.1:3000`
+- Dev CORS also allows private LAN origins so phone/LAN testing survives Wi‑Fi IP changes
 
 ## Commands
 

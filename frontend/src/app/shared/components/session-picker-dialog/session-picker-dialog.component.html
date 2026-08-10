@@ -1,0 +1,124 @@
+<app-modal-dialog
+  eyebrow="Filter · Attendance"
+  title="Select session"
+  closeAriaLabel="Close session picker"
+  size="lg"
+  [spacious]="false"
+  [lockDismiss]="true"
+  (closed)="cancel()"
+>
+  <div class="session-picker">
+    <label class="session-picker__search">
+      <span class="session-picker__search-label">Search sessions</span>
+      <input
+        type="search"
+        name="sessionSearch"
+        placeholder="Type title, room, or teacher…"
+        [ngModel]="searchInput()"
+        (ngModelChange)="onSearchInput($event)"
+        autocomplete="off"
+      />
+    </label>
+
+    <p class="session-picker__range" aria-live="polite">{{ rangeLabel() }}</p>
+
+    @if (error(); as message) {
+      <p class="session-picker__alert" role="alert">{{ message }}</p>
+    }
+
+    <div class="session-picker__list" role="listbox" aria-label="Sessions">
+      <!-- Sticky "All sessions" — not part of the page payload -->
+      <button
+        type="button"
+        class="session-picker__row"
+        role="option"
+        [class.session-picker__row--selected]="isDraft('all')"
+        [attr.aria-selected]="isDraft('all')"
+        (click)="selectAll()"
+      >
+        <span class="session-picker__radio" aria-hidden="true"></span>
+        <span class="session-picker__row-copy">
+          <span class="session-picker__row-title">All sessions</span>
+          <span class="session-picker__row-meta">Clear session filter</span>
+        </span>
+      </button>
+
+      @if (loading()) {
+        <p class="session-picker__status">Loading sessions…</p>
+      } @else if (items().length === 0) {
+        <p class="session-picker__status">
+          No sessions match your search. Try another keyword or clear the search.
+        </p>
+      } @else {
+        @for (session of items(); track session.id) {
+          <button
+            type="button"
+            class="session-picker__row"
+            role="option"
+            [class.session-picker__row--selected]="isDraft(session.id)"
+            [attr.aria-selected]="isDraft(session.id)"
+            (click)="selectSession(session)"
+          >
+            <span class="session-picker__radio" aria-hidden="true"></span>
+            <span class="session-picker__row-copy">
+              <span class="session-picker__row-title-row">
+                <span class="session-picker__row-title">{{ session.title }}</span>
+                <span
+                  class="session-picker__badge"
+                  [class.session-picker__badge--open]="session.status === 'Open'"
+                  [class.session-picker__badge--closed]="session.status === 'Closed'"
+                >
+                  {{ session.status }}
+                </span>
+              </span>
+              <span class="session-picker__row-meta">
+                {{ formatLocation(session.locationName) }} ·
+                {{ formatOpened(session.openedAt) }}
+              </span>
+            </span>
+          </button>
+        }
+      }
+    </div>
+
+    <div class="session-picker__pager" aria-label="Session list pagination">
+      <button
+        type="button"
+        class="session-picker__page-btn"
+        [disabled]="!canPrev() || loading()"
+        (click)="prevPage()"
+      >
+        ← Previous
+      </button>
+      <span class="session-picker__page-label">
+        @if (pagination().totalPages === 0) {
+          Page 0 of 0
+        } @else {
+          Page {{ pagination().page }} of {{ pagination().totalPages }}
+        }
+      </span>
+      <button
+        type="button"
+        class="session-picker__page-btn"
+        [disabled]="!canNext() || loading()"
+        (click)="nextPage()"
+      >
+        Next →
+      </button>
+    </div>
+  </div>
+
+  <footer modalFooter class="session-picker__footer">
+    <button type="button" class="session-picker__btn session-picker__btn--secondary" (click)="cancel()">
+      Cancel
+    </button>
+    <button
+      type="button"
+      class="session-picker__btn session-picker__btn--primary"
+      (click)="useSession()"
+      [disabled]="loading()"
+    >
+      Use session
+    </button>
+  </footer>
+</app-modal-dialog>

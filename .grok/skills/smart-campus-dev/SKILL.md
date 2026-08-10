@@ -99,7 +99,7 @@ frontend/src/app/
 
 Shared components to reuse first:
 
-- `stat-card`, `student-table`, `student-filter`, `attendance-filter`, `table` (shared data table for locations / attendance / sessions), `attendance-chart`, `recent-scan-list`, `location-filter`, `location-detail-dialog`, `modal-dialog`, `confirm-dialog`, `select-dropdown`, `quick-lookup`
+- `stat-card`, `student-table`, `student-filter`, `attendance-filter`, `session-picker-dialog` (paginated session modal, limit 10), `table` (shared data table for locations / attendance / sessions), `attendance-chart`, `recent-scan-list`, `location-filter`, `location-detail-dialog`, `modal-dialog`, `confirm-dialog`, `select-dropdown`, `quick-lookup`
 
 ### Generic modal dialog (`app-modal-dialog`)
 

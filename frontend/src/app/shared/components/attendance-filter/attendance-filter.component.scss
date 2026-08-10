@@ -31,11 +31,72 @@
 }
 
 .attendance-filter input,
-.attendance-filter button {
+.attendance-filter__controls > button,
+.attendance-filter__session-trigger {
   border-radius: var(--radius-sm);
   font: inherit;
   min-height: 42px;
   min-width: 0;
+}
+
+.attendance-filter__session {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.attendance-filter__session > span {
+  color: var(--color-slate-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.attendance-filter__session-trigger {
+  align-items: center;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  color: var(--color-brand-deep);
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 0 12px;
+  text-align: left;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+  width: 100%;
+}
+
+.attendance-filter__session-trigger:hover {
+  border-color: color-mix(in srgb, var(--color-brand) 35%, var(--border-subtle));
+}
+
+.attendance-filter__session-trigger:focus-visible {
+  border-color: var(--color-brand);
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+.attendance-filter__session-value {
+  flex: 1 1 auto;
+  font-size: 0.9rem;
+  font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attendance-filter__session-chevron {
+  align-items: center;
+  color: var(--color-brand-strong);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 18px;
+  width: 18px;
 }
 
 .attendance-filter input {
@@ -53,7 +114,7 @@
   outline: 0;
 }
 
-.attendance-filter button {
+.attendance-filter__controls > button[type='submit'] {
   background: var(--color-brand);
   border: 0;
   color: #ffffff;
@@ -63,7 +124,7 @@
   white-space: nowrap;
 }
 
-.attendance-filter button:hover {
+.attendance-filter__controls > button[type='submit']:hover {
   background: var(--color-brand-strong);
 }
 
@@ -72,7 +133,7 @@
     grid-template-columns: 1fr 1fr;
   }
 
-  .attendance-filter button {
+  .attendance-filter__controls > button[type='submit'] {
     grid-column: 1 / -1;
   }
 }

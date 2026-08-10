@@ -1,4 +1,4 @@
-import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -7,9 +7,14 @@ import { CampusLocation } from '../models/location.model';
 import {
   AttendanceSession,
   CreateSessionRequest,
+  ListSessionsPageParams,
+  PaginatedSessionsResponse,
   SessionQrResponse,
 } from '../models/session.model';
 import { AuthService } from './auth.service';
+
+/** Default page size for the attendance session picker modal. */
+export const SESSION_PICKER_PAGE_SIZE = 10;
 
 /**
  * Live Nest sessions + locations for teacher session creation and short-lived QR.
@@ -19,10 +24,35 @@ export class SessionService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
 
+  /** Full list (Sessions page). No page/limit query → array response. */
   listSessions(): Promise<AttendanceSession[]> {
     return firstValueFrom(
       this.http.get<AttendanceSession[]>(this.url(API_ENDPOINTS.sessions), {
         headers: this.authHeaders(),
+      }),
+    );
+  }
+
+  /**
+   * Paginated list for pickers. Always sends page + limit so the API returns
+   * `{ items, pagination }` instead of a bare array.
+   */
+  listSessionsPage(
+    params: ListSessionsPageParams = {},
+  ): Promise<PaginatedSessionsResponse> {
+    const page = params.page ?? 1;
+    const limit = params.limit ?? SESSION_PICKER_PAGE_SIZE;
+    let httpParams = new HttpParams()
+      .set('page', String(page))
+      .set('limit', String(limit));
+    const q = params.q?.trim();
+    if (q) {
+      httpParams = httpParams.set('q', q);
+    }
+    return firstValueFrom(
+      this.http.get<PaginatedSessionsResponse>(this.url(API_ENDPOINTS.sessions), {
+        headers: this.authHeaders(),
+        params: httpParams,
       }),
     );
   }
@@ -80,7 +110,7 @@ export class SessionService {
   mapError(error: unknown, fallback: string): string {
     if (error instanceof HttpErrorResponse) {
       if (error.status === 0) {
-        return 'Cannot reach the API. Start the backend on port 3000.';
+        return 'Cannot reach the API. Start the Nest backend (port 3000) and use the Angular dev server so /api is proxied.';
       }
       if (error.status === 401) {
         return 'Session expired. Sign out and sign in again.';

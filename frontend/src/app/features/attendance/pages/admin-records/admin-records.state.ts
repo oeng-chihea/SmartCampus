@@ -9,8 +9,6 @@ import {
 import { SelectOption } from '../../../../shared/components/select-dropdown/select-dropdown.model';
 import { StatCard } from '../../../../shared/components/stat-card/stat-card.model';
 
-const ALL_SESSION: SelectOption = { value: 'all', label: 'All sessions' };
-
 const DATE_OPTIONS: SelectOption[] = [
   { value: 'all', label: 'All dates' },
   { value: 'today', label: 'Today' },
@@ -29,6 +27,8 @@ const DEFAULT_FILTERS: AttendanceFilterState = {
  * Admin records page state only — signals, filters, derived values.
  * No HTTP. Mutations that only touch local data live here.
  * Orchestration / API belongs in `admin-records.flow.ts`.
+ *
+ * Session filter uses the paginated session picker modal (not a dropdown list).
  */
 @Injectable()
 export class AdminRecordsState {
@@ -45,16 +45,12 @@ export class AdminRecordsState {
     { value: 'all', label: 'All statuses' },
   ]);
 
-  /** Real sessions for the Session filter (admin sees all, teachers their own). */
-  readonly sessionOptions = signal<SelectOption[]>([ALL_SESSION]);
-
   // ── Filter state (not shown directly) ─────────────────────
   private readonly filterState = signal<AttendanceFilterState>(DEFAULT_FILTERS);
 
   // ── Derived ───────────────────────────────────────────────
   readonly filters = computed<AttendanceFilterOptions>(() => ({
     searchPlaceholder: 'Search student name or ID',
-    sessionOptions: this.sessionOptions(),
     statusOptions: this.statusOptions(),
     dateOptions: DATE_OPTIONS,
   }));
@@ -67,10 +63,6 @@ export class AdminRecordsState {
 
   setFilters(filters: AttendanceFilterState): void {
     this.filterState.set(filters);
-  }
-
-  setSessionOptions(options: SelectOption[]): void {
-    this.sessionOptions.set(options);
   }
 
   beginLoad(): void {

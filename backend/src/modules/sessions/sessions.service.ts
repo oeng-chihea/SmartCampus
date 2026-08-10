@@ -24,6 +24,7 @@ import { LocationsService } from '../locations/locations.service';
 import { CreateSessionDto } from './dto/create-session.dto';
 import {
   OpenSessionLiveDto,
+  PaginatedSessionsResponseDto,
   QrResponseDto,
   SessionQrSnapshot,
   SessionResponseDto,
@@ -89,6 +90,49 @@ export class SessionsService {
         : rows.filter((session) => session.teacherId === actor.userId);
 
     return visible.map((session) => this.toResponse(session, actor, false));
+  }
+
+  /**
+   * Paginated session list for pickers (attendance filter, etc.).
+   * Default page size is 10; teachers only see their own sessions.
+   */
+  async findPage(
+    actor: AuthenticatedUser,
+    options: { page: number; limit: number; q?: string },
+  ): Promise<PaginatedSessionsResponseDto> {
+    const page = Math.max(1, Math.floor(options.page) || 1);
+    const limit = Math.min(100, Math.max(1, Math.floor(options.limit) || 10));
+    const q = options.q?.trim() ?? '';
+
+    const qb = this.sessions
+      .createQueryBuilder('session')
+      .orderBy('session.openedAt', 'DESC');
+
+    if (actor.role !== USER_ROLES.admin) {
+      qb.andWhere('session.teacherId = :teacherId', {
+        teacherId: actor.userId,
+      });
+    }
+
+    if (q) {
+      qb.andWhere(
+        '(LOWER(session.title) LIKE :q OR LOWER(session.locationName) LIKE :q OR LOWER(session.teacherName) LIKE :q)',
+        { q: `%${q.toLowerCase()}%` },
+      );
+    }
+
+    const total = await qb.getCount();
+    const rows = await qb
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
+
+    const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
+
+    return {
+      items: rows.map((session) => this.toResponse(session, actor, false)),
+      pagination: { page, limit, total, totalPages },
+    };
   }
 
   /**

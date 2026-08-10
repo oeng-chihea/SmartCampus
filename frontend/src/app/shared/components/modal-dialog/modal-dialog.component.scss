@@ -1,24 +1,35 @@
+/*
+ * Host is appended to document.body (see component.ts) so the overlay is not
+ * trapped by ancestor `transform` from page fade-in animations.
+ * Host itself is the full-viewport layer; backdrop fills it and centers the panel.
+ */
 :host {
-  display: contents;
+  bottom: 0;
+  display: block;
+  left: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 2000;
 }
 
-/* Full-viewport overlay — true center regardless of sidebar width */
+/* Full-viewport dim + centered panel — covers sidebar and entire screen */
 .modal-dialog-backdrop {
   align-items: center;
-  background: rgba(20, 83, 45, 0.38);
+  background: rgba(20, 83, 45, 0.45);
   bottom: 0;
   display: flex;
+  height: 100%;
   justify-content: center;
   left: 0;
   overflow: auto;
   overscroll-behavior: contain;
   padding: max(20px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px))
     max(20px, env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
-  position: fixed;
+  position: absolute;
   right: 0;
   top: 0;
-  width: 100vw;
-  z-index: 1200;
+  width: 100%;
 }
 
 .modal-dialog {

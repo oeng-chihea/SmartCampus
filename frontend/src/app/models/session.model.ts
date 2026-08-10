@@ -25,6 +25,31 @@ export interface AttendanceSession {
   currentQr?: SessionQrSnapshot | null;
 }
 
+/** Paginated GET /sessions?page=&limit=&q= (session picker). */
+export interface SessionsPageMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface PaginatedSessionsResponse {
+  items: AttendanceSession[];
+  pagination: SessionsPageMeta;
+}
+
+export interface ListSessionsPageParams {
+  page?: number;
+  limit?: number;
+  q?: string;
+}
+
+/** Confirmed pick from the session picker modal (filter toolbar). */
+export interface SessionPickerSelection {
+  id: string;
+  title: string;
+}
+
 export interface CreateSessionRequest {
   title: string;
   locationId: string;

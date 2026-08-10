@@ -72,7 +72,6 @@ export interface AttendanceFilterState {
 /** UI-only option lists the toolbar renders — never sent to the backend. */
 export interface AttendanceFilterOptions {
   searchPlaceholder: string;
-  sessionOptions: SelectOption[];
   statusOptions: SelectOption[];
   dateOptions: SelectOption[];
 }

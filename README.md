@@ -42,14 +42,28 @@ registered modules establish ownership boundaries for later API work.
 
 ## Development
 
-Run commands from each application folder:
+From the repo root (two terminals):
 
 ```bash
-cd frontend
-npm start
+# Terminal 1 — Nest API on port 3000
+npm run backend:start
+
+# Terminal 2 — Angular on 0.0.0.0:4200 with /api proxy → 127.0.0.1:3000
+npm run frontend:start
 ```
 
-```bash
-cd backend
-npm run start:dev
-```
+Then open **http://localhost:4200** for laptop login. API calls use relative
+`/api` and are proxied by the Angular dev server, so they no longer depend on
+a fixed Wi‑Fi IP.
+
+### Phone QR / student scan on campus Wi‑Fi
+
+1. Find your Mac LAN IP (System Settings → Network, or `ipconfig getifaddr en0`).
+2. Open the **teacher** app as `http://<lan-ip>:4200` (not localhost) when showing
+   the QR — the code encodes the current browser origin so phones can open it.
+3. Phone and laptop must be on the same Wi‑Fi; Mac firewall must allow ports
+   4200 (and 3000 only if you call the API without the proxy).
+
+Optional: set `appBaseUrl` in `frontend/src/environments/environment.development.ts`
+to a fixed `http://<lan-ip>:4200` only if you must browse via localhost but still
+need phone-reachable QR links.

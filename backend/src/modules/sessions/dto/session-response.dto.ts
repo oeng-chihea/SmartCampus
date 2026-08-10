@@ -23,6 +23,19 @@ export interface SessionResponseDto {
   currentQr?: SessionQrSnapshot | null;
 }
 
+/** Pagination envelope for GET /sessions?page=&limit= (session picker). */
+export interface SessionsPageMetaDto {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface PaginatedSessionsResponseDto {
+  items: SessionResponseDto[];
+  pagination: SessionsPageMetaDto;
+}
+
 export interface QrResponseDto {
   sessionId: string;
   token: string;
