@@ -143,11 +143,13 @@ When implementing API modules:
    locations/sessions/QR/delete. Page layout:
    - State → `sessions.state.ts`, flow → `sessions.flow.ts`, shell → component
    - Session log via shared `app-table`; ⋮ actions: **Show QR**, **Close**, **Delete**
-   - Create form: title, location, **due time** (today) → `dueAt` ISO
-     (replaces removed **Late after** minutes field)
+   - Create form: title, location, **due time** (any clock time today) → `dueAt` ISO
+     (no “must be 1 minute ahead” check; replaces removed **Late after**)
    - Display helpers: `formatSessionOpened` → `8-8-26/6:32Pm`;
      `formatSessionDue` → `7:30Pm`; `isSessionPastDue` for student gate;
      `formatCampusLocationLabel` → `Building A-Room 201` (table + create dialog)
+   - QR deep links use `GET /api/runtime/scan-origin` (`https://<lan-ip>:4200`)
+     so phones get a secure context for Safari GPS (HTTP LAN cannot prompt)
    - APIs: `POST/GET /api/sessions`, `GET …/:id/qr`, `POST …/:id/close`,
      `DELETE …/:id`
    - After `dueAt`, submit is rejected; session stays Open until teacher Close
@@ -156,12 +158,25 @@ When implementing API modules:
      for that `session_id`, then removes the session (student history follows)
 8. Live student flow: `StudentAttendanceService` loads `GET /api/sessions/open`
    (all Open sessions + same live QR as teacher — **do not filter out past due**),
-   then `POST /api/attendance/submit` (Present only before due; API 403 after due)
+   then `POST /api/attendance/submit` (before due only; API 403 after due)
    and `GET /api/attendance/me` (only rows for sessions that still exist; **purges
    orphan records**). Past-due mark/scan opens shared `app-confirm-dialog`.
    My attendance UI: shared `app-table` (Session · Location · Recorded · Status);
    location `formatCampusLocationLabel` → `Building B-Room 105`.
    Keep mock admin `AttendanceService` separate until admin records go live.
+   **Geofence check (FR-02, live) — hard location gate:** before submit, the
+   flow reads `getCurrentCoordinates()` (browser Geolocation API,
+   `core/utils/geolocation.util.ts`). If denied/unsupported/timed out, the
+   flow **does not call the API at all** — it opens a "Cannot mark present /
+   Try again" confirm dialog (`StudentScanPageState.locationBlocked`) whose
+   confirm action retries the same submit (re-prompting for permission). If a
+   fix is obtained, `{ latitude, longitude }` is sent with the payload and the
+   backend's `AttendanceService.requireCoordinates` + `evaluateGeofence`
+   compare it to the session's `LocationEntity` via Haversine
+   (`common/utils/geo.util.ts`): inside `radiusMeters` → **Present**; outside
+   → **Outside Location** (still recorded). A request with no coordinates at
+   all is rejected server-side too (400) — this is defense in depth in case
+   the API is called directly, bypassing the UI.
 9. Live student accounts: `StudentService` (frontend) ↔ `StudentsModule`/
    `UsersModule` (Nest, TypeORM users + students tables). When adding account
    features, keep the link `users.student_id` ↔ `students.student_id` and

@@ -13,6 +13,7 @@ export class CreateSessionDto {
 
   /**
    * Absolute due instant (ISO-8601) from the teacher browser.
+   * Any valid time today is accepted — including times already passed.
    * Students may mark present only while now &lt; dueAt.
    */
   @IsDateString()

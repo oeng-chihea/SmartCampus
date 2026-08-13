@@ -58,8 +58,8 @@ npm run backend:start
 **Smart Campus** is an **attendance-first** campus system:
 
 - **Frontend:** Angular (`frontend/`) — admin/teacher shell + student scan UI  
-- **Backend:** NestJS (`backend/`) — live auth, students, sessions/QR/close/delete, attendance submit  
-- **Data today:** login + sessions (+ delete) live; dashboard/attendance/locations pages still mostly **mock JSON**  
+- **Backend:** NestJS (`backend/`) — live auth, students, sessions/QR/close/delete, attendance submit + geofence check  
+- **Data today:** login + sessions (+ delete) live; student submit runs a **live GPS geofence check** (FR-02, Haversine vs each location's `radiusMeters`); dashboard/attendance/locations admin pages still mostly **mock JSON**  
 - **Auth today:** Nest login + Bearer token in `localStorage`
 
 ### Roles and home pages

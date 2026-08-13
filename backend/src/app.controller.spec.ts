@@ -19,4 +19,12 @@ describe('AppController', () => {
       expect(appController.getHello()).toBe('Hello World!');
     });
   });
+
+  describe('scan-origin', () => {
+    it('returns an origin string for QR deep links', () => {
+      const result = appController.getScanOrigin('http://localhost:4200');
+      expect(result.origin).toMatch(/^https?:\/\//);
+      expect(typeof result.connected).toBe('boolean');
+    });
+  });
 });

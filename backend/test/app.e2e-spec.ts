@@ -24,6 +24,16 @@ describe('Smart Campus API (e2e)', () => {
       .expect(200)
       .expect('Hello World!'));
 
+  it('returns a scan origin for teacher QR deep links', () =>
+    request(app.getHttpServer())
+      .get('/api/runtime/scan-origin')
+      .set('Origin', 'http://localhost:4200')
+      .expect(200)
+      .expect(({ body }: { body: { origin: string; connected: boolean } }) => {
+        expect(body.origin).toMatch(/^https?:\/\//);
+        expect(typeof body.connected).toBe('boolean');
+      }));
+
   it('does not expose the old unprefixed root endpoint', () =>
     request(app.getHttpServer()).get('/').expect(404));
 

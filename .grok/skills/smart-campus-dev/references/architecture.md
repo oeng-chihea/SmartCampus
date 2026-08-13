@@ -66,8 +66,8 @@ smart-campus-system/
 | `users` | **Live** account provisioning: `POST /api/users` (admin); links student accounts to profiles |
 | `students` | **Live** directory: `GET /api/students`, `POST /api/students` (+ account), `PATCH /:id/access` |
 | `dashboard` | Registered module with frontend-aligned dashboard contract |
-| `attendance` | **Live** student submit + `GET /me` (existing sessions only; purges orphans) |
-| `locations` | Live list for session form (+ seed data) |
+| `attendance` | **Live** student submit + `GET /me` (existing sessions only; purges orphans); submit runs the **geofence check** (FR-02, Haversine vs `radiusMeters`) when the client sends GPS coordinates |
+| `locations` | Live list for session form (+ seed data); default pin is **KIT Phnom Penh Campus** (`LOC-001`, 11.5479313, 104.9405941, 80 m). `latitude/longitude/radiusMeters` are consumed by the attendance geofence check |
 | `sessions` | **Live** create / list / QR / close / **delete** (delete cascades attendance by `session_id`) |
 | `reports` | Registered boundary; frontend page is still a placeholder |
 | TypeORM / migrations | Users/students/sessions/attendance persist via TypeORM (`synchronize: true` in dev) |
@@ -102,6 +102,7 @@ features/sessions/pages/sessions/
   sessions.state.ts                  # signals, form fields, metrics
   sessions.flow.ts                  # reload / create / showQr / close / delete
 services/session.service.ts         # HTTP client (Bearer)
+services/scan-origin.service.ts     # GET /api/runtime/scan-origin → https://<lan-ip>:4200
 core/utils/date.util.ts             # formatSessionOpened / formatSessionDue / isSessionPastDue
 core/utils/format.util.ts           # formatCampusLocationLabel → Building A-Room 201
 
@@ -109,6 +110,32 @@ Student scan history:
   features/attendance/pages/student-scan/  # live cards + due dialog + app-table
   services/student-attendance.service.ts   # open / submit / me
 ```
+
+## Geofence check (live, FR-02) — hard location gate
+
+```text
+frontend/src/app/core/utils/geolocation.util.ts   # getCurrentCoordinates(): browser GPS, null on deny/unsupported/timeout
+frontend/src/app/features/attendance/pages/student-scan/student-scan.flow.ts
+  buildSubmitRequest(payload, sessionTitle, retry)  # null + opens locationBlocked notice when GPS missing; never calls the API without a fix
+  retryAfterLocationBlocked() / dismissLocationBlocked()
+frontend/src/app/features/attendance/pages/student-scan/student-scan.state.ts
+  locationBlocked signal + LocationBlockedNotice { sessionTitle, retry }
+
+backend/src/common/utils/geo.util.ts               # haversineDistanceMeters / isWithinRadius (pure, unit-tested)
+backend/src/modules/attendance/dto/submit-attendance.dto.ts  # optional-by-decorator latitude/longitude (@IsLatitude/@IsLongitude); presence enforced in the service, not the DTO
+backend/src/modules/attendance/attendance.service.ts
+  requireCoordinates(dto)                           # throws BadRequestException when lat/lng missing — hard reject, no record created
+  evaluateGeofence(dto, location)                   # Haversine(student, session.location) vs radiusMeters — runs only after requireCoordinates passes
+```
+
+Rules (**hard gate — no coordinates ⇒ no record at all**, enforced on both sides):
+
+- Frontend never calls `POST /api/attendance/submit` without a GPS fix — if `getCurrentCoordinates()` resolves `null` (denied/unsupported/timeout), the flow opens a **"Cannot mark present" / "Try again"** confirm dialog instead and aborts before any network call.
+- Backend re-checks independently (`requireCoordinates`) so a direct API call without coordinates is rejected with **400** and a clear message — never silently recorded.
+- Coordinates within `radiusMeters` → **Present**, `distanceMeters` = rounded meters.
+- Coordinates outside `radiusMeters` → **Outside Location** (still recorded, not rejected — this is the only "the record exists but flagged" case) — visible on the admin/teacher attendance log and in Locations → detail dialog.
+- `AttendanceModule` imports `LocationsModule` to read the session's `LocationEntity` (lat/lng/radius) at submit time.
+- `SessionScanContext` (from `SessionsService.resolveOpenSessionForScan`) carries `locationId` so `AttendanceService` can look up the right zone.
 
 Session log ⋮ menu:
 

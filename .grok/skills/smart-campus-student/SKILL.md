@@ -58,15 +58,36 @@ Admin creates account (POST /api/students with password)
   → /student/scan
   → GET /api/sessions/open (all open sessions + same live QR as teacher)
   → tap “Mark me present” or scan QR / Camera deep link
-  → POST /api/attendance/submit (identity from Bearer token)
-  → Present if before session dueAt
+  → browser reads device GPS (getCurrentCoordinates())
+  → GPS denied / unsupported / timed out:
+      NO request sent — "Cannot mark present / Try again" dialog opens
+      Try again → re-prompts permission and retries the same submit
+  → GPS fix obtained:
+      POST /api/attendance/submit { payload, latitude, longitude } (identity from Bearer token)
+      → if before session dueAt:
+          inside location radius → Present
+          outside location radius → Outside Location (still recorded)
   → history in shared **app-table** (“My attendance” / Your recorded scans)
   → Sign out → /auth/student
 ```
 
+**Geofence (FR-02, live) — hard gate:** location permission is **mandatory**.
+iPhone Safari only prompts for GPS on **HTTPS** (the teacher QR must be
+`https://<lan-ip>:4200`). Location Services / Safari “Always” cannot unlock
+GPS on a plain `http://` LAN page.
+The scan flow (`buildSubmitRequest` in `student-scan.flow.ts`) never calls the
+submit API without a GPS fix — denied/unsupported/timeout opens a
+`locationBlocked` confirm dialog (`StudentScanPageState`) with a "Try again"
+retry instead of submitting. The backend independently rejects (400, via
+`AttendanceService.requireCoordinates`) any submit with no coordinates, so a
+direct API call can't bypass the rule either. Once coordinates ARE present,
+`evaluateGeofence` (Haversine distance vs the location's `radiusMeters`)
+decides `Present` vs `Outside Location` — that part is unchanged. See
+`smart-campus-dev/references/architecture.md` for the file map.
+
 ## Session due time on `/student/scan`
 
-Teacher sets **due time** at create (not “Late after”). Rules:
+Teacher sets **due time** at create (any clock time today; not “Late after”). Rules:
 
 | State | Student UI | Mark present / QR scan |
 |-------|------------|-------------------------|
@@ -124,7 +145,7 @@ Data: `GET /api/attendance/me` via `StudentAttendanceService.listMine()`.
 | `POST` | `/api/students` | admin | Create student; `password` in body also creates the login account |
 | `PATCH` | `/api/students/:studentId/access` | admin | Toggle `loginEnabled` |
 | `GET` | `/api/sessions/open` | student+ | Live open sessions + QR |
-| `POST` | `/api/attendance/submit` | student | Mark attendance (identity from token) |
+| `POST` | `/api/attendance/submit` | student | Mark attendance (identity from token); `latitude`/`longitude` are **required** — 400 if missing (FR-02 hard gate); drive the geofence check |
 | `GET` | `/api/attendance/me` | student | Own scan history (only existing sessions; purges orphans) |
 
 ## Key files
@@ -136,14 +157,16 @@ backend/src/modules/students/students.controller.ts
 backend/src/modules/users/users.service.ts    # createUser (account provisioning)
 backend/src/modules/users/users.controller.ts
 backend/src/modules/sessions/sessions.service.ts  # dueAt create + scan gate; delete cascades attendance
-backend/src/modules/attendance/attendance.service.ts  # submit Present; findMine filters + purges orphans
+backend/src/modules/attendance/attendance.service.ts  # submit + geofence (evaluateGeofence); findMine filters + purges orphans
+backend/src/common/utils/geo.util.ts          # haversineDistanceMeters / isWithinRadius (unit-tested)
 backend/src/database/seeders/demo.seeder.ts   # seeds admin/teacher/Chihea; deletes legacy demo students
 
 frontend/src/app/features/auth/pages/login/          # no demo chips anymore
 frontend/src/app/services/auth.service.ts            # login, session, role paths
 frontend/src/app/services/student.service.ts         # live /students API + error mapping
 frontend/src/app/services/student-attendance.service.ts  # open sessions + submit + me
-frontend/src/app/features/attendance/pages/student-scan/  # scan UI + due dialog + history table
+frontend/src/app/features/attendance/pages/student-scan/  # scan UI + due dialog + history table + geofence submit
+frontend/src/app/core/utils/geolocation.util.ts       # getCurrentCoordinates(): browser GPS, null on deny/unsupported
 frontend/src/app/shared/components/table/            # My attendance app-table
 frontend/src/app/shared/components/confirm-dialog/   # due blocked confirm shell
 frontend/src/app/core/utils/date.util.ts             # formatSessionDue, isSessionPastDue, formatSessionOpened

@@ -4,6 +4,7 @@ import {
   formatSessionOpened,
   isSessionPastDue,
 } from '../../../../core/utils/date.util';
+import { GeolocationFailureReason } from '../../../../core/utils/geolocation.util';
 import { formatCampusLocationLabel } from '../../../../core/utils/format.util';
 import { AttendanceRecord } from '../../../../models/attendance.model';
 import { OpenLiveSessionCard } from '../../../../models/session.model';
@@ -15,6 +16,8 @@ import {
   StudentScanPageFlow,
   dueBlockedDetail,
   dueBlockedMessage,
+  locationBlockedDetail,
+  locationBlockedMessage,
 } from './student-scan.flow';
 import { StudentScanPageState } from './student-scan.state';
 
@@ -107,6 +110,22 @@ export class StudentScanComponent implements OnInit, OnDestroy {
 
   dismissDueBlocked(): void {
     this.flow.dismissDueBlocked();
+  }
+
+  locationDialogMessage(reason: GeolocationFailureReason): string {
+    return locationBlockedMessage(reason);
+  }
+
+  locationBlockedDetail(sessionTitle: string): string {
+    return locationBlockedDetail(sessionTitle);
+  }
+
+  retryAfterLocationBlocked(): Promise<void> {
+    return this.flow.retryAfterLocationBlocked();
+  }
+
+  dismissLocationBlocked(): void {
+    this.flow.dismissLocationBlocked();
   }
 
   logout(): void {

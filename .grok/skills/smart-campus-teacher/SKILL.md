@@ -37,7 +37,7 @@ Login uses Nest `POST /api/auth/login` and stores Bearer token in
 | Review attendance records + filters | `/attendance` | Mock JSON |
 | Browse campus locations + detail dialog | `/locations` | Mock JSON |
 | **Create attendance session** (dialog) | `/sessions` | **Live API** |
-| **Show short-lived QR** (auto-refresh ~30s) | `/sessions` | **Live API** |
+| **Show short-lived QR** (auto-refresh ~30s; encodes `https://<lan-ip>:4200`) | `/sessions` | **Live API** |
 | **Close session** (invalidates QR) | `/sessions` | **Live API** |
 | **Delete session** (row + store + **cascade attendance**) | `/sessions` ⋮ menu | **Live API** |
 | List **own** sessions only | `GET /api/sessions` | Live API |
@@ -66,7 +66,7 @@ Login as teacher
 
 | Concept | Meaning |
 |---------|---------|
-| **Due time** | Clock time **today** set at create (`dueAt` ISO). Students may mark present only **before** this time. |
+| **Due time** | Clock time **today** set at create (`dueAt` ISO). Teacher may pick **any** time today (including already passed). Students may mark present only **before** this time. |
 | **After due** | Submit rejected (API 403). Session can stay **Open** until teacher **Close**. Students still see the card. |
 | **Close session** | Status Closed; QR stops; session **removed** from student open list. |
 | **QR TTL (300s)** | Short-lived QR **token** rotation only — not the same as due time. Do not show QR Expires on student UI. |
@@ -115,9 +115,9 @@ Requires `Authorization: Bearer <accessToken>`.
 
 ## UI notes for Sessions (teacher)
 
-- **Left:** Live QR · Short-lived session code · **Due** time for selected session  
+- **Left:** Live QR · Short-lived session code · **Scan link** (`https://<lan-ip>:4200` from `GET /api/runtime/scan-origin`) · **Due** time for selected session  
 - **Right:** Open attendance → **Create session** button → dialog form  
-- Create form fields: **title**, **location**, **due time** (`type="time"`, required, ≥1 min ahead)  
+- Create form fields: **title**, **location**, **due time** (`type="time"`, required, any clock time today — no “must be in the future” check)  
 - Not an always-visible create form  
 - Session log table (`app-table`) columns: Session · Location · Teacher · Opened · **Due** · Status · Actions  
 - **Actions (⋮ menu):**  
@@ -150,8 +150,10 @@ Helpers: `formatSessionOpened`, `formatSessionDue` (`core/utils/date.util.ts`), 
 ## Planned later (not teacher-capable yet)
 
 - Live attendance feed on Sessions after student scan  
-- GPS / Outside Location on student submit  
 - Reports export  
+
+GPS / Outside Location on student submit is **live** (FR-02) — see
+`smart-campus-student/SKILL.md` and `smart-campus-dev/references/architecture.md`.
 
 ## When coding for teachers
 

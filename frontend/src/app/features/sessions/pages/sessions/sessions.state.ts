@@ -38,6 +38,8 @@ export class SessionsPageState {
   readonly selectedSessionId = signal<string | null>(null);
   readonly qr = signal<SessionQrResponse | null>(null);
   readonly qrDataUrl = signal<string | null>(null);
+  /** Deep-link encoded into the QR (LAN Wi-Fi origin when available). */
+  readonly scanUrl = signal<string | null>(null);
 
   // ── Dialog form (ngModel; plain fields) ───────────────────
   title = '';
@@ -90,12 +92,24 @@ export class SessionsPageState {
 
   resetCreateForm(): void {
     this.title = '';
-    this.locationId = '';
-    // Default: 30 minutes from now so teachers rarely hit "must be in the future".
+    this.locationId = this.defaultLocationId();
+    // Suggested start: 30 minutes from now. Teachers may change this to any time today.
     const due = new Date(Date.now() + 30 * 60 * 1000);
     this.dueTime = `${String(due.getHours()).padStart(2, '0')}:${String(due.getMinutes()).padStart(2, '0')}`;
     this.dialogError.set(null);
     this.fieldErrors.set({});
+  }
+
+  /** Prefer Building A, Room 201 (KIT Phnom Penh) when it is still Active. */
+  private defaultLocationId(): string {
+    const rows = this.locations();
+    const preferred = rows.find(
+      (row) => row.id === 'LOC-001' && row.status === 'Active',
+    );
+    if (preferred) {
+      return preferred.id;
+    }
+    return rows.find((row) => row.status === 'Active')?.id ?? '';
   }
 
   setLocations(locations: CampusLocation[]): void {
@@ -196,9 +210,10 @@ export class SessionsPageState {
     this.qrLoading.set(true);
   }
 
-  setQrResult(qr: SessionQrResponse, dataUrl: string): void {
+  setQrResult(qr: SessionQrResponse, dataUrl: string, scanUrl: string): void {
     this.qr.set(qr);
     this.qrDataUrl.set(dataUrl);
+    this.scanUrl.set(scanUrl);
   }
 
   endQrLoad(): void {
@@ -210,6 +225,7 @@ export class SessionsPageState {
     this.selectedSessionId.set(null);
     this.qr.set(null);
     this.qrDataUrl.set(null);
+    this.scanUrl.set(null);
   }
 
   /** After reload: drop QR if selected session is missing or closed. */

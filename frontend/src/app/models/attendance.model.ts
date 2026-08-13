@@ -15,9 +15,15 @@ export interface AttendanceRecord {
   distanceMeters: number | null;
 }
 
-/** Student scan submit — full QR payload from the teacher screen. */
+/**
+ * Student scan submit — full QR payload from the teacher screen, plus an
+ * optional device GPS fix used for the geofence check (FR-02). Coordinates
+ * are omitted when the browser denies/lacks geolocation.
+ */
 export interface SubmitAttendanceRequest {
   payload: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 /** Preview after QR decode — does not create a record. */

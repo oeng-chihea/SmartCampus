@@ -81,10 +81,12 @@ If teacher navigates to /students manually:
 
 ```text
 Login teacher → /dashboard → sidebar Sessions → /sessions
-  → Create session (dialog: title, location, due time today)
+  → Create session (dialog: title, location, any due time today)
        → POST /api/sessions { title, locationId, dueAt }
   → Session log: Location · Opened · Due · Status
   → Live QR left panel → GET /api/sessions/:id/qr (refresh ~30s) + Due time
+       QR image encodes https://<lan-ip>:4200/student/scan?payload=…
+       (GET /api/runtime/scan-origin; phones need HTTPS for GPS)
   → ⋮ Actions on Open row:
        Show QR  → load QR panel
        Close    → POST /api/sessions/:id/close
@@ -106,6 +108,18 @@ Login success (role=student)
        Tap “Mark me present” / Camera QR deep link
        → POST /api/attendance/submit → Present
        → row appears in My attendance app-table
+  → Before submit: browser reads GPS (getCurrentCoordinates())
+       → GPS denied / unsupported / timed out (returns null):
+            NO request sent — "Cannot mark present" / "Try again" dialog opens
+            Try again → re-prompts permission, retries the same submit
+            Cancel    → dialog closes, nothing submitted, card stays as-is
+       → GPS fix obtained:
+            POST /api/attendance/submit { payload, latitude, longitude }
+            → server re-checks coordinates are present (400 if somehow missing —
+              defense in depth for direct API callers) then compares the fix to
+              the session's location radius (Haversine):
+                 inside radiusMeters  → Present
+                 outside radiusMeters → Outside Location (still recorded, not blocked)
   → After dueAt (session still Open):
        “Due passed” on card
        Mark present or QR scan → app-confirm-dialog
@@ -170,7 +184,10 @@ Any /dashboard|/students|... request:
 - Accepted mark before due → **Present** only.
 - **My attendance:** shared `app-table` (no last-result hero); location via `formatCampusLocationLabel`.
 - **Delete cascade:** teacher Delete removes attendance by `sessionId`; `GET /api/attendance/me` filters to existing sessions and purges orphans.
-- Planned later: GPS / Outside Location (FR-02 geofence phase).
+- **Live, hard gate:** GPS / Outside Location geofence check (FR-02) — location
+  permission is mandatory to submit; deny/unsupported/timeout blocks the
+  submit with a "Try again" dialog instead of recording anything. See
+  sequence D above and `.grok/skills/smart-campus-dev/references/architecture.md`.
 
 ## Seeded accounts
 
@@ -193,14 +210,14 @@ Detailed flow: `.grok/skills/smart-campus-student/references/student-account-flo
 | FR | Area | Notes in code |
 |----|------|----------------|
 | FR-01 | Auth | Authenticated session required |
-| FR-02 | Student scan | Identity + later GPS |
+| FR-02 | Student scan | Identity + **live, hard-gated** GPS geofence check (mandatory permission; Haversine vs `radiusMeters`) |
 | FR-07 | Recent scans | Dashboard recent scan list |
 
 ## Planned / incomplete flows
 
 | Flow | Current | Intended later |
 |------|---------|----------------|
-| Student scan GPS | Present before dueAt; after due dialog + keep card | Geofence → Outside Location |
+| Student scan GPS / geofence | **Live, hard gate** — location permission is mandatory; deny/unsupported/timeout blocks the submit entirely (no record, "Try again" dialog); granted fix outside `radiusMeters` (Haversine) → Outside Location (still recorded) | Consider soft-fail / grace mode if GPS reliability becomes an issue |
 | Student history route | In-page “My scans” only | `/student/history` route |
 | Reports page | Placeholder | Export / analytics |
 | Dashboard / attendance / locations UI | Mock JSON | Optional live API later |

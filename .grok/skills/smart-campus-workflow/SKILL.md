@@ -17,9 +17,14 @@ Read `references/page-flows.md` for the full route table and file map.
 **Smart Campus Management System** is an **attendance-first** app:
 
 - Staff (admin / teacher) monitor attendance, students, and campus locations.
-- Students submit attendance via a scan/session-code flow (GPS phase planned later).
+- Students submit attendance via a scan/session-code flow **plus a live GPS
+  geofence check** (FR-02) that is a **hard gate**: location permission is
+  mandatory — deny/unsupported/timeout blocks the submit entirely (no record
+  created; "Try again" dialog), while a granted fix outside the session's
+  radius still records but as **Outside Location** instead of Present.
 - Frontend is Angular; backend NestJS is partially live. **Login**, **Sessions + QR**,
-  and **Student scan submit** call the API; other admin pages still use **mock JSON**.
+  and **Student scan submit (with geofence)** call the API; other admin pages
+  still use **mock JSON**.
 
 ## Entry and exit
 
@@ -83,7 +88,7 @@ Read `references/page-flows.md` for the full route table and file map.
 | Any admin page | Sidebar → Attendance | `/attendance` |
 | Any admin page | Sidebar → Locations | `/locations` |
 | Any admin page | Sidebar → Sessions | `/sessions` (live: create + due time / QR / close / delete) |
-| Sessions | Create session (title, location, due time) | Same page; dueAt ISO; QR auto-refreshes ~30s |
+| Sessions | Create session (title, location, any due time today) | Same page; dueAt ISO; QR auto-refreshes ~30s |
 | Sessions | ⋮ → Close | Same page; Closed; students lose open card; history kept |
 | Sessions | ⋮ → Delete | Same page; session removed; **attendance for that sessionId cascaded** |
 | Any admin page | Sidebar → Reports | `/reports` (placeholder) |
@@ -108,7 +113,14 @@ Read `references/page-flows.md` for the full route table and file map.
 - Successful mark before due → **Present** only (no Late-after minutes).
 - **My attendance:** shared `app-table` (not a hero card); location `Building X-Room N`.
 - **Delete cascade:** teacher Delete removes student history for that session; `GET /api/attendance/me` also drops orphans.
-- GPS / Outside Location validation is planned later.
+- **GPS / Outside Location validation is live** (FR-02) **and is a hard gate**:
+  browser Geolocation API reads device coordinates before submit; if
+  denied/unsupported/timed out, **no request is sent at all** — a "Cannot mark
+  present / Try again" confirm dialog opens instead. When a fix is obtained,
+  the server compares it to the session's location radius (Haversine) and
+  records **Present** (inside) or **Outside Location** (outside, still
+  recorded — not rejected). The backend independently rejects (400) any
+  submit with no coordinates, so the rule holds even for direct API calls.
 - No other student routes are registered yet (`student/history` constant exists but is unused).
 
 | From | User action | To |

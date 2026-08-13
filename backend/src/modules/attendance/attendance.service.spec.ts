@@ -38,6 +38,13 @@ describe('AttendanceService', () => {
         }
         return { ...location };
       }),
+      findOne: jest.fn(async (id: string) => {
+        const location = locationStore.find((row) => row.id === id);
+        if (!location) {
+          throw new Error(`not found ${id}`);
+        }
+        return { ...location };
+      }),
       incrementSessionsUsing: jest.fn(async () => undefined),
       decrementSessionsUsing: jest.fn(async () => undefined),
     } as unknown as LocationsService;
@@ -159,6 +166,7 @@ describe('AttendanceService', () => {
       recordRepo,
       sessionLookupRepo,
       sessions,
+      locations,
       auth,
     );
   });
@@ -179,18 +187,62 @@ describe('AttendanceService', () => {
     return { sessionId: created.id, payload: qr.payload };
   }
 
-  it('submits Present when before the due time', async () => {
+  it('submits Present when before the due time and inside the geofence', async () => {
     const { payload } = await openSessionWithPayload(45);
-
-    const record = await attendance.submit({ payload }, student);
+    // LOC-001 is KIT Phnom Penh (11.5479313, 104.9405941), 80m radius.
+    const record = await attendance.submit(
+      { payload, latitude: 11.54795, longitude: 104.94061 },
+      student,
+    );
 
     expect(record.status).toBe('Present');
     expect(record.student).toBe('Sok Dara');
     expect(record.studentId).toBe('SC-1024');
     expect(record.session).toBe('SE401 · Morning Lecture');
     expect(record.location).toContain('Building A');
-    expect(record.distanceMeters).toBeNull();
+    expect(record.distanceMeters).not.toBeNull();
     expect(record.id).toMatch(/^att-/);
+  });
+
+  it('rejects submit when no location coordinates are provided (FR-02 hard gate)', async () => {
+    const { payload } = await openSessionWithPayload(45);
+
+    await expect(attendance.submit({ payload }, student)).rejects.toThrow(
+      BadRequestException,
+    );
+  });
+
+  it('rejects submit with only one of latitude/longitude', async () => {
+    const { payload } = await openSessionWithPayload(45);
+
+    await expect(
+      attendance.submit({ payload, latitude: 11.5479313 }, student),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('submits Present with distance when GPS is inside the geofence', async () => {
+    const { payload } = await openSessionWithPayload(45);
+    // LOC-001 is KIT Phnom Penh (11.5479313, 104.9405941), 80m radius.
+    const record = await attendance.submit(
+      { payload, latitude: 11.54795, longitude: 104.94061 },
+      student,
+    );
+
+    expect(record.status).toBe('Present');
+    expect(record.distanceMeters).not.toBeNull();
+    expect(record.distanceMeters as number).toBeLessThanOrEqual(80);
+  });
+
+  it('marks Outside Location when GPS falls outside the geofence radius', async () => {
+    const { payload } = await openSessionWithPayload(45);
+    // Same session (LOC-001, 80m radius) but far outside coordinates.
+    const record = await attendance.submit(
+      { payload, latitude: 11.6, longitude: 105.0 },
+      student,
+    );
+
+    expect(record.status).toBe('Outside Location');
+    expect(record.distanceMeters as number).toBeGreaterThan(80);
   });
 
   it('rejects submit after the due time', async () => {
@@ -212,11 +264,12 @@ describe('AttendanceService', () => {
 
   it('rejects duplicate submit for the same student and session', async () => {
     const { payload } = await openSessionWithPayload();
-    await attendance.submit({ payload }, student);
+    const coords = { latitude: 11.5479313, longitude: 104.9405941 };
+    await attendance.submit({ payload, ...coords }, student);
 
-    await expect(attendance.submit({ payload }, student)).rejects.toThrow(
-      ConflictException,
-    );
+    await expect(
+      attendance.submit({ payload, ...coords }, student),
+    ).rejects.toThrow(ConflictException);
   });
 
   it('rejects invalid payload format', () => {

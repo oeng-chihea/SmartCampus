@@ -18,4 +18,5 @@ export const API_ENDPOINTS = {
   sessionClose: (id: string) => `/sessions/${id}/close`,
   sessionDelete: (id: string) => `/sessions/${id}`,
   reports: '/reports',
+  scanOrigin: '/runtime/scan-origin',
 } as const;

@@ -217,3 +217,16 @@
     (cancelled)="dismissDueBlocked()"
   />
 }
+
+@if (state.locationBlocked(); as locationNotice) {
+  <app-confirm-dialog
+    eyebrow="Location needed"
+    title="Cannot mark present"
+    [message]="locationDialogMessage(locationNotice.reason)"
+    [detail]="locationBlockedDetail(locationNotice.sessionTitle)"
+    confirmLabel="Try again"
+    cancelLabel="Cancel"
+    (confirmed)="retryAfterLocationBlocked()"
+    (cancelled)="dismissLocationBlocked()"
+  />
+}
