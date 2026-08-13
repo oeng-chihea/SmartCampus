@@ -53,6 +53,7 @@ export interface QrResponseDto {
 export interface SessionScanContext {
   id: string;
   title: string;
+  locationId: string;
   locationName: string;
   openedAt: Date;
   dueAt: Date | null;

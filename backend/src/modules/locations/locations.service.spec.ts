@@ -49,6 +49,8 @@ describe('LocationsService', () => {
     expect(location.name).toContain('Building A');
     expect(location.building).toBe('Building A');
     expect(location.radiusMeters).toBe(80);
+    expect(location.latitude).toBe(11.5479313);
+    expect(location.longitude).toBe(104.9405941);
   });
 
   it('rejects unknown location ids', async () => {

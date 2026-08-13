@@ -6,11 +6,17 @@ import {
   isSessionPastDue,
 } from '../../../../core/utils/date.util';
 import {
+  GeolocationFailureReason,
+  getCurrentCoordinates,
+} from '../../../../core/utils/geolocation.util';
+import {
   buildAttendanceScanUrl,
   extractAttendancePayload,
   sessionIdFromPayload,
 } from '../../../../core/utils/qr-scan.util';
+import { SubmitAttendanceRequest } from '../../../../models/attendance.model';
 import { AuthService } from '../../../../services/auth.service';
+import { ScanOriginService } from '../../../../services/scan-origin.service';
 import { StudentAttendanceService } from '../../../../services/student-attendance.service';
 import { OpenLiveSessionCard } from '../../../../models/session.model';
 import { StudentScanPageState } from './student-scan.state';
@@ -29,6 +35,7 @@ const POLL_MS = 12_000;
 export class StudentScanPageFlow {
   private readonly state = inject(StudentScanPageState);
   private readonly attendance = inject(StudentAttendanceService);
+  private readonly scanOrigin = inject(ScanOriginService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -54,12 +61,13 @@ export class StudentScanPageFlow {
 
       // Keep all open sessions (including past due). Closed sessions leave the
       // open list on the API after the teacher closes them.
+      const origin = await this.scanOrigin.resolve();
       const cards: OpenLiveSessionCard[] = await Promise.all(
         open.map(async (session) => ({
           ...session,
-          // Same deep-link URL the teacher QR encodes (Camera-friendly).
+          // Same Wi-Fi deep-link URL the teacher QR encodes (Camera-friendly).
           qrDataUrl: await QRCode.toDataURL(
-            buildAttendanceScanUrl(session.qr.payload),
+            buildAttendanceScanUrl(session.qr.payload, origin),
             {
               width: 220,
               margin: 2,
@@ -116,9 +124,15 @@ export class StudentScanPageFlow {
         return;
       }
 
-      const record = await this.attendance.submit({
-        payload: live.qr.payload,
-      });
+      const request = await this.buildSubmitRequest(live.qr.payload, live.title, () =>
+        this.markPresent(session),
+      );
+      if (!request) {
+        // Location denied/unavailable — notice shown, nothing submitted (FR-02).
+        return;
+      }
+
+      const record = await this.attendance.submit(request);
       this.state.submitSucceeded(record);
       await this.reload(false);
     } catch (error) {
@@ -203,9 +217,20 @@ export class StudentScanPageFlow {
 
   private async submitRawPayload(payload: string): Promise<boolean> {
     const sessionId = sessionIdFromPayload(payload) ?? 'deeplink';
+    const sessionTitle =
+      this.state.openSessions().find((row) => row.id === sessionId)?.title ??
+      'this session';
     this.state.beginSubmit(sessionId);
     try {
-      const record = await this.attendance.submit({ payload });
+      const request = await this.buildSubmitRequest(payload, sessionTitle, async () => {
+        await this.submitRawPayload(payload);
+      });
+      if (!request) {
+        // Location denied/unavailable — notice shown, nothing submitted (FR-02).
+        return false;
+      }
+
+      const record = await this.attendance.submit(request);
       this.state.submitSucceeded(record);
       await this.reload(false);
       return true;
@@ -283,10 +308,16 @@ export class StudentScanPageFlow {
       return false;
     }
 
+    const request = await this.buildSubmitRequest(live.qr.payload, live.title, async () => {
+      await this.submitWithFreshPayload(sessionId);
+    });
+    if (!request) {
+      // Location denied/unavailable — notice shown, nothing submitted (FR-02).
+      return false;
+    }
+
     try {
-      const record = await this.attendance.submit({
-        payload: live.qr.payload,
-      });
+      const record = await this.attendance.submit(request);
       this.state.submitSucceeded(record);
       await this.reload(false);
       return true;
@@ -301,6 +332,42 @@ export class StudentScanPageFlow {
       }
       return false;
     }
+  }
+
+  /**
+   * Reads a device GPS fix for the submit payload. FR-02 hard gate: when
+   * geolocation is denied/unsupported/times out, nothing is submitted —
+   * instead a "location needed" notice opens with a `retry` callback that
+   * re-runs the same submit attempt (re-prompting for permission).
+   */
+  private async buildSubmitRequest(
+    payload: string,
+    sessionTitle: string,
+    retry: () => Promise<void>,
+  ): Promise<SubmitAttendanceRequest | null> {
+    const reading = await getCurrentCoordinates();
+    if (!reading.ok) {
+      this.state.openLocationBlocked({ sessionTitle, reason: reading.reason, retry });
+      return null;
+    }
+    return {
+      payload,
+      latitude: reading.coords.latitude,
+      longitude: reading.coords.longitude,
+    };
+  }
+
+  /** "Try again" on the location-blocked dialog — re-runs the same submit attempt. */
+  async retryAfterLocationBlocked(): Promise<void> {
+    const notice = this.state.locationBlocked();
+    this.state.closeLocationBlocked();
+    if (notice) {
+      await notice.retry();
+    }
+  }
+
+  dismissLocationBlocked(): void {
+    this.state.closeLocationBlocked();
   }
 
   private isDueTimeRejected(error: unknown): boolean {
@@ -352,4 +419,27 @@ export function dueBlockedDetail(
     return `Session: ${sessionTitle}`;
   }
   return `Session: ${sessionTitle} · Due ${dueLabel}`;
+}
+
+/** Message used by the location-blocked confirm dialog (FR-02 hard gate). */
+export const LOCATION_BLOCKED_MESSAGE =
+  'Location access is required to mark attendance. Please allow location access in your browser and try again.';
+
+export function locationBlockedMessage(reason: GeolocationFailureReason): string {
+  switch (reason) {
+    case 'insecure':
+      return 'This page is not HTTPS. Open the teacher QR (https://…) — Safari cannot use GPS on a plain http:// Wi-Fi address.';
+    case 'timeout':
+    case 'unavailable':
+      return 'Could not read GPS. Keep Location on for Safari, wait a moment, then try again.';
+    case 'unsupported':
+      return 'This browser cannot read location. Open the scan link in Safari and try again.';
+    case 'denied':
+    default:
+      return LOCATION_BLOCKED_MESSAGE;
+  }
+}
+
+export function locationBlockedDetail(sessionTitle: string): string {
+  return `Session: ${sessionTitle}`;
 }

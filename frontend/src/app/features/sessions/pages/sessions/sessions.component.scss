@@ -240,6 +240,14 @@
   text-transform: uppercase;
 }
 
+.sessions-page__scan-url {
+  color: var(--color-brand-deep);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .sessions-page__payload {
   background: var(--surface-muted);
   border: 1px solid var(--border-subtle);

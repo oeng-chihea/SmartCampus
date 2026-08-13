@@ -8,7 +8,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomBytes } from 'crypto';
 import { Repository } from 'typeorm';
 import {
-  MIN_DUE_AHEAD_MINUTES,
   QR_PAYLOAD_PREFIX,
   QR_TTL_SECONDS,
   SESSION_STATUS,
@@ -54,7 +53,7 @@ export class SessionsService {
     const teacherName = teacher?.name ?? 'Unknown teacher';
 
     const now = new Date();
-    const dueAt = this.parseAndValidateDueAt(dto.dueAt, now);
+    const dueAt = this.parseDueAt(dto.dueAt);
     const qr = this.issueQrToken(now);
     const session = this.sessions.create({
       id: this.nextSessionId(),
@@ -264,6 +263,7 @@ export class SessionsService {
     return {
       id: session.id,
       title: session.title,
+      locationId: session.locationId,
       locationName: session.locationName,
       openedAt: session.openedAt,
       dueAt: session.dueAt,
@@ -396,25 +396,14 @@ export class SessionsService {
     };
   }
 
-  /**
-   * Parse teacher-provided ISO dueAt and require it to be at least
-   * MIN_DUE_AHEAD_MINUTES in the future.
-   */
-  private parseAndValidateDueAt(raw: string, now: Date = new Date()): Date {
+  /** Parse teacher-provided ISO dueAt. Any valid instant is allowed. */
+  private parseDueAt(raw: string): Date {
     const dueAt = new Date(raw);
     if (Number.isNaN(dueAt.getTime())) {
       throw new BadRequestException(
         'Due time is invalid. Choose a valid time for today.',
       );
     }
-
-    const minDueMs = now.getTime() + MIN_DUE_AHEAD_MINUTES * 60 * 1000;
-    if (dueAt.getTime() < minDueMs) {
-      throw new BadRequestException(
-        `Due time must be at least ${MIN_DUE_AHEAD_MINUTES} minute(s) from now.`,
-      );
-    }
-
     return dueAt;
   }
 

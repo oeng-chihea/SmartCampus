@@ -4,9 +4,8 @@ export const environment = {
    * QR deep-link origin encoded into teacher QR images (must be reachable from
    * student phones on campus Wi‑Fi).
    *
-   * Leave empty to use the browser's current origin at runtime. For phone
-   * scanning, open the teacher app as http://<your-lan-ip>:4200 (not localhost)
-   * so the QR points at a phone-reachable host.
+   * Leave empty to auto-use https://<Mac-Wi-Fi-IP>:4200 from
+   * GET /api/runtime/scan-origin (phones need HTTPS for Safari GPS).
    *
    * Optional override if you must browse via localhost but still need phones
    * to open a LAN URL, e.g. 'http://192.168.1.20:4200'.

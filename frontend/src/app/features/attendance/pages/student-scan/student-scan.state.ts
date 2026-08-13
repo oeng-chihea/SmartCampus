@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { GeolocationFailureReason } from '../../../../core/utils/geolocation.util';
 import { AttendanceRecord } from '../../../../models/attendance.model';
 import { OpenLiveSessionCard } from '../../../../models/session.model';
 
@@ -8,6 +9,16 @@ export interface DueBlockedNotice {
   dueAt: string | null;
   /** Whether the attempt came from a Camera deep-link QR. */
   fromScan: boolean;
+}
+
+/**
+ * Shown when location permission is denied/unavailable (FR-02 hard gate).
+ * No attendance request is sent in this case — "Try again" re-runs `retry`.
+ */
+export interface LocationBlockedNotice {
+  sessionTitle: string;
+  reason: GeolocationFailureReason;
+  retry: () => Promise<void>;
 }
 
 /**
@@ -25,6 +36,9 @@ export class StudentScanPageState {
 
   /** Non-null while the due-time blocked confirm dialog is open. */
   readonly dueBlocked = signal<DueBlockedNotice | null>(null);
+
+  /** Non-null while the location-permission blocked confirm dialog is open. */
+  readonly locationBlocked = signal<LocationBlockedNotice | null>(null);
 
   beginLoad(): void {
     this.loading.set(true);
@@ -91,6 +105,16 @@ export class StudentScanPageState {
 
   closeDueBlocked(): void {
     this.dueBlocked.set(null);
+  }
+
+  openLocationBlocked(notice: LocationBlockedNotice): void {
+    this.locationBlocked.set(notice);
+    this.error.set(null);
+    this.info.set(null);
+  }
+
+  closeLocationBlocked(): void {
+    this.locationBlocked.set(null);
   }
 
   hasSubmittedFor(sessionTitle: string): boolean {

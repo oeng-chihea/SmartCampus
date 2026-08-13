@@ -61,6 +61,12 @@
                 {{ formatDue(session.dueAt) }}
               </p>
             }
+            @if (state.scanUrl(); as scanUrl) {
+              <p class="sessions-page__scan-url">
+                <span class="sessions-page__label">Scan link</span>
+                {{ scanUrl }}
+              </p>
+            }
             <code class="sessions-page__payload">{{ liveQr.payload }}</code>
             <div class="sessions-page__qr-actions">
               <button type="button" class="sessions-page__btn-secondary" (click)="refreshQrNow()">
@@ -233,7 +239,7 @@
           "
         />
         <span id="session-due-hint" class="session-create-form__hint">
-          Students can mark present until this time today.
+          Any clock time today. Students can mark present until this time.
         </span>
         @if (state.fieldError('dueTime'); as dueErr) {
           <span id="session-due-error" class="session-create-form__field-error">{{ dueErr }}</span>

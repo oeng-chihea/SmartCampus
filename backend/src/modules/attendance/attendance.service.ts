@@ -15,9 +15,16 @@ import {
 import { USER_ROLES } from '../../common/constants/roles.constant';
 import { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { toIsoDate } from '../../common/utils/date.util';
+import {
+  GeoCoordinates,
+  haversineDistanceMeters,
+  isWithinRadius,
+} from '../../common/utils/geo.util';
 import { AttendanceRecordEntity } from '../../database/entities/attendance-record.entity';
 import { SessionEntity } from '../../database/entities/session.entity';
 import { AuthService } from '../auth/auth.service';
+import { CampusLocationResponseDto } from '../locations/dto/location-response.dto';
+import { LocationsService } from '../locations/locations.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { AdminAttendanceFilterDto } from './dto/admin-attendance-filter.dto';
 import {
@@ -44,6 +51,7 @@ export class AttendanceService {
     @InjectRepository(SessionEntity)
     private readonly sessions: Repository<SessionEntity>,
     private readonly sessionsService: SessionsService,
+    private readonly locationsService: LocationsService,
     private readonly authService: AuthService,
   ) {}
 
@@ -95,8 +103,14 @@ export class AttendanceService {
       );
     }
 
-    // Due-time gate lives in resolveOpenSessionForScan; accepted scans are Present.
-    const status = ATTENDANCE_STATUS.present;
+    // Due-time gate lives in resolveOpenSessionForScan. Location is mandatory
+    // (FR-02, hard block): no GPS fix ⇒ no record at all, so a denied/missing
+    // permission can never be silently recorded as Present.
+    this.requireCoordinates(dto);
+    const { status, distanceMeters } = this.evaluateGeofence(
+      dto,
+      await this.locationsService.findOne(session.locationId),
+    );
 
     const record = this.records.create({
       id: this.nextRecordId(),
@@ -108,7 +122,7 @@ export class AttendanceService {
       location: session.locationName,
       recordedAt: now,
       status,
-      distanceMeters: null,
+      distanceMeters,
     });
 
     try {
@@ -265,6 +279,59 @@ export class AttendanceService {
     return (Object.values(ATTENDANCE_STATUS) as AttendanceStatus[]).filter(
       (status) => present.has(status),
     );
+  }
+
+  /**
+   * FR-02 hard location gate: a device GPS fix is mandatory to submit.
+   * Denied/unsupported/timed-out geolocation on the client means the
+   * request simply omits latitude/longitude — reject it here rather than
+   * silently recording Present, so attendance always reflects a real fix.
+   */
+  private requireCoordinates(dto: SubmitAttendanceDto): void {
+    if (dto.latitude === undefined || dto.longitude === undefined) {
+      throw new BadRequestException(
+        'Location access is required to mark attendance. Please allow location and try again.',
+      );
+    }
+  }
+
+  /**
+   * FR-02 geofence check: compare the student's device coordinates against
+   * the session's location radius via the Haversine formula. Coordinates
+   * are guaranteed present here — `requireCoordinates` runs first.
+   *
+   * - Within `radiusMeters` → Present.
+   * - Outside `radiusMeters` → Outside Location (still recorded — visible to
+   *   admins/teachers on the attendance log — not rejected).
+   */
+  private evaluateGeofence(
+    dto: SubmitAttendanceDto,
+    location: CampusLocationResponseDto,
+  ): { status: AttendanceStatus; distanceMeters: number } {
+    const studentPoint: GeoCoordinates = {
+      latitude: dto.latitude as number,
+      longitude: dto.longitude as number,
+    };
+    const locationPoint: GeoCoordinates = {
+      latitude: location.latitude,
+      longitude: location.longitude,
+    };
+
+    const distanceMeters = Math.round(
+      haversineDistanceMeters(studentPoint, locationPoint),
+    );
+    const withinRadius = isWithinRadius(
+      studentPoint,
+      locationPoint,
+      location.radiusMeters,
+    );
+
+    return {
+      status: withinRadius
+        ? ATTENDANCE_STATUS.present
+        : ATTENDANCE_STATUS.outsideLocation,
+      distanceMeters,
+    };
   }
 
   parsePayload(raw: string): ParsedPayload {

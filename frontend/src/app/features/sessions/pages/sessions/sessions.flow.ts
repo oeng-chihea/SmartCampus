@@ -5,11 +5,9 @@ import { buildAttendanceScanUrl } from '../../../../core/utils/qr-scan.util';
 import { FieldErrors } from '../../../../models/alert.model';
 import { AttendanceSession } from '../../../../models/session.model';
 import { AlertService } from '../../../../services/alert.service';
+import { ScanOriginService } from '../../../../services/scan-origin.service';
 import { SessionService } from '../../../../services/session.service';
 import { SessionsPageState } from './sessions.state';
-
-/** Must stay ahead of backend MIN_DUE_AHEAD_MINUTES. */
-const MIN_DUE_AHEAD_MINUTES = 1;
 
 /**
  * Sessions page flow only — API calls + orchestration.
@@ -19,6 +17,7 @@ const MIN_DUE_AHEAD_MINUTES = 1;
 export class SessionsPageFlow {
   private readonly state = inject(SessionsPageState);
   private readonly sessionService = inject(SessionService);
+  private readonly scanOrigin = inject(ScanOriginService);
   private readonly alerts = inject(AlertService);
 
   async reload(): Promise<void> {
@@ -91,8 +90,8 @@ export class SessionsPageFlow {
     try {
       const qr = await this.sessionService.getQr(sessionId);
       // Deep-link URL so iPhone Camera can open /student/scan?payload=...
-      const dataUrl = await this.qrDataUrlFromPayload(qr.payload);
-      this.state.setQrResult(qr, dataUrl);
+      const { dataUrl, scanUrl } = await this.qrFromPayload(qr.payload);
+      this.state.setQrResult(qr, dataUrl, scanUrl);
       this.state.startQrRefresh(() => {
         void this.refreshQrQuiet(sessionId);
       });
@@ -176,7 +175,8 @@ export class SessionsPageFlow {
       return;
     }
     try {
-      const link = buildAttendanceScanUrl(payload);
+      const origin = await this.scanOrigin.resolve();
+      const link = buildAttendanceScanUrl(payload, origin);
       await navigator.clipboard.writeText(link);
       this.state.setPageSuccess(
         'Scan link copied. Students can open it (or scan the QR) to mark present.',
@@ -224,13 +224,6 @@ export class SessionsPageFlow {
       dueAt = buildDueAtFromLocalTime(form.dueTime);
       if (!dueAt) {
         fieldErrors['dueTime'] = 'Enter a valid due time for today.';
-      } else {
-        const minDueMs = Date.now() + MIN_DUE_AHEAD_MINUTES * 60 * 1000;
-        if (new Date(dueAt).getTime() < minDueMs) {
-          fieldErrors['dueTime'] =
-            `Due time must be at least ${MIN_DUE_AHEAD_MINUTES} minute(s) from now.`;
-          dueAt = null;
-        }
       }
     }
 
@@ -251,19 +244,24 @@ export class SessionsPageFlow {
     }
     try {
       const qr = await this.sessionService.getQr(sessionId);
-      const dataUrl = await this.qrDataUrlFromPayload(qr.payload);
-      this.state.setQrResult(qr, dataUrl);
+      const { dataUrl, scanUrl } = await this.qrFromPayload(qr.payload);
+      this.state.setQrResult(qr, dataUrl, scanUrl);
     } catch {
       this.state.clearQrPanel();
     }
   }
 
-  /** Encode a deep-link URL (not the raw token alone) into the QR image. */
-  private qrDataUrlFromPayload(rawPayload: string): Promise<string> {
-    return QRCode.toDataURL(buildAttendanceScanUrl(rawPayload), {
+  /** Encode a Wi-Fi deep-link URL (not the raw token alone) into the QR image. */
+  private async qrFromPayload(
+    rawPayload: string,
+  ): Promise<{ dataUrl: string; scanUrl: string }> {
+    const origin = await this.scanOrigin.resolve();
+    const scanUrl = buildAttendanceScanUrl(rawPayload, origin);
+    const dataUrl = await QRCode.toDataURL(scanUrl, {
       width: 240,
       margin: 2,
       color: { dark: '#14532d', light: '#ffffff' },
     });
+    return { dataUrl, scanUrl };
   }
 }

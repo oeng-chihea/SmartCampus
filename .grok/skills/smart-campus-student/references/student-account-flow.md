@@ -31,9 +31,17 @@ Last reviewed against the implemented account-provisioning flow (backend + front
 │  → card shows QR · Location · Due                                   │
 │  → Before dueAt:                                                    │
 │      tap “Mark me present” or Camera deep link                      │
-│      → POST /api/attendance/submit { payload: SMARTCAMPUS|… }       │
-│      → identity = users.student_id from Bearer (NOT QR)             │
-│      → Present → history “My attendance”                            │
+│      → browser reads GPS (getCurrentCoordinates())                  │
+│      → denied/unsupported/timeout: NO request sent — "Try again"    │
+│        dialog opens instead (nothing recorded)                      │
+│      → GPS fix obtained:                                            │
+│         POST /api/attendance/submit { payload: SMARTCAMPUS|…,       │
+│             latitude, longitude }                                   │
+│         → identity = users.student_id from Bearer (NOT QR)          │
+│         → backend also rejects (400) if coordinates are missing     │
+│         → inside location radius → Present                          │
+│         → outside location radius → Outside Location (recorded)     │
+│      → history “My attendance”                                      │
 │  → After dueAt (session still Open):                                │
 │      card STAYS listed (“Due passed”)                               │
 │      mark / QR scan → app-confirm-dialog (cannot mark present)      │
@@ -128,7 +136,8 @@ databases converge to the new state.
 | `services/auth.service.ts` | Login, session, `homePathForRole` (student → `/student/scan`) |
 | `services/student.service.ts` | `listStudents`, `createStudent`, `setLoginEnabled`, `mapError` |
 | `services/student-attendance.service.ts` | Open sessions, submit, my records |
-| `features/attendance/pages/student-scan/*` | Scan UI; due dialog; history `app-table` |
+| `features/attendance/pages/student-scan/*` | Scan UI; due dialog; **location-blocked dialog** (`state.locationBlocked` + "Try again"); history `app-table`; geofence submit (`buildSubmitRequest`) |
+| `core/utils/geolocation.util.ts` | `getCurrentCoordinates()` — browser GPS, resolves `null` on deny/unsupported/timeout (flow treats `null` as a hard block, not a fallback) |
 | `shared/components/table/*` | My attendance columns (Session · Location · Recorded · Status) |
 | `shared/components/confirm-dialog/*` | Due blocked / delete confirm shell |
 | `core/utils/date.util.ts` | `formatSessionDue`, `isSessionPastDue`, `formatSessionOpened` |
@@ -153,6 +162,9 @@ databases converge to the new state.
 | `modules/users/users.controller.ts` | `POST /users` (admin) |
 | `modules/users/dto/create-user.dto.ts` | name, email, password (min 6), role, optional studentId |
 | `database/seeders/demo.seeder.ts` | Chihea seed + legacy demo cleanup |
+| `modules/attendance/attendance.service.ts` | `requireCoordinates` (400 if lat/lng missing — hard gate) + `evaluateGeofence` — Haversine distance vs the session's location `radiusMeters` |
+| `modules/attendance/dto/submit-attendance.dto.ts` | `latitude`/`longitude` (`@IsLatitude`/`@IsLongitude`); optional at DTO/format level, **required** by the service's business rule |
+| `common/utils/geo.util.ts` | `haversineDistanceMeters` / `isWithinRadius` (pure, unit-tested) |
 
 ## 8. Manual test script (happy path)
 
@@ -162,6 +174,11 @@ databases converge to the new state.
 4. Table shows the new row, toggle **Active**
 5. Open `/auth/student` in another browser/incognito → sign in as the new student
 6. Redirects to `/student/scan` → open sessions show teacher's live QR → Mark present (before due)
+   - Browser will prompt for location permission on first tap; **Allow** → within campus test
+     coordinates records **Present** with a `distanceMeters` value
+   - **Block/deny** (or if the browser has no geolocation support) → **no record is created** —
+     a "Cannot mark present" dialog opens with **Try again** (re-prompts permission) / **Cancel**
+     (closes, card stays untouched, nothing submitted)
 7. After due time: session card remains; Mark present / QR opens due confirm dialog
 8. Teacher closes session → card disappears; My attendance table still shows that scan
 9. Teacher deletes session → that scan disappears from My attendance (cascade + me purge)

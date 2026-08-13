@@ -233,24 +233,38 @@ describe('SessionsService', () => {
     ).toBe(1);
   });
 
-  it('rejects create when dueAt is in the past or too soon', async () => {
-    await expect(
-      service.create(
-        {
-          title: 'Too soon',
-          locationId: 'LOC-001',
-          dueAt: dueInMinutes(0),
-        },
-        teacher,
-      ),
-    ).rejects.toThrow(BadRequestException);
+  it('creates a session when dueAt is now or already in the past', async () => {
+    const nowDue = dueInMinutes(0);
+    const nowSession = await service.create(
+      {
+        title: 'Due now',
+        locationId: 'LOC-001',
+        dueAt: nowDue,
+      },
+      teacher,
+    );
+    expect(nowSession.dueAt).toBe(new Date(nowDue).toISOString());
 
+    const pastDue = dueInMinutes(-10);
+    const pastSession = await service.create(
+      {
+        title: 'Already past due',
+        locationId: 'LOC-001',
+        dueAt: pastDue,
+      },
+      teacher,
+    );
+    expect(pastSession.dueAt).toBe(new Date(pastDue).toISOString());
+    expect(pastSession.status).toBe('Open');
+  });
+
+  it('rejects create when dueAt is not a valid date', async () => {
     await expect(
       service.create(
         {
-          title: 'In the past',
+          title: 'Bad due time',
           locationId: 'LOC-001',
-          dueAt: dueInMinutes(-10),
+          dueAt: 'not-a-date',
         },
         teacher,
       ),

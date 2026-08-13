@@ -42,14 +42,15 @@ Dialog opens
   - title (e.g. SE401 · Morning Lecture)
   - locationId — dropdown labels use Building A-Room 201 format
     (Active locations from GET /api/locations)
-  - dueTime (clock today) → frontend builds dueAt ISO
-    Students can mark present only before dueAt
+  - dueTime (any clock time today, including already passed)
+    → frontend builds dueAt ISO. Students can mark present only before dueAt.
   │
   │  submit "Create & show QR"
   ▼
 POST /api/sessions { title, locationId, dueAt }
   → session status Open + dueAt stored
-  → left panel shows QR image + Due time + payload
+  → left panel shows QR image + Due time + Wi‑Fi scan link + payload
+     (QR encodes https://<lan-ip>:4200/student/scan?payload=… via GET /api/runtime/scan-origin)
   → row appears in Session log (Opened + Due columns)
   → UI refreshes QR ~every 30s via GET /api/sessions/:id/qr
   │
@@ -78,7 +79,7 @@ DELETE permanently removes the session + its attendance history
 
 | Timer / action | Who sets it | Student effect |
 |----------------|-------------|----------------|
-| **Due time** (`dueAt`) | Teacher at create (clock today) | After due: cannot mark/scan (dialog); card **stays** until Close |
+| **Due time** (`dueAt`) | Teacher at create (any clock time today) | After due: cannot mark/scan (dialog); card **stays** until Close |
 | **Close session** | Teacher ⋮ Close | Session leaves `GET /api/sessions/open` → gone from student UI |
 | **QR token TTL** (~300s) | System auto-rotate | Old QR payload fails; new live token still works while Open and before due |
 
