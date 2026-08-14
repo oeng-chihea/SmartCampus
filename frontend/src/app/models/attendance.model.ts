@@ -13,6 +13,11 @@ export interface AttendanceRecord {
   submittedAt: string;
   status: AttendanceStatus;
   distanceMeters: number | null;
+  /** Device GPS at submit time. Null on rows saved before GPS was stored. */
+  latitude: number | null;
+  longitude: number | null;
+  /** Reverse-geocoded place name of the device GPS. */
+  scannedLocation: string | null;
 }
 
 /**

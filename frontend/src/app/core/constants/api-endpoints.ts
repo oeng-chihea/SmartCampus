@@ -11,6 +11,8 @@ export const API_ENDPOINTS = {
   attendanceMe: '/attendance/me',
   attendanceAdmin: '/attendance/admin',
   locations: '/locations',
+  locationVisits: '/locations/visits',
+  locationById: (id: string) => `/locations/${encodeURIComponent(id)}`,
   sessions: '/sessions',
   sessionsOpen: '/sessions/open',
   sessionById: (id: string) => `/sessions/${id}`,

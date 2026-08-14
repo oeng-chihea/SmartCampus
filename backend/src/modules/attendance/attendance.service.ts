@@ -34,6 +34,7 @@ import {
 import { AttendancePreviewResponseDto } from './dto/attendance-preview-response.dto';
 import { AttendanceRecordResponseDto } from './dto/attendance-record-response.dto';
 import { SubmitAttendanceDto } from './dto/submit-attendance.dto';
+import { ReverseGeocodeService } from './reverse-geocode.service';
 
 interface ParsedPayload {
   sessionId: string;
@@ -53,6 +54,7 @@ export class AttendanceService {
     private readonly sessionsService: SessionsService,
     private readonly locationsService: LocationsService,
     private readonly authService: AuthService,
+    private readonly reverseGeocode: ReverseGeocodeService,
   ) {}
 
   async preview(
@@ -111,6 +113,10 @@ export class AttendanceService {
       dto,
       await this.locationsService.findOne(session.locationId),
     );
+    const scannedLocation = await this.reverseGeocode.lookup(
+      dto.latitude as number,
+      dto.longitude as number,
+    );
 
     const record = this.records.create({
       id: this.nextRecordId(),
@@ -123,6 +129,9 @@ export class AttendanceService {
       recordedAt: now,
       status,
       distanceMeters,
+      latitude: dto.latitude as number,
+      longitude: dto.longitude as number,
+      scannedLocation,
     });
 
     try {
@@ -387,6 +396,9 @@ export class AttendanceService {
       submittedAt: iso,
       status: record.status as AttendanceStatus,
       distanceMeters: record.distanceMeters,
+      latitude: record.latitude ?? null,
+      longitude: record.longitude ?? null,
+      scannedLocation: record.scannedLocation ?? null,
     };
   }
 

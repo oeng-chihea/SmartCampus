@@ -1,5 +1,3 @@
-import { AttendanceStatus } from '../../../common/constants/status.constant';
-
 export type LocationStatus = 'Active' | 'Inactive';
 
 export interface CampusLocationResponseDto {
@@ -12,22 +10,4 @@ export interface CampusLocationResponseDto {
   longitude: number;
   status: LocationStatus;
   sessionsUsing: number;
-}
-
-export interface LocationPersonPresenceResponseDto {
-  name: string;
-  studentId: string;
-  email: string | null;
-  course: string | null;
-  year: string | null;
-  session: string;
-  status: AttendanceStatus;
-  submittedAt: string;
-  distanceMeters: number | null;
-  locationArea: string;
-}
-
-export interface LocationDetailResponseDto {
-  location: CampusLocationResponseDto;
-  people: LocationPersonPresenceResponseDto[];
 }

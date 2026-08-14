@@ -42,6 +42,21 @@
   max-width: 62ch;
 }
 
+.locations-page__alert {
+  animation: fade-in 360ms ease both;
+  border-radius: var(--radius-md);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  margin: 0;
+  padding: 12px 14px;
+}
+
+.locations-page__alert--error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
 .locations-page__metrics {
   display: grid;
   gap: clamp(10px, 1.2vw, 14px);
@@ -65,7 +80,10 @@
 .locations-page__toolbar {
   border-bottom: 1px solid var(--border-subtle);
   min-width: 0;
+  overflow: visible;
   padding-bottom: 12px;
+  position: relative;
+  z-index: 2;
 }
 
 @keyframes fade-in {

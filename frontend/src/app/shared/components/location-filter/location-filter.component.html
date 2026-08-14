@@ -13,30 +13,28 @@
 
     <label>
       <span>Building</span>
-      <select
+      <app-select-dropdown
         name="building"
+        inputId="location-building-filter"
+        [options]="filters().buildingOptions"
         [ngModel]="building()"
         (ngModelChange)="building.set($event)"
-        aria-label="Building"
-      >
-        @for (option of filters().buildingOptions; track option) {
-          <option [value]="option">{{ option }}</option>
-        }
-      </select>
+        [compact]="true"
+        placeholder="All buildings"
+      />
     </label>
 
     <label>
       <span>Status</span>
-      <select
+      <app-select-dropdown
         name="status"
+        inputId="location-status-filter"
+        [options]="filters().statusOptions"
         [ngModel]="status()"
         (ngModelChange)="status.set($event)"
-        aria-label="Status"
-      >
-        @for (option of filters().statusOptions; track option) {
-          <option [value]="option">{{ option }}</option>
-        }
-      </select>
+        [compact]="true"
+        placeholder="All statuses"
+      />
     </label>
 
     <button type="submit">Apply</button>

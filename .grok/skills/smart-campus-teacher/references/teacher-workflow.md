@@ -13,7 +13,7 @@ Last aligned with live Sessions API + Sessions page UI (create / QR / close /
 | Redirect | `/dashboard` (`homePathForRole('teacher')`) |
 | Shell | `AdminLayoutComponent` + filtered sidebar |
 
-Both **frontend** and **backend** must run for Sessions; other pages work offline with mock data.
+Both **frontend** and **backend** must run for Sessions and Locations.
 
 ## 2. Page-by-page teacher map
 
@@ -24,7 +24,7 @@ Both **frontend** and **backend** must run for Sessions; other pages work offlin
 /dashboard ────────────────────────────── mock metrics, chart, recent scans
     │ sidebar
     ├─► /attendance ───────────────────── mock attendance records + filters
-    ├─► /locations ────────────────────── mock campus zones + detail dialog
+    ├─► /locations ────────────────────── live student visit log (zone + scan GPS)
     ├─► /sessions  ────────────────────── LIVE create / QR / close / delete  ★ primary
     ├─► /reports   ────────────────────── placeholder title only
     └─► /students  ────────────────────── BLOCKED (guard → /dashboard)
@@ -119,13 +119,19 @@ Example: `SMARTCAMPUS|sess-63608b870d1c|3e35183cb7bb6b0cfcc387a0129cda78`
 /attendance → filter by session/status/date → export button (UI only; mock data)
 ```
 
-### Locations browse
+### Locations browse (student visit log)
 
 ```text
-/locations → filter zones → select row → detail dialog → close
+/locations → POST /api/locations/visits {}
+  → empty until a student scans QR or marks present
+  → Apply → POST /api/locations/visits { search?, building?, status? }
+  → table: Student · Session · Location (assigned zone) · Building
+       · Scanned at (place name + GPS) · Distance · Status · Recorded
 ```
 
-Used for **understanding** geofence zones; session create uses **API** Active locations, not this mock list’s edit tools.
+The page lists **visits**, not the 8 seeded zones. Session create still uses
+`GET /api/locations` (Active catalog). Teachers only see visits from their
+own sessions.
 
 ### Delete a mistaken or finished session
 
@@ -201,6 +207,8 @@ Sidebar footer "Sign out" → AuthService.logout() → /auth/login
 
 | Method | Path | Purpose |
 |--------|------|---------|
+| `GET` | `/api/locations` | Campus zone directory (session create) |
+| `POST` | `/api/locations/visits` | Student visit log + API filters (own sessions) |
 | `POST` | `/api/sessions` | Create open session (`title`, `locationId`, `dueAt` ISO) |
 | `GET` | `/api/sessions` | List (own for teacher) |
 | `GET` | `/api/sessions/:id/qr` | Current short-lived QR |

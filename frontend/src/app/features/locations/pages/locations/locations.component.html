@@ -1,37 +1,51 @@
 <section class="locations-page" aria-labelledby="locations-title">
   <header class="locations-page__header">
     <div class="locations-page__copy">
-      <h1 id="locations-title">{{ page.title }}</h1>
-      <p>{{ page.subtitle }}</p>
+      <h1 id="locations-title">{{ title }}</h1>
+      <p>{{ subtitle }}</p>
     </div>
   </header>
 
-  <section class="locations-page__metrics" aria-label="Location summary">
-    @for (metric of page.metrics; track metric.label; let index = $index) {
+  @if (state.error(); as message) {
+    <p class="locations-page__alert locations-page__alert--error" role="alert">
+      {{ message }}
+    </p>
+  }
+
+  <section class="locations-page__metrics" aria-label="Visit summary">
+    @for (metric of state.metrics(); track metric.label; let index = $index) {
       <app-stat-card [card]="metric" [animationDelay]="index * 70" />
     }
   </section>
 
-  <section class="locations-page__workspace" aria-label="Location directory">
+  <section class="locations-page__workspace" aria-label="Student location visits">
     <div class="locations-page__toolbar">
-      <app-location-filter [filters]="page.filters" (apply)="onFilterApply($event)" />
+      <app-location-filter
+        [filters]="state.filterOptions()"
+        (apply)="onFilterApply($event)"
+      />
     </div>
     <app-table
-      eyebrow="Location directory"
-      title="Approved zones"
-      [countLabel]="filteredLocations().length + ' locations'"
-      tableAriaLabel="Approved campus locations"
-      [columns]="locationColumns"
-      [rows]="filteredLocations()"
-      [interactive]="true"
+      eyebrow="Location visits"
+      title="Student visits"
+      [countLabel]="state.visits().length + ' visits'"
+      tableAriaLabel="Student location visits"
+      [columns]="visitColumns"
+      [rows]="state.visits()"
       [showExport]="true"
-      emptyTitle="No locations match your filters"
-      emptyMessage="Try another name, building, or status."
-      (rowSelect)="onLocationSelect($event)"
+      [compact]="true"
+      [loading]="state.loading()"
+      loadingMessage="Loading student location visits from API…"
+      [emptyTitle]="
+        state.hasActiveFilters()
+          ? 'No visits match your filters'
+          : 'No student visits recorded yet'
+      "
+      [emptyMessage]="
+        state.hasActiveFilters()
+          ? 'Try another student, building, or status.'
+          : 'When a student scans a QR or marks present, the area they visited will appear here.'
+      "
     />
   </section>
-
-  @if (selectedDetail(); as detail) {
-    <app-location-detail-dialog [detail]="detail" (closed)="onDetailClose()" />
-  }
 </section>

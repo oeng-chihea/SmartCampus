@@ -1,4 +1,8 @@
-<section class="table-card" [attr.aria-labelledby]="headingId()">
+<section
+  class="table-card"
+  [class.table-card--compact]="compact()"
+  [attr.aria-labelledby]="headingId()"
+>
   <div class="table-card__header">
     <div>
       <p>{{ eyebrow() }}</p>

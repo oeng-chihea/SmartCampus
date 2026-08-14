@@ -1,5 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { formatSessionOpened } from '../../../../core/utils/date.util';
+import { formatScannedAtCell } from '../../../../core/utils/format.util';
 import {
   AttendanceFilterState,
   AttendanceRecord,
@@ -38,38 +39,46 @@ export class AdminRecordsComponent implements OnInit {
       key: 'student',
       header: 'Student',
       type: 'primary',
-      width: 'minmax(0, 1.35fr)',
+      width: 'minmax(max-content, 1.25fr)',
       primary: (row) => ({ title: row.student, subtitle: row.studentId }),
     },
     {
       key: 'session',
       header: 'Session',
-      width: 'minmax(120px, 1.1fr)',
+      width: 'minmax(max-content, 1.1fr)',
       value: (row) => row.session,
     },
     {
       key: 'location',
       header: 'Location',
-      width: 'minmax(120px, 1.1fr)',
+      width: 'minmax(max-content, 1.1fr)',
       value: (row) => row.location,
+    },
+    {
+      key: 'scannedAt',
+      header: 'Scanned at',
+      type: 'primary',
+      width: 'minmax(max-content, 1.3fr)',
+      primary: (row) =>
+        formatScannedAtCell(row.scannedLocation, row.latitude, row.longitude),
     },
     {
       key: 'time',
       header: 'Time',
-      width: 'minmax(100px, 0.7fr)',
+      width: 'minmax(max-content, 0.85fr)',
       value: (row) => formatSessionOpened(row.recordedAt),
     },
     {
       key: 'distance',
       header: 'Distance',
-      width: 'minmax(70px, 0.5fr)',
+      width: 'minmax(max-content, 0.45fr)',
       value: (row) => (row.distanceMeters == null ? '—' : `${row.distanceMeters} m`),
     },
     {
       key: 'status',
       header: 'Status',
       type: 'badge',
-      width: 'minmax(100px, 0.7fr)',
+      width: 'minmax(max-content, 0.7fr)',
       value: (row) => row.status,
       badgeVariant: (row) => row.status.toLowerCase().replace(/\s+/g, '-'),
     },

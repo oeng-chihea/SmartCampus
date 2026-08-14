@@ -11,6 +11,7 @@ import { LocationsService } from '../locations/locations.service';
 import { LOCATION_SEED } from '../locations/data/locations.seed';
 import { SessionsService } from '../sessions/sessions.service';
 import { AttendanceService } from './attendance.service';
+import { ReverseGeocodeService } from './reverse-geocode.service';
 
 function dueInMinutes(minutes: number): string {
   return new Date(Date.now() + minutes * 60 * 1000).toISOString();
@@ -162,12 +163,19 @@ describe('AttendanceService', () => {
       }),
     } as unknown as Repository<SessionEntity>;
 
+    const reverseGeocode = {
+      lookup: jest.fn(async () =>
+        'Institute of Technology of Cambodia, Russian Federation Boulevard, Phnom Penh',
+      ),
+    } as unknown as ReverseGeocodeService;
+
     attendance = new AttendanceService(
       recordRepo,
       sessionLookupRepo,
       sessions,
       locations,
       auth,
+      reverseGeocode,
     );
   });
 
@@ -201,6 +209,9 @@ describe('AttendanceService', () => {
     expect(record.session).toBe('SE401 · Morning Lecture');
     expect(record.location).toContain('Building A');
     expect(record.distanceMeters).not.toBeNull();
+    expect(record.latitude).toBe(11.54795);
+    expect(record.longitude).toBe(104.94061);
+    expect(record.scannedLocation).toContain('Institute of Technology of Cambodia');
     expect(record.id).toMatch(/^att-/);
   });
 
@@ -231,6 +242,8 @@ describe('AttendanceService', () => {
     expect(record.status).toBe('Present');
     expect(record.distanceMeters).not.toBeNull();
     expect(record.distanceMeters as number).toBeLessThanOrEqual(80);
+    expect(record.latitude).toBe(11.54795);
+    expect(record.longitude).toBe(104.94061);
   });
 
   it('marks Outside Location when GPS falls outside the geofence radius', async () => {
@@ -243,6 +256,8 @@ describe('AttendanceService', () => {
 
     expect(record.status).toBe('Outside Location');
     expect(record.distanceMeters as number).toBeGreaterThan(80);
+    expect(record.latitude).toBe(11.6);
+    expect(record.longitude).toBe(105.0);
   });
 
   it('rejects submit after the due time', async () => {
