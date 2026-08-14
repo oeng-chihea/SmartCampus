@@ -20,7 +20,7 @@ smart-campus-system/
 | `features/dashboard` | dashboard | `/dashboard` | `DashboardService` | `dashboard-attendance.json` |
 | `features/students` | students | `/students` | `StudentService` | **live API** (`GET/POST /api/students`, `PATCH /:id/access`) |
 | `features/attendance` | admin-records, student-scan | `/attendance`, `/student/scan` | `AttendanceService` (+ auth for scan) | `attendance-records.json` |
-| `features/locations` | locations | `/locations` | `LocationService` | `locations.json` (+ attendance/students for detail) |
+| `features/locations` | locations | `/locations` | `LocationService` | **Live API** (`POST /api/locations/visits` — visit log with assigned zone + student GPS). Catalog `GET /api/locations` is for Sessions / geofence only. |
 | `features/sessions` | sessions (state + flow + UI) | `/sessions` | `SessionService` | **Live API** create / QR / close / delete |
 | `features/reports` | empty folder | `/reports` placeholder | — | — |
 
@@ -35,7 +35,7 @@ smart-campus-system/
 | `student-filter` / `student-table` | Students |
 | `student-form-card` | Students (Add student account form — name, ID, email, class, year, password) |
 | `attendance-filter` / `attendance-records-table` | Admin attendance |
-| `location-filter` / `location-table` / `location-detail-dialog` | Locations |
+| `location-filter` | Locations |
 | `table` | Sessions log; student My attendance; locations/admin attendance |
 | `confirm-dialog` | Sessions delete; student due-time blocked mark/scan |
 | `modal-dialog` / `select-dropdown` | Sessions create form; other dialogs |
@@ -48,7 +48,7 @@ smart-campus-system/
 | `auth.model.ts` | `AuthSession`, `LoginRequest` |
 | `student.model.ts` | `Student` (+ `hasAccount`), `CreateStudentRequest` |
 | `attendance.model.ts` | `AttendanceRecord`, filter state, admin page shape |
-| `location.model.ts` | `CampusLocation`, `LocationDetail`, filters |
+| `location.model.ts` | `CampusLocation`, `LocationVisit`, filters |
 | `session.model.ts` | `AttendanceSession`, `CreateSessionRequest`, QR types |
 | `api-response.model.ts` | generic API envelope (for future HTTP) |
 | `pagination.model.ts` | pagination shape (for future lists) |
@@ -67,7 +67,7 @@ smart-campus-system/
 | `students` | **Live** directory: `GET /api/students`, `POST /api/students` (+ account), `PATCH /:id/access` |
 | `dashboard` | Registered module with frontend-aligned dashboard contract |
 | `attendance` | **Live** student submit + `GET /me` (existing sessions only; purges orphans); submit runs the **geofence check** (FR-02, Haversine vs `radiusMeters`) when the client sends GPS coordinates |
-| `locations` | Live list for session form (+ seed data); default pin is **KIT Phnom Penh Campus** (`LOC-001`, 11.5479313, 104.9405941, 80 m). `latitude/longitude/radiusMeters` are consumed by the attendance geofence check |
+| `locations` | **Live** zone catalog (`GET /api/locations`) for session create + geofence, and student visit log (`POST /api/locations/visits` with search/building/status). Default pin is **KIT Phnom Penh Campus** (`LOC-001`, 11.5479313, 104.9405941, 80 m). Visit rows show the assigned zone plus the student’s scan GPS (`latitude` / `longitude` stored on `attendance_records`); zone `latitude/longitude/radiusMeters` are consumed by the attendance geofence check |
 | `sessions` | **Live** create / list / QR / close / **delete** (delete cascades attendance by `session_id`) |
 | `reports` | Registered boundary; frontend page is still a placeholder |
 | TypeORM / migrations | Users/students/sessions/attendance persist via TypeORM (`synchronize: true` in dev) |
@@ -82,17 +82,24 @@ or persistence.
 Root `README.md` lists broader product areas (courses, requests, notifications, roles UI, settings).  
 **Current product nav is attendance-first** (`ADMIN_NAVIGATION`): Dashboard, Students, Attendance, Locations, Sessions, Reports. Prefer the nav constants and routes over the older README feature list when deciding scope.
 
-## Data dependency example (Locations detail)
+## Data dependency example (Locations visit log)
 
 ```text
-LocationService.getLocationDetail(location)
-  reads locations.json (zone)
-  joins attendance-records.json (people scanned at that location name)
-  joins students.json (enrich student profile)
-  → LocationDetailDialog
+LocationService.queryVisits(filters)
+  POST /api/locations/visits { search?, building?, status? }
+    attendance_records
+      INNER JOIN sessions (teacher: own sessions only)
+      INNER JOIN locations
+    → student · session · assigned zone · building · scanned place name + GPS · distance · status · recorded
+    metrics from the unfiltered visit set
+    buildingOptions from the zone catalog
+LocationService.listLocations()
+  GET /api/locations  → Sessions create picker + geofence only
 ```
 
-This cross-mock join is intentional for the admin “who is in this zone” view.
+The Locations **page** is a visit log (empty until a student scans / marks
+present). The 8 seeded zones stay in MySQL for session create and geofence;
+they are not listed on `/locations` until someone visits them via a scan.
 
 ## Sessions page structure (live)
 
@@ -133,7 +140,8 @@ Rules (**hard gate — no coordinates ⇒ no record at all**, enforced on both s
 - Frontend never calls `POST /api/attendance/submit` without a GPS fix — if `getCurrentCoordinates()` resolves `null` (denied/unsupported/timeout), the flow opens a **"Cannot mark present" / "Try again"** confirm dialog instead and aborts before any network call.
 - Backend re-checks independently (`requireCoordinates`) so a direct API call without coordinates is rejected with **400** and a clear message — never silently recorded.
 - Coordinates within `radiusMeters` → **Present**, `distanceMeters` = rounded meters.
-- Coordinates outside `radiusMeters` → **Outside Location** (still recorded, not rejected — this is the only "the record exists but flagged" case) — visible on the admin/teacher attendance log and in Locations → detail dialog.
+- Coordinates outside `radiusMeters` → **Outside Location** (still recorded, not rejected — this is the only "the record exists but flagged" case) — visible on the admin/teacher attendance log and the Locations visit table (**Scanned at** = student GPS).
+- Submit **persists** `latitude` / `longitude` and reverse-geocodes them (Nominatim) into `scannedLocation` so Locations / Attendance / My attendance show the place name plus coordinates. A geocode failure still saves the scan (name shows as `—`, coords remain).
 - `AttendanceModule` imports `LocationsModule` to read the session's `LocationEntity` (lat/lng/radius) at submit time.
 - `SessionScanContext` (from `SessionsService.resolveOpenSessionForScan`) carries `locationId` so `AttendanceService` can look up the right zone.
 

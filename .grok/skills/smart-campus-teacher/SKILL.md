@@ -35,7 +35,7 @@ Login uses Nest `POST /api/auth/login` and stores Bearer token in
 | Sign in / sign out | `/auth/login`, sidebar | Live API login |
 | View dashboard summary | `/dashboard` | Mock JSON |
 | Review attendance records + filters | `/attendance` | Mock JSON |
-| Browse campus locations + detail dialog | `/locations` | Mock JSON |
+| Review student location visits (assigned zone + scanned-at GPS) | `/locations` | **Live API** |
 | **Create attendance session** (dialog) | `/sessions` | **Live API** |
 | **Show short-lived QR** (auto-refresh ~30s; encodes `https://<lan-ip>:4200`) | `/sessions` | **Live API** |
 | **Close session** (invalidates QR) | `/sessions` | **Live API** |
@@ -102,7 +102,9 @@ Defined in `admin-navigation.ts`; filtered in `AdminLayoutComponent` via
 | Endpoint | Allowed |
 |----------|---------|
 | `POST /api/auth/login` | Yes |
-| `GET /api/locations` | Yes |
+| `GET /api/locations` | Yes (session create catalog) |
+| `POST /api/locations/visits` | Yes (own sessions' visits only) |
+
 | `POST /api/sessions` | Yes |
 | `GET /api/sessions` | Yes (own sessions) |
 | `GET /api/sessions/:id` | Yes (own / admin) |
@@ -160,7 +162,7 @@ GPS / Outside Location on student submit is **live** (FR-02) — see
 1. Keep teacher on **AdminLayout** children; do not invent a separate teacher layout.  
 2. Never grant `/students` without product decision.  
 3. Session create / QR / close / **delete** go through `SessionService` + Bearer token.  
-4. Prefer dialogs for create forms (match Sessions + Locations detail).  
+4. Prefer dialogs for create forms (match Sessions).  
 5. Keep Sessions display formats via the shared helpers above (do not reintroduce locale `short` dates or `, Room ` labels on this page).  
 6. Update this skill + `smart-campus-workflow` when teacher routes or Sessions actions change.  
 

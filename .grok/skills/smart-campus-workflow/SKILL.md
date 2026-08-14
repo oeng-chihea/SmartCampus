@@ -67,7 +67,7 @@ Read `references/page-flows.md` for the full route table and file map.
     /dashboard   → DashboardComponent      (summary, chart, recent scans)
     /students    → StudentsComponent       (admin only — extra roleGuard)
     /attendance  → AdminRecordsComponent   (records + filters)
-    /locations   → LocationsComponent      (zones + detail dialog)
+    /locations   → LocationsComponent      (student visit log table)
     /sessions    → SessionsComponent       (create session, live QR, close, delete)
     /reports     → AdminPlaceholderPage    ("Attendance reports")
     **           → redirect to dashboard
@@ -92,8 +92,7 @@ Read `references/page-flows.md` for the full route table and file map.
 | Sessions | ⋮ → Close | Same page; Closed; students lose open card; history kept |
 | Sessions | ⋮ → Delete | Same page; session removed; **attendance for that sessionId cascaded** |
 | Any admin page | Sidebar → Reports | `/reports` (placeholder) |
-| Locations table | Select a row | Opens **location detail dialog** (same page, modal) |
-| Locations dialog | Close | Stay on `/locations` |
+| Locations | Apply filters | Same page; `POST /api/locations/visits` (search, building, status) |
 | Students table | Toggle login / Add student account | Same page; toggles persist via `PATCH /api/students/:id/access`, creation via `POST /api/students` |
 | Attendance | Apply filters | Same page; filters records client-side |
 | Any admin page | Sign out | `/auth/login` |
@@ -149,7 +148,7 @@ Special cases:
 
 ## Data flow on each page (current)
 
-Pages do **not** yet call the Nest API for dashboard/students/attendance/locations. Pattern:
+Pages do **not** yet call the Nest API for dashboard. Pattern:
 
 1. Page component constructs or injects a **service**.
 2. Service reads **mock JSON** from `frontend/src/assets/mock-data/`.
@@ -161,13 +160,13 @@ Pages do **not** yet call the Nest API for dashboard/students/attendance/locatio
 | Dashboard | `DashboardService` | `dashboard-attendance.json` |
 | Students | `StudentService` | **Nest live** `GET/POST /api/students`, `PATCH /api/students/:id/access` (admin) |
 | Attendance | `AttendanceService` | `attendance-records.json` |
-| Locations | `LocationService` | `locations.json` + attendance/students for detail people |
+| Locations | `LocationService` | **Nest live** `POST /api/locations/visits` (visit log + API filters; includes student GPS). Zone catalog `GET /api/locations` is for Sessions only. |
 | Sessions | `SessionService` | Nest `/api/sessions` + `/api/locations` (Bearer token) |
 | Student scan | `StudentAttendanceService` | Nest open sessions + submit + me |
 
-Backend today: auth login, locations list, sessions/QR, student attendance submit,
-and the student directory/accounts API are live. Dashboard/attendance/locations
-admin pages still use mock JSON.
+Backend today: auth login, locations catalog + visit log + detail, sessions/QR,
+student attendance submit, admin attendance, and the student directory/accounts
+API are live. Dashboard still uses mock JSON.
 
 ## How to explain the product to someone new
 

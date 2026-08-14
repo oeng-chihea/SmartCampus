@@ -94,12 +94,12 @@ frontend/src/app/
 | Page header (title + subtitle) | Students, Attendance, Locations |
 | Metric row of `app-stat-card` | Dashboard, Students, … |
 | Filter toolbar + table | Students, Attendance, Locations |
-| In-page dialog (no route) | Location detail dialog |
+| In-page dialog (no route) | Sessions create form |
 | Sidebar collapse preference | Admin layout localStorage |
 
 Shared components to reuse first:
 
-- `stat-card`, `student-table`, `student-filter`, `attendance-filter`, `session-picker-dialog` (paginated session modal, limit 10), `table` (shared data table for locations / attendance / sessions), `attendance-chart`, `recent-scan-list`, `location-filter`, `location-detail-dialog`, `modal-dialog`, `confirm-dialog`, `select-dropdown`, `quick-lookup`
+- `stat-card`, `student-table`, `student-filter`, `attendance-filter`, `session-picker-dialog` (paginated session modal, limit 10), `table` (shared data table for locations / attendance / sessions), `attendance-chart`, `recent-scan-list`, `location-filter`, `modal-dialog`, `confirm-dialog`, `select-dropdown`, `quick-lookup`
 
 ### Generic modal dialog (`app-modal-dialog`)
 
@@ -161,9 +161,13 @@ When implementing API modules:
    then `POST /api/attendance/submit` (before due only; API 403 after due)
    and `GET /api/attendance/me` (only rows for sessions that still exist; **purges
    orphan records**). Past-due mark/scan opens shared `app-confirm-dialog`.
-   My attendance UI: shared `app-table` (Session · Location · Recorded · Status);
+   My attendance UI: shared `app-table` (Session · Location · Scanned at place name · Recorded · Status);
    location `formatCampusLocationLabel` → `Building B-Room 105`.
-   Keep mock admin `AttendanceService` separate until admin records go live.
+   Admin records and Locations pages are live (`AttendanceService`,
+   `LocationService`). Locations is a **student visit log**
+   (`POST /api/locations/visits`) with assigned zone, student GPS, and a
+   reverse-geocoded `scannedLocation` place name persisted at submit;
+   the zone catalog stays on `GET /api/locations` for session create.
    **Geofence check (FR-02, live) — hard location gate:** before submit, the
    flow reads `getCurrentCoordinates()` (browser Geolocation API,
    `core/utils/geolocation.util.ts`). If denied/unsupported/timed out, the

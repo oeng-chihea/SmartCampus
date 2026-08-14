@@ -230,6 +230,7 @@
 .data-table__status-cell.data-table__cell--start {
   justify-content: flex-start;
   margin-inline: 0;
+  padding-inline-end: 0.85rem;
   padding-inline-start: 0;
 }
 
@@ -302,6 +303,48 @@
   color: var(--color-muted);
 }
 
+/*
+ * Compact density — smaller type, one line per value.
+ * Hyphenated timestamps (8-14-26/12:46Am) wrap at `-` unless nowrap is set.
+ */
+.table-card--compact .data-table {
+  overflow-x: auto;
+}
+
+.table-card--compact .data-table__grid {
+  min-width: max-content;
+}
+
+.table-card--compact .data-table__row {
+  column-gap: 12px;
+  font-size: 0.75rem;
+  padding: 8px 12px;
+}
+
+.table-card--compact .data-table__row--head {
+  font-size: 0.68rem;
+}
+
+.table-card--compact .data-table__cell,
+.table-card--compact .data-table__primary strong,
+.table-card--compact .data-table__primary span {
+  hyphens: none;
+  overflow-wrap: normal;
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+.table-card--compact .data-table__primary span {
+  font-size: 0.7rem;
+  margin-top: 2px;
+}
+
+.table-card--compact .data-table__badge {
+  font-size: 0.7rem;
+  min-width: 0;
+  padding: 3px 8px;
+}
+
 @container (max-width: 720px) {
   .table-card__header {
     flex-direction: column;
@@ -366,5 +409,18 @@
   .data-table__cell--end {
     justify-content: flex-start;
     text-align: start;
+  }
+
+  /* Compact stacked cards: keep values on one line; drop the desktop min-width. */
+  .table-card--compact .data-table {
+    overflow: visible;
+  }
+
+  .table-card--compact .data-table__grid {
+    min-width: 0;
+  }
+
+  .table-card--compact .data-table__row > [role='cell']::before {
+    font-size: 0.68rem;
   }
 }

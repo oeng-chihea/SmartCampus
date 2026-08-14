@@ -1,10 +1,11 @@
 import { Component, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LocationFilterState, LocationFilters } from '../../../models/location.model';
+import { SelectDropdownComponent } from '../select-dropdown/select-dropdown.component';
 
 @Component({
   selector: 'app-location-filter',
-  imports: [FormsModule],
+  imports: [FormsModule, SelectDropdownComponent],
   templateUrl: './location-filter.component.html',
   styleUrl: './location-filter.component.scss',
 })

@@ -59,7 +59,7 @@ npm run backend:start
 
 - **Frontend:** Angular (`frontend/`) — admin/teacher shell + student scan UI  
 - **Backend:** NestJS (`backend/`) — live auth, students, sessions/QR/close/delete, attendance submit + geofence check  
-- **Data today:** login + sessions (+ delete) live; student submit runs a **live GPS geofence check** (FR-02, Haversine vs each location's `radiusMeters`); dashboard/attendance/locations admin pages still mostly **mock JSON**  
+- **Data today:** login + sessions (+ delete) live; student submit runs a **live GPS geofence check** (FR-02, Haversine vs each location's `radiusMeters`) and **stores** the device GPS on the attendance row; **Locations** admin page is a live **student visit log** (`POST /api/locations/visits`); dashboard still uses **mock JSON**  
 - **Auth today:** Nest login + Bearer token in `localStorage`
 
 ### Roles and home pages

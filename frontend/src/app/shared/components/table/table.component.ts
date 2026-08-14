@@ -29,10 +29,15 @@ export class TableComponent<T = unknown> {
   readonly trackKey = input<string>('id');
   /** When set, that row gets the active highlight. */
   readonly activeRowId = input<string | null>(null);
-  /** Clickable rows (locations detail). */
+  /** When true, row click / Enter emit `rowSelect`. */
   readonly interactive = input(false);
   /** Show green Export control in the header. */
   readonly showExport = input(false);
+  /**
+   * Smaller cell type + single-line values (no mid-string wrap).
+   * Used by the attendance scan log so timestamps stay on one row.
+   */
+  readonly compact = input(false);
   /** Loading banner above / instead of body. */
   readonly loading = input(false);
   readonly loadingMessage = input('Loading…');

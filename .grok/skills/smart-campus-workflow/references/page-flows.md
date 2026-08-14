@@ -13,7 +13,7 @@ Last reviewed against the Angular routes, Sessions live API, and role skills.
 | `/dashboard` | AdminLayout | `DashboardComponent` | auth + admin\|teacher | Active (mock data) |
 | `/students` | AdminLayout | `StudentsComponent` | auth + **admin only** | **Live API** directory + create account + login toggle |
 | `/attendance` | AdminLayout | `AdminRecordsComponent` | auth + admin\|teacher | Active (mock data) |
-| `/locations` | AdminLayout | `LocationsComponent` | auth + admin\|teacher | Active (mock data) |
+| `/locations` | AdminLayout | `LocationsComponent` | auth + admin\|teacher | **Live API** student visit log + API filters (assigned zone + scan GPS) |
 | `/sessions` | AdminLayout | `SessionsComponent` | auth + admin\|teacher | **Live API** create / QR / close / **delete** |
 | `/reports` | AdminLayout | `AdminPlaceholderPageComponent` | auth + admin\|teacher | Placeholder |
 | `/student/scan` | none (standalone page) | `StudentScanComponent` | auth + **student** | **Live** open session QR + Mark present |
@@ -129,7 +129,7 @@ Login success (role=student)
   → Teacher Delete → open card gone; My attendance row REMOVED
        (cascade on delete + GET /api/attendance/me purges orphans)
   → My attendance table columns:
-       Session · Location (Building X-Room N) · Recorded · Status
+       Session · Location (Building X-Room N) · Scanned at (GPS) · Recorded · Status
   → Sign out → /auth/login
 
 Any /dashboard|/students|... request:
@@ -139,11 +139,15 @@ Any /dashboard|/students|... request:
 ### E. Locations in-page flow (no route change)
 
 ```text
-/locations
-  → LocationFilter apply → filteredLocations (computed)
-  → LocationTable select row → LocationService.getLocationDetail
-  → LocationDetailDialog open (selectedDetail signal)
-  → close → selectedDetail = null
+/locations (loads)
+  → POST /api/locations/visits {} → student visit rows + unfiltered metrics
+       (empty until a student scans QR or marks present)
+  → LocationFilter Apply → POST /api/locations/visits { search?, building?, status? }
+       (server-side; body visible in Network)
+  → Table columns: Student · Session · Location (assigned zone) · Building
+       · Scanned at (place name + GPS) · Distance · Status · Recorded
+  → No row dialog — every visit fact is a column
+  → Sessions create still uses GET /api/locations (full Active zone catalog)
 ```
 
 ### F. Students in-page flow (no route change, admin only, live API)
@@ -220,7 +224,7 @@ Detailed flow: `.grok/skills/smart-campus-student/references/student-account-flo
 | Student scan GPS / geofence | **Live, hard gate** — location permission is mandatory; deny/unsupported/timeout blocks the submit entirely (no record, "Try again" dialog); granted fix outside `radiusMeters` (Haversine) → Outside Location (still recorded) | Consider soft-fail / grace mode if GPS reliability becomes an issue |
 | Student history route | In-page “My scans” only | `/student/history` route |
 | Reports page | Placeholder | Export / analytics |
-| Dashboard / attendance / locations UI | Mock JSON | Optional live API later |
+| Dashboard UI | Mock JSON | Optional live API later |
 | Teacher live feed of scans | Not built | Session-side attendance list |
 | Student account bulk import | Admin creates one-by-one | CSV/SIS import + first-login password reset |
 | Persistence | In-memory sessions/locations/scans | TypeORM / MySQL later |

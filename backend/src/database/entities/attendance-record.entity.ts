@@ -40,4 +40,15 @@ export class AttendanceRecordEntity {
 
   @Column({ name: 'distance_meters', type: 'double', nullable: true })
   distanceMeters!: number | null;
+
+  /** Device GPS at submit time. Null on rows saved before this column existed. */
+  @Column({ type: 'double', nullable: true })
+  latitude!: number | null;
+
+  @Column({ type: 'double', nullable: true })
+  longitude!: number | null;
+
+  /** Human place name from reverse geocode of the device GPS. */
+  @Column({ name: 'scanned_location', type: 'varchar', length: 255, nullable: true })
+  scannedLocation!: string | null;
 }

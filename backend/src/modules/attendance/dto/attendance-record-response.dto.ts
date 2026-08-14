@@ -15,4 +15,9 @@ export interface AttendanceRecordResponseDto {
    * (FR-02 hard location gate), so a saved record never has an unknown distance.
    */
   distanceMeters: number | null;
+  /** Device GPS at submit time. Null only on rows saved before GPS was stored. */
+  latitude: number | null;
+  longitude: number | null;
+  /** Reverse-geocoded place name of the device GPS. Null if lookup failed. */
+  scannedLocation: string | null;
 }

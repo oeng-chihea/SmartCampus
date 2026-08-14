@@ -1,131 +1,104 @@
-import attendanceRecordsMock from '../../assets/mock-data/attendance-records.json';
-import locationsMock from '../../assets/mock-data/locations.json';
-import studentsMock from '../../assets/mock-data/students.json';
-import { AttendanceRecord } from '../models/attendance.model';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
+import { API_ENDPOINTS } from '../core/constants/api-endpoints';
 import {
   CampusLocation,
-  LocationDetail,
   LocationFilterState,
-  LocationFilters,
-  LocationManagement,
-  LocationPersonPresence,
+  LocationVisitFilterRequest,
+  LocationVisitPage,
 } from '../models/location.model';
-import { Student } from '../models/student.model';
-import { StatCard } from '../shared/components/stat-card/stat-card.model';
+import { AuthService } from './auth.service';
 
-interface LocationsMockFile {
-  title: string;
-  subtitle: string;
-  filters: LocationFilters;
-  locations: CampusLocation[];
-}
+const DEFAULT_FILTERS: LocationFilterState = {
+  search: '',
+  building: 'All buildings',
+  status: 'All statuses',
+};
 
-interface AttendanceRecordsFile {
-  records: AttendanceRecord[];
-}
-
-interface StudentsMockFile {
-  students: Student[];
-}
-
-const mock = locationsMock as LocationsMockFile;
-const attendanceMock = attendanceRecordsMock as AttendanceRecordsFile;
-const studentsFile = studentsMock as StudentsMockFile;
-
+/**
+ * Live Nest campus zones (session picker / geofence) and the Locations
+ * page student visit log.
+ */
+@Injectable({ providedIn: 'root' })
 export class LocationService {
-  getLocationManagement(): LocationManagement {
-    const locations = mock.locations;
+  private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
 
-    return {
-      title: mock.title,
-      subtitle: mock.subtitle,
-      metrics: this.buildMetrics(locations),
-      filters: mock.filters,
-      locations,
-    };
-  }
-
-  filterLocations(locations: CampusLocation[], filters: LocationFilterState): CampusLocation[] {
-    const search = filters.search.trim().toLowerCase();
-    const building = filters.building;
-    const status = filters.status;
-
-    return locations.filter((location) => {
-      const matchesSearch =
-        !search ||
-        location.name.toLowerCase().includes(search) ||
-        location.id.toLowerCase().includes(search) ||
-        location.room.toLowerCase().includes(search) ||
-        location.building.toLowerCase().includes(search);
-
-      const matchesBuilding =
-        building === 'All buildings' || location.building === building;
-
-      const matchesStatus = status === 'All statuses' || location.status === status;
-
-      return matchesSearch && matchesBuilding && matchesStatus;
-    });
-  }
-
-  /** Build detail view for a zone: zone profile + people located in that area. */
-  getLocationDetail(location: CampusLocation): LocationDetail {
-    const studentsById = new Map(
-      studentsFile.students.map((student) => [student.studentId, student] as const),
+  /** Full zone catalog — used by Sessions create, not the Locations page. */
+  listLocations(): Promise<CampusLocation[]> {
+    return firstValueFrom(
+      this.http.get<CampusLocation[]>(this.url(API_ENDPOINTS.locations), {
+        headers: this.authHeaders(),
+      }),
     );
-
-    const people: LocationPersonPresence[] = attendanceMock.records
-      .filter((record) => record.location === location.name)
-      .map((record) => this.toPersonPresence(record, studentsById.get(record.studentId) ?? null))
-      .sort((a, b) => a.name.localeCompare(b.name));
-
-    return { location, people };
   }
 
-  private toPersonPresence(
-    record: AttendanceRecord,
-    student: Student | null,
-  ): LocationPersonPresence {
-    return {
-      name: record.student,
-      studentId: record.studentId,
-      email: student?.email ?? null,
-      course: student?.course ?? null,
-      year: student?.year ?? null,
-      session: record.session,
-      status: record.status,
-      submittedAt: record.submittedAt,
-      distanceMeters: record.distanceMeters,
-      locationArea: record.location,
-    };
+  /**
+   * Student visits recorded when a student scans a QR or marks present.
+   * Search / building / status are applied on the server.
+   */
+  queryVisits(
+    filters: Partial<LocationFilterState> = {},
+  ): Promise<LocationVisitPage> {
+    const state = { ...DEFAULT_FILTERS, ...filters };
+    return firstValueFrom(
+      this.http.post<LocationVisitPage>(
+        this.url(API_ENDPOINTS.locationVisits),
+        this.toFilterRequest(state),
+        { headers: this.authHeaders() },
+      ),
+    );
   }
 
-  private buildMetrics(locations: CampusLocation[]): StatCard[] {
-    const total = locations.length;
-    const active = locations.filter((location) => location.status === 'Active').length;
-    const inUse = locations.filter((location) => location.sessionsUsing > 0).length;
+  mapError(error: unknown, fallback: string): string {
+    if (error instanceof HttpErrorResponse) {
+      if (error.status === 0) {
+        return 'Cannot reach the API. Start the Nest backend (port 3000) and use the Angular dev server so /api is proxied.';
+      }
+      if (error.status === 401) {
+        return 'Session expired. Sign out and sign in again.';
+      }
+      const body = error.error as { message?: string | string[] } | null;
+      if (typeof body?.message === 'string') {
+        return body.message;
+      }
+      if (Array.isArray(body?.message)) {
+        return body.message.join(', ');
+      }
+    }
+    return fallback;
+  }
 
-    return [
-      {
-        label: 'Total locations',
-        value: String(total),
-        helper: 'Approved campus geofence zones',
-        icon: 'locations',
-        tone: 'green',
-      },
-      {
-        label: 'Active zones',
-        value: String(active),
-        helper: 'Ready for attendance checks',
-        icon: 'attendance',
-        tone: 'blue',
-      },
-      {
-        label: 'In use',
-        value: String(inUse),
-        helper: 'Linked to one or more sessions',
-        icon: 'sessions',
-        tone: 'violet',
-      },
-    ];
+  /** Drop UI “All …” / empty values so the payload only carries real filters. */
+  private toFilterRequest(
+    state: LocationFilterState,
+  ): LocationVisitFilterRequest {
+    const request: LocationVisitFilterRequest = {};
+
+    if (state.search.trim()) {
+      request.search = state.search.trim();
+    }
+    if (state.building !== 'All buildings') {
+      request.building = state.building;
+    }
+    if (state.status !== 'All statuses') {
+      request.status = state.status as LocationVisitFilterRequest['status'];
+    }
+
+    return request;
+  }
+
+  private url(path: string): string {
+    return `${environment.apiBaseUrl}${path}`;
+  }
+
+  private authHeaders(): HttpHeaders {
+    const token = this.auth.getAccessToken();
+    if (!token) {
+      return new HttpHeaders();
+    }
+    return new HttpHeaders({ Authorization: `Bearer ${token}` });
   }
 }

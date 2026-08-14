@@ -5,7 +5,10 @@ import {
   isSessionPastDue,
 } from '../../../../core/utils/date.util';
 import { GeolocationFailureReason } from '../../../../core/utils/geolocation.util';
-import { formatCampusLocationLabel } from '../../../../core/utils/format.util';
+import {
+  formatCampusLocationLabel,
+  formatScannedAtCell,
+} from '../../../../core/utils/format.util';
 import { AttendanceRecord } from '../../../../models/attendance.model';
 import { OpenLiveSessionCard } from '../../../../models/session.model';
 import { AuthService } from '../../../../services/auth.service';
@@ -54,6 +57,14 @@ export class StudentScanComponent implements OnInit, OnDestroy {
       header: 'Location',
       width: 'minmax(120px, 1.1fr)',
       value: (row) => formatCampusLocationLabel(row.location),
+    },
+    {
+      key: 'scannedAt',
+      header: 'Scanned at',
+      type: 'primary',
+      width: 'minmax(160px, 1.4fr)',
+      primary: (row) =>
+        formatScannedAtCell(row.scannedLocation, row.latitude, row.longitude),
     },
     {
       key: 'time',

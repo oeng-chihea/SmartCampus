@@ -49,8 +49,8 @@ Last reviewed against the implemented account-provisioning flow (backend + front
 │  → Teacher Close → open card gone; My attendance row KEPT           │
 │  → Teacher Delete → open card gone; attendance rows CASCADE deleted │
 │      GET /api/attendance/me also purges orphan rows                 │
-│  → My attendance = shared app-table (Session · Location · Recorded  │
-│      · Status); location label Building X-Room N                    │
+│  → My attendance = shared app-table (Session · Location · Scanned   │
+│      at · Recorded · Status); location label Building X-Room N      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -138,10 +138,10 @@ databases converge to the new state.
 | `services/student-attendance.service.ts` | Open sessions, submit, my records |
 | `features/attendance/pages/student-scan/*` | Scan UI; due dialog; **location-blocked dialog** (`state.locationBlocked` + "Try again"); history `app-table`; geofence submit (`buildSubmitRequest`) |
 | `core/utils/geolocation.util.ts` | `getCurrentCoordinates()` — browser GPS, resolves `null` on deny/unsupported/timeout (flow treats `null` as a hard block, not a fallback) |
-| `shared/components/table/*` | My attendance columns (Session · Location · Recorded · Status) |
+| `shared/components/table/*` | My attendance columns (Session · Location · Scanned at · Recorded · Status) |
 | `shared/components/confirm-dialog/*` | Due blocked / delete confirm shell |
 | `core/utils/date.util.ts` | `formatSessionDue`, `isSessionPastDue`, `formatSessionOpened` |
-| `core/utils/format.util.ts` | `formatCampusLocationLabel` → `Building B-Room 105` |
+| `core/utils/format.util.ts` | `formatCampusLocationLabel` → `Building B-Room 105`; `formatScanCoordinates` |
 | `core/utils/student-stats.util.ts` | Pure `buildStudentMetrics` / `buildStudentFilters` (unit-tested) |
 | `features/students/pages/students/*` | Directory page: metrics, filters, add-account form, toggles, alerts |
 | `shared/components/student-form-card/*` | “Add student account” form (name, ID, email, class, year, password) |

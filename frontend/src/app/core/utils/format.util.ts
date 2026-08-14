@@ -22,3 +22,37 @@ export function formatCampusLocationLabel(
   // "Building A, Room 201" → "Building A-Room 201"
   return name.replace(/,\s*Room\s+/i, '-Room ');
 }
+
+/**
+ * Student scan / mark-present GPS for table cells.
+ * Six decimal places (~0.1 m) so the point stays exact; missing values → "—".
+ */
+export function formatScanCoordinates(
+  latitude: number | null | undefined,
+  longitude: number | null | undefined,
+): string {
+  if (latitude == null || longitude == null) {
+    return '—';
+  }
+  return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+}
+
+/**
+ * Scanned-at table cell: place name first, GPS underneath.
+ * Falls back to coordinates alone when reverse geocode is missing.
+ */
+export function formatScannedAtCell(
+  scannedLocation: string | null | undefined,
+  latitude: number | null | undefined,
+  longitude: number | null | undefined,
+): { title: string; subtitle?: string } {
+  const coordinates = formatScanCoordinates(latitude, longitude);
+  const place = scannedLocation?.trim();
+  if (place) {
+    return {
+      title: place,
+      subtitle: coordinates === '—' ? undefined : coordinates,
+    };
+  }
+  return { title: coordinates };
+}

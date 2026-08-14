@@ -7,6 +7,7 @@ import { LocationsModule } from '../locations/locations.module';
 import { SessionsModule } from '../sessions/sessions.module';
 import { AttendanceController } from './attendance.controller';
 import { AttendanceService } from './attendance.service';
+import { ReverseGeocodeService } from './reverse-geocode.service';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { AttendanceService } from './attendance.service';
     LocationsModule,
   ],
   controllers: [AttendanceController],
-  providers: [AttendanceService],
+  providers: [AttendanceService, ReverseGeocodeService],
   exports: [AttendanceService],
 })
 export class AttendanceModule {}
