@@ -198,6 +198,7 @@ export class LocationsService {
       latitude: row.latitude ?? null,
       longitude: row.longitude ?? null,
       scannedLocation: row.scannedLocation ?? null,
+      accuracyMeters: row.accuracyMeters ?? null,
     };
   }
 

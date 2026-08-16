@@ -6,8 +6,10 @@ import {
   isSessionPastDue,
 } from '../../../../core/utils/date.util';
 import {
+  DeviceCoordinates,
   GeolocationFailureReason,
   getCurrentCoordinates,
+  watchDeviceLocation,
 } from '../../../../core/utils/geolocation.util';
 import {
   buildAttendanceScanUrl,
@@ -42,8 +44,10 @@ export class StudentScanPageFlow {
 
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private deepLinkHandled = false;
+  private stopWatching: (() => void) | null = null;
 
   async init(): Promise<void> {
+    this.startLocationWatch();
     await this.reload(true);
     await this.trySubmitDeepLinkPayload();
     this.startPolling();
@@ -94,8 +98,8 @@ export class StudentScanPageFlow {
   }
 
   async markPresent(session: OpenLiveSessionCard): Promise<void> {
-    if (this.state.hasSubmittedFor(session.title)) {
-      this.state.alreadySubmitted(this.state.recordForSession(session.title));
+    if (this.state.hasSubmittedFor(session.id)) {
+      this.state.alreadySubmitted(this.state.recordForSession(session.id));
       return;
     }
 
@@ -110,8 +114,6 @@ export class StudentScanPageFlow {
 
     this.state.beginSubmit(session.id);
     try {
-      // Refresh once so we use the latest live QR token if it just rotated.
-      await this.reload(false);
       const live =
         this.state.openSessions().find((row) => row.id === session.id) ?? session;
 
@@ -134,11 +136,11 @@ export class StudentScanPageFlow {
 
       const record = await this.attendance.submit(request);
       this.state.submitSucceeded(record);
-      await this.reload(false);
+      void this.reload(false);
     } catch (error) {
       if (this.attendance.isConflict(error)) {
         await this.reload(false);
-        this.state.alreadySubmitted(this.state.recordForSession(session.title));
+        this.state.alreadySubmitted(this.state.recordForSession(session.id));
       } else if (this.isDueTimeRejected(error)) {
         this.state.openDueBlocked({
           sessionTitle: session.title,
@@ -164,6 +166,7 @@ export class StudentScanPageFlow {
 
   logout(): void {
     this.stopPolling();
+    this.stopLocationWatch();
     const role = this.auth.role();
     this.auth.logout();
     void this.router.navigateByUrl(this.auth.loginPathForRole(role));
@@ -171,6 +174,23 @@ export class StudentScanPageFlow {
 
   destroy(): void {
     this.stopPolling();
+    this.stopLocationWatch();
+  }
+
+  private startLocationWatch(): void {
+    this.stopLocationWatch();
+    this.stopWatching = watchDeviceLocation((result) => {
+      if (result.ok) {
+        this.state.setDeviceFix(result.coords);
+        return;
+      }
+      this.state.setDeviceFixFailed(result.reason);
+    });
+  }
+
+  private stopLocationWatch(): void {
+    this.stopWatching?.();
+    this.stopWatching = null;
   }
 
   /** After login / open from Camera: ?payload=SMARTCAMPUS|… */
@@ -232,7 +252,7 @@ export class StudentScanPageFlow {
 
       const record = await this.attendance.submit(request);
       this.state.submitSucceeded(record);
-      await this.reload(false);
+      void this.reload(false);
       return true;
     } catch (error) {
       if (this.attendance.isConflict(error)) {
@@ -242,7 +262,7 @@ export class StudentScanPageFlow {
           .openSessions()
           .find((row) => row.id === sessionId);
         const match =
-          (open ? this.state.recordForSession(open.title) : null) ??
+          (open ? this.state.recordForSession(open.id) : null) ??
           this.state.myRecords()[0] ??
           null;
         this.state.alreadySubmitted(match);
@@ -319,7 +339,7 @@ export class StudentScanPageFlow {
     try {
       const record = await this.attendance.submit(request);
       this.state.submitSucceeded(record);
-      await this.reload(false);
+      void this.reload(false);
       return true;
     } catch (error) {
       if (this.isDueTimeRejected(error)) {
@@ -337,24 +357,31 @@ export class StudentScanPageFlow {
   /**
    * Reads a device GPS fix for the submit payload. FR-02 hard gate: when
    * geolocation is denied/unsupported/times out, nothing is submitted —
-   * instead a "location needed" notice opens with a `retry` callback that
-   * re-runs the same submit attempt (re-prompting for permission).
+   * a "location needed" notice opens with a `retry` callback.
+   * A live watch reading is used immediately so the student is not delayed.
    */
   private async buildSubmitRequest(
     payload: string,
     sessionTitle: string,
     retry: () => Promise<void>,
   ): Promise<SubmitAttendanceRequest | null> {
-    const reading = await getCurrentCoordinates();
-    if (!reading.ok) {
-      this.state.openLocationBlocked({ sessionTitle, reason: reading.reason, retry });
-      return null;
+    const live = this.state.deviceFix();
+    if (live) {
+      return requestFromFix(payload, live);
     }
-    return {
-      payload,
-      latitude: reading.coords.latitude,
-      longitude: reading.coords.longitude,
-    };
+
+    const reading = await getCurrentCoordinates();
+    if (reading.ok) {
+      this.state.setDeviceFix(reading.coords);
+      return requestFromFix(payload, reading.coords);
+    }
+
+    this.state.openLocationBlocked({
+      sessionTitle,
+      reason: reading.reason,
+      retry,
+    });
+    return null;
   }
 
   /** "Try again" on the location-blocked dialog — re-runs the same submit attempt. */
@@ -442,4 +469,16 @@ export function locationBlockedMessage(reason: GeolocationFailureReason): string
 
 export function locationBlockedDetail(sessionTitle: string): string {
   return `Session: ${sessionTitle}`;
+}
+
+function requestFromFix(
+  payload: string,
+  fix: DeviceCoordinates,
+): SubmitAttendanceRequest {
+  return {
+    payload,
+    latitude: fix.latitude,
+    longitude: fix.longitude,
+    accuracyMeters: fix.accuracyMeters ?? undefined,
+  };
 }

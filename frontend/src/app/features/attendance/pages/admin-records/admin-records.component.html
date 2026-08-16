@@ -33,9 +33,70 @@
       [loading]="state.loading()"
       loadingMessage="Loading attendance records from API…"
       [showExport]="true"
-      [compact]="true"
+      [comfortable]="true"
+      [interactive]="true"
+      [activeRowId]="selectedRecord()?.id ?? null"
+      (rowSelect)="onRecordSelect($event)"
       emptyTitle="No records match your filters"
       emptyMessage="Try another student ID, session, or status."
     />
   </section>
 </section>
+
+@if (selectedRecord(); as record) {
+  <app-modal-dialog
+    eyebrow="Attendance record"
+    [title]="record.student"
+    closeAriaLabel="Close attendance detail"
+    size="lg"
+    [spacious]="true"
+    [lockDismiss]="true"
+    (closed)="closeRecordDetail()"
+  >
+    <dl class="record-detail">
+      <div class="record-detail__item">
+        <dt>Student ID</dt>
+        <dd>{{ record.studentId }}</dd>
+      </div>
+      <div class="record-detail__item">
+        <dt>Session</dt>
+        <dd>{{ record.session }}</dd>
+      </div>
+      <div class="record-detail__item">
+        <dt>Location</dt>
+        <dd>{{ record.location }}</dd>
+      </div>
+      <div class="record-detail__item">
+        <dt>Time</dt>
+        <dd>{{ recordedLabel(record) }}</dd>
+      </div>
+      <div class="record-detail__item record-detail__item--wide">
+        <dt>Scanned at</dt>
+        <dd>{{ record.scannedLocation || coordinatesLabel(record) }}</dd>
+      </div>
+      <div class="record-detail__item">
+        <dt>Coordinates</dt>
+        <dd>{{ coordinatesLabel(record) }}</dd>
+      </div>
+      <div class="record-detail__item">
+        <dt>Accuracy</dt>
+        <dd>{{ accuracyLabel(record) }}</dd>
+      </div>
+      <div class="record-detail__item">
+        <dt>Distance</dt>
+        <dd>{{ distanceLabel(record) }}</dd>
+      </div>
+      <div class="record-detail__item record-detail__item--wide">
+        <dt>Status</dt>
+        <dd>
+          <span [class]="statusClass(record.status)">{{ record.status }}</span>
+        </dd>
+      </div>
+    </dl>
+    <div class="record-detail__actions" modalFooter>
+      <button type="button" class="record-detail__close" (click)="closeRecordDetail()">
+        Close
+      </button>
+    </div>
+  </app-modal-dialog>
+}

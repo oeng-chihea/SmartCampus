@@ -65,7 +65,11 @@ export interface SessionScanContext {
 export interface OpenSessionLiveDto {
   id: string;
   title: string;
+  locationId: string;
   locationName: string;
+  latitude: number;
+  longitude: number;
+  radiusMeters: number;
   teacherName: string;
   dueAt: string | null;
   openedAt: string;

@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import * as QRCode from 'qrcode';
-import { buildDueAtFromLocalTime } from '../../../../core/utils/date.util';
+import { buildDueAtFromLocalDateTime } from '../../../../core/utils/date.util';
 import { buildAttendanceScanUrl } from '../../../../core/utils/qr-scan.util';
 import { FieldErrors } from '../../../../models/alert.model';
 import { AttendanceSession } from '../../../../models/session.model';
@@ -48,7 +48,7 @@ export class SessionsPageFlow {
   }
 
   /** Clear a single field error while the teacher edits. */
-  onFieldInput(field: 'title' | 'locationId' | 'dueTime'): void {
+  onFieldInput(field: 'title' | 'locationId' | 'dueDate' | 'dueTime'): void {
     this.state.clearFieldError(field);
     if (this.state.dialogError() && !this.state.hasAnyFieldError()) {
       this.state.setDialogError(null);
@@ -200,6 +200,7 @@ export class SessionsPageFlow {
     const fieldErrors: FieldErrors = {
       title: null,
       locationId: null,
+      dueDate: null,
       dueTime: null,
     };
     let dueAt: string | null = null;
@@ -218,17 +219,27 @@ export class SessionsPageFlow {
       fieldErrors['locationId'] = 'Choose an active campus location.';
     }
 
-    if (this.alerts.isBlank(form.dueTime)) {
+    const missingDate = this.alerts.isBlank(form.dueDate);
+    const missingTime = this.alerts.isBlank(form.dueTime);
+    if (missingDate) {
+      fieldErrors['dueDate'] = this.alerts.requiredMessage('Due date');
+    }
+    if (missingTime) {
       fieldErrors['dueTime'] = this.alerts.requiredMessage('Due time');
-    } else {
-      dueAt = buildDueAtFromLocalTime(form.dueTime);
+    }
+    if (!missingDate && !missingTime) {
+      dueAt = buildDueAtFromLocalDateTime(form.dueDate, form.dueTime);
       if (!dueAt) {
-        fieldErrors['dueTime'] = 'Enter a valid due time for today.';
+        fieldErrors['dueDate'] = 'Enter a valid due date and time.';
+        fieldErrors['dueTime'] = 'Enter a valid due date and time.';
       }
     }
 
     const firstError =
-      fieldErrors['title'] || fieldErrors['locationId'] || fieldErrors['dueTime'];
+      fieldErrors['title'] ||
+      fieldErrors['locationId'] ||
+      fieldErrors['dueDate'] ||
+      fieldErrors['dueTime'];
 
     return {
       valid: !firstError && Boolean(dueAt),

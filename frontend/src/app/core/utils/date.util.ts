@@ -3,24 +3,52 @@ export function formatDate(value: string | Date, locale = 'en-US'): string {
 }
 
 /**
- * Sessions table "Opened" cell: `8-8-26/6:32Pm`
- * (no leading zeros; compact date + time with Pm/Am suffix)
+ * Compact record stamp used across Sessions, Attendance, Locations,
+ * and student history: `8-16-26-11:04Pm`
+ * (no leading zeros on month/day; hyphen between date and time; Pm/Am suffix)
  */
 export function formatSessionOpened(value: string | Date): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return '';
   }
-
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const year = String(date.getFullYear()).slice(-2);
-
-  return `${month}-${day}-${year}/${formatClockTime(date)}`;
+  return formatCompactDateTime(date);
 }
 
 /**
- * Session due time for tables / student cards: `7:30Pm`
+ * Attendance history Time cell — same instant as `formatSessionOpened`,
+ * split for display: `Aug 16, 2026` / `11:05 PM`.
+ */
+export function formatAttendanceDateTime(value: string | Date): {
+  title: string;
+  subtitle?: string;
+} {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return { title: '—' };
+  }
+  return {
+    title: new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(date),
+    subtitle: new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(date),
+  };
+}
+
+/** One-line detail label: `Aug 16, 2026 · 11:05 PM`. */
+export function formatAttendanceDateTimeLabel(value: string | Date): string {
+  const parts = formatAttendanceDateTime(value);
+  return parts.subtitle ? `${parts.title} · ${parts.subtitle}` : parts.title;
+}
+
+/**
+ * Session due for tables / QR panel / student cards: same stamp as Opened.
  * Empty / invalid values render as an em dash.
  */
 export function formatSessionDue(value: string | Date | null | undefined): string {
@@ -31,7 +59,7 @@ export function formatSessionDue(value: string | Date | null | undefined): strin
   if (Number.isNaN(date.getTime())) {
     return '—';
   }
-  return formatClockTime(date);
+  return formatCompactDateTime(date);
 }
 
 /**
@@ -54,22 +82,37 @@ export function isSessionPastDue(
 }
 
 /**
- * Build an ISO dueAt from local **today** + HTML `type="time"` value (`HH:mm` or `HH:mm:ss`).
- * Returns null when the time string is invalid.
+ * Build an ISO dueAt from a local calendar date (`YYYY-MM-DD`) and
+ * HTML `type="time"` value (`HH:mm` or `HH:mm:ss`).
+ * Returns null when either part is invalid (including overflow dates like Feb 31).
  */
-export function buildDueAtFromLocalTime(dueTime: string, now: Date = new Date()): string | null {
-  const match = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(dueTime.trim());
-  if (!match) {
+export function buildDueAtFromLocalDateTime(
+  dueDate: string,
+  dueTime: string,
+): string | null {
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dueDate.trim());
+  const timeMatch = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(dueTime.trim());
+  if (!dateMatch || !timeMatch) {
     return null;
   }
 
-  const hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  const seconds = match[3] ? Number(match[3]) : 0;
+  const year = Number(dateMatch[1]);
+  const month = Number(dateMatch[2]);
+  const day = Number(dateMatch[3]);
+  const hours = Number(timeMatch[1]);
+  const minutes = Number(timeMatch[2]);
+  const seconds = timeMatch[3] ? Number(timeMatch[3]) : 0;
   if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    !Number.isInteger(day) ||
     !Number.isInteger(hours) ||
     !Number.isInteger(minutes) ||
     !Number.isInteger(seconds) ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31 ||
     hours < 0 ||
     hours > 23 ||
     minutes < 0 ||
@@ -80,17 +123,59 @@ export function buildDueAtFromLocalTime(dueTime: string, now: Date = new Date())
     return null;
   }
 
-  const due = new Date(now);
-  due.setHours(hours, minutes, seconds, 0);
+  const due = new Date(year, month - 1, day, hours, minutes, seconds, 0);
+  if (
+    due.getFullYear() !== year ||
+    due.getMonth() !== month - 1 ||
+    due.getDate() !== day
+  ) {
+    return null;
+  }
   return due.toISOString();
 }
 
-/** Default HTML time value: now + leadMinutes, clamped to same local day. */
-export function defaultDueTimeLocal(leadMinutes = 30, now: Date = new Date()): string {
-  const due = new Date(now.getTime() + leadMinutes * 60 * 1000);
-  const hours = String(due.getHours()).padStart(2, '0');
-  const minutes = String(due.getMinutes()).padStart(2, '0');
+/**
+ * Build an ISO dueAt from local **today** + HTML `type="time"` value.
+ * Prefer `buildDueAtFromLocalDateTime` when the teacher picked a calendar day.
+ */
+export function buildDueAtFromLocalTime(dueTime: string, now: Date = new Date()): string | null {
+  return buildDueAtFromLocalDateTime(toLocalDateInput(now), dueTime);
+}
+
+/** HTML `type="date"` value (`YYYY-MM-DD`) in the local calendar. */
+export function toLocalDateInput(now: Date = new Date()): string {
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/** HTML `type="time"` value (`HH:mm`) in the local clock. */
+export function toLocalTimeInput(now: Date = new Date()): string {
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
   return `${hours}:${minutes}`;
+}
+
+/** Default due date + time: now + leadMinutes (may roll into the next local day). */
+export function defaultDueLocal(
+  leadMinutes = 30,
+  now: Date = new Date(),
+): { date: string; time: string } {
+  const due = new Date(now.getTime() + leadMinutes * 60 * 1000);
+  return { date: toLocalDateInput(due), time: toLocalTimeInput(due) };
+}
+
+/** Default HTML time value: now + leadMinutes. */
+export function defaultDueTimeLocal(leadMinutes = 30, now: Date = new Date()): string {
+  return defaultDueLocal(leadMinutes, now).time;
+}
+
+function formatCompactDateTime(date: Date): string {
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const year = String(date.getFullYear()).slice(-2);
+  return `${month}-${day}-${year}-${formatClockTime(date)}`;
 }
 
 function formatClockTime(date: Date): string {

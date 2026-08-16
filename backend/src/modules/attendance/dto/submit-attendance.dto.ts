@@ -1,10 +1,14 @@
+import { Type } from 'class-transformer';
 import {
   IsLatitude,
   IsLongitude,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
   MinLength,
 } from 'class-validator';
 
@@ -34,4 +38,12 @@ export class SubmitAttendanceDto {
   @IsOptional()
   @IsLongitude()
   longitude?: number;
+
+  /** Horizontal GPS accuracy from the browser. Stored with the scan. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(50_000)
+  accuracyMeters?: number;
 }

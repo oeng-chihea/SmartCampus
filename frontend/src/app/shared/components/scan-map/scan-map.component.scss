@@ -1,0 +1,28 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.scan-map {
+  background: #e8f5ee;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.scan-map__host {
+  display: block;
+  height: 180px;
+  width: 100%;
+}
+
+:host ::ng-deep .leaflet-container {
+  background: #e8f5ee;
+  font-family: inherit;
+  height: 100%;
+  width: 100%;
+}
+
+:host ::ng-deep .leaflet-control-attribution {
+  font-size: 0.62rem;
+}

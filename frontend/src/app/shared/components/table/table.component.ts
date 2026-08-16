@@ -1,6 +1,11 @@
 import { Component, computed, input, output } from '@angular/core';
 import { ActionMenuComponent } from '../action-menu/action-menu.component';
-import { TableAction, TableActionEvent, TableColumn } from './table.model';
+import {
+  TableAction,
+  TableActionEvent,
+  TableColumn,
+  TablePrimaryValue,
+} from './table.model';
 
 /**
  * Shared data-table shell (location-directory look).
@@ -35,9 +40,14 @@ export class TableComponent<T = unknown> {
   readonly showExport = input(false);
   /**
    * Smaller cell type + single-line values (no mid-string wrap).
-   * Used by the attendance scan log so timestamps stay on one row.
+   * Used by sessions / location logs where stamps stay on one row.
    */
   readonly compact = input(false);
+  /**
+   * Roomier scan-log layout: wider gaps, two-line time, address ellipsis.
+   * Used by attendance history and location visit tables.
+   */
+  readonly comfortable = input(false);
   /** Loading banner above / instead of body. */
   readonly loading = input(false);
   readonly loadingMessage = input('Loading…');
@@ -109,7 +119,7 @@ export class TableComponent<T = unknown> {
     return String(raw);
   }
 
-  primaryValue(column: TableColumn<T>, row: T): { title: string; subtitle?: string } {
+  primaryValue(column: TableColumn<T>, row: T): TablePrimaryValue {
     return column.primary?.(row) ?? { title: this.textValue(column, row) };
   }
 

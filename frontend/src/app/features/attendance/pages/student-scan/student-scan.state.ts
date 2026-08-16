@@ -1,5 +1,8 @@
 import { Injectable, signal } from '@angular/core';
-import { GeolocationFailureReason } from '../../../../core/utils/geolocation.util';
+import {
+  DeviceCoordinates,
+  GeolocationFailureReason,
+} from '../../../../core/utils/geolocation.util';
 import { AttendanceRecord } from '../../../../models/attendance.model';
 import { OpenLiveSessionCard } from '../../../../models/session.model';
 
@@ -39,6 +42,10 @@ export class StudentScanPageState {
 
   /** Non-null while the location-permission blocked confirm dialog is open. */
   readonly locationBlocked = signal<LocationBlockedNotice | null>(null);
+
+  /** Latest live GPS fix for the Leaflet map + Turf preview. */
+  readonly deviceFix = signal<DeviceCoordinates | null>(null);
+  readonly deviceFixReason = signal<GeolocationFailureReason | null>(null);
 
   beginLoad(): void {
     this.loading.set(true);
@@ -117,11 +124,20 @@ export class StudentScanPageState {
     this.locationBlocked.set(null);
   }
 
-  hasSubmittedFor(sessionTitle: string): boolean {
-    return this.myRecords().some((row) => row.session === sessionTitle);
+  setDeviceFix(coords: DeviceCoordinates): void {
+    this.deviceFix.set(coords);
+    this.deviceFixReason.set(null);
   }
 
-  recordForSession(sessionTitle: string): AttendanceRecord | null {
-    return this.myRecords().find((row) => row.session === sessionTitle) ?? null;
+  setDeviceFixFailed(reason: GeolocationFailureReason): void {
+    this.deviceFixReason.set(reason);
+  }
+
+  hasSubmittedFor(sessionId: string): boolean {
+    return this.myRecords().some((row) => row.sessionId === sessionId);
+  }
+
+  recordForSession(sessionId: string): AttendanceRecord | null {
+    return this.myRecords().find((row) => row.sessionId === sessionId) ?? null;
   }
 }

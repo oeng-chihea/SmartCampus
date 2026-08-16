@@ -135,6 +135,13 @@
                   <p class="student-scan__qr-note">Scan with iPhone Camera</p>
                 </div>
 
+                <div class="student-scan__map-wrap">
+                  <app-scan-map
+                    [zone]="sessionZone(session)"
+                    [device]="state.deviceFix()"
+                  />
+                </div>
+
                 <div class="student-scan__session-meta">
                   <div class="student-scan__session-item">
                     <span>Location</span>
@@ -147,7 +154,7 @@
                 </div>
 
                 <div class="student-scan__card-action">
-                  @if (alreadyDone(session.title)) {
+                  @if (alreadyDone(session.id)) {
                     <div class="student-scan__done">
                       <span class="student-scan__status-pill student-scan__status-pill--present">
                         Already recorded
@@ -198,12 +205,66 @@
         [rows]="state.myRecords()"
         [loading]="state.loading()"
         loadingMessage="Loading your attendance…"
+        [comfortable]="true"
+        [interactive]="true"
+        [activeRowId]="selectedRecord()?.id ?? null"
+        (rowSelect)="onRecordSelect($event)"
         emptyTitle="No attendance yet"
         emptyMessage="Mark present for a live session and your records will show up here."
       />
     </section>
   </div>
 </section>
+
+@if (selectedRecord(); as record) {
+  <app-modal-dialog
+    eyebrow="My attendance"
+    [title]="record.session"
+    closeAriaLabel="Close attendance detail"
+    size="lg"
+    [spacious]="true"
+    [lockDismiss]="false"
+    (closed)="closeRecordDetail()"
+  >
+    <dl class="record-detail">
+      <div class="record-detail__item">
+        <dt>Location</dt>
+        <dd>{{ campusLabel(record) }}</dd>
+      </div>
+      <div class="record-detail__item">
+        <dt>Time</dt>
+        <dd>{{ recordedLabel(record) }}</dd>
+      </div>
+      <div class="record-detail__item record-detail__item--wide">
+        <dt>Scanned at</dt>
+        <dd>{{ record.scannedLocation || coordinatesLabel(record) }}</dd>
+      </div>
+      <div class="record-detail__item">
+        <dt>Coordinates</dt>
+        <dd>{{ coordinatesLabel(record) }}</dd>
+      </div>
+      <div class="record-detail__item">
+        <dt>Accuracy</dt>
+        <dd>{{ accuracyLabel(record) }}</dd>
+      </div>
+      <div class="record-detail__item">
+        <dt>Distance</dt>
+        <dd>{{ distanceLabel(record) }}</dd>
+      </div>
+      <div class="record-detail__item record-detail__item--wide">
+        <dt>Status</dt>
+        <dd>
+          <span [class]="statusClass(record.status)">{{ record.status }}</span>
+        </dd>
+      </div>
+    </dl>
+    <div class="record-detail__actions" modalFooter>
+      <button type="button" class="record-detail__close" (click)="closeRecordDetail()">
+        Close
+      </button>
+    </div>
+  </app-modal-dialog>
+}
 
 @if (state.dueBlocked(); as notice) {
   <app-confirm-dialog

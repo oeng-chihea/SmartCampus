@@ -121,15 +121,17 @@ Student scan history:
 ## Geofence check (live, FR-02) — hard location gate
 
 ```text
-frontend/src/app/core/utils/geolocation.util.ts   # getCurrentCoordinates(): browser GPS, null on deny/unsupported/timeout
+frontend/src/app/core/utils/geolocation.util.ts   # getCurrentCoordinates / watchDeviceLocation — short settle, then accept best fix
+frontend/src/app/core/utils/geofence.util.ts      # Turf.js preview (inside circle / distance)
+frontend/src/app/shared/components/scan-map/      # Leaflet + OSM tiles, student pin, zone circle (original GPS only)
 frontend/src/app/features/attendance/pages/student-scan/student-scan.flow.ts
-  buildSubmitRequest(payload, sessionTitle, retry)  # null + opens locationBlocked notice when GPS missing; never calls the API without a fix
+  buildSubmitRequest(payload, sessionTitle, retry)  # uses live GPS immediately; locationBlocked only when GPS is missing
   retryAfterLocationBlocked() / dismissLocationBlocked()
 frontend/src/app/features/attendance/pages/student-scan/student-scan.state.ts
-  locationBlocked signal + LocationBlockedNotice { sessionTitle, retry }
+  locationBlocked signal + LocationBlockedNotice { sessionTitle, reason, retry }
 
 backend/src/common/utils/geo.util.ts               # haversineDistanceMeters / isWithinRadius (pure, unit-tested)
-backend/src/modules/attendance/dto/submit-attendance.dto.ts  # optional-by-decorator latitude/longitude (@IsLatitude/@IsLongitude); presence enforced in the service, not the DTO
+backend/src/modules/attendance/dto/submit-attendance.dto.ts  # optional-by-decorator latitude/longitude (@IsLatitude/@IsLongitude); presence enforced in the service
 backend/src/modules/attendance/attendance.service.ts
   requireCoordinates(dto)                           # throws BadRequestException when lat/lng missing — hard reject, no record created
   evaluateGeofence(dto, location)                   # Haversine(student, session.location) vs radiusMeters — runs only after requireCoordinates passes
@@ -137,11 +139,12 @@ backend/src/modules/attendance/attendance.service.ts
 
 Rules (**hard gate — no coordinates ⇒ no record at all**, enforced on both sides):
 
-- Frontend never calls `POST /api/attendance/submit` without a GPS fix — if `getCurrentCoordinates()` resolves `null` (denied/unsupported/timeout), the flow opens a **"Cannot mark present" / "Try again"** confirm dialog instead and aborts before any network call.
+- Frontend never calls `POST /api/attendance/submit` without a GPS fix — if there is no live watch reading and `getCurrentCoordinates()` fails (denied/unsupported/timeout), the flow opens a **"Cannot mark present" / "Try again"** confirm dialog instead and aborts before any network call. A live reading is used immediately (no ±30 m wait).
 - Backend re-checks independently (`requireCoordinates`) so a direct API call without coordinates is rejected with **400** and a clear message — never silently recorded.
 - Coordinates within `radiusMeters` → **Present**, `distanceMeters` = rounded meters.
 - Coordinates outside `radiusMeters` → **Outside Location** (still recorded, not rejected — this is the only "the record exists but flagged" case) — visible on the admin/teacher attendance log and the Locations visit table (**Scanned at** = student GPS).
-- Submit **persists** `latitude` / `longitude` and reverse-geocodes them (Nominatim) into `scannedLocation` so Locations / Attendance / My attendance show the place name plus coordinates. A geocode failure still saves the scan (name shows as `—`, coords remain).
+- Submit **persists** the **original** `latitude` / `longitude` / `accuracyMeters` immediately, then reverse-geocodes with **one** Nominatim call (≤1 s) into `scannedLocation`. The geocoder never moves the pin. A slow/failed geocode still returns the saved scan (name may fill in a moment later). The student scan page does not reload open sessions before submit.
+- `GET /api/sessions/open` includes `locationId`, `latitude`, `longitude`, `radiusMeters` so the student map and Turf preview can draw the zone.
 - `AttendanceModule` imports `LocationsModule` to read the session's `LocationEntity` (lat/lng/radius) at submit time.
 - `SessionScanContext` (from `SessionsService.resolveOpenSessionForScan`) carries `locationId` so `AttendanceService` can look up the right zone.
 

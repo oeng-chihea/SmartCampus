@@ -94,7 +94,7 @@ export class SessionsComponent implements OnInit, OnDestroy {
       {
         key: 'due',
         header: 'Due',
-        width: 'minmax(90px, 0.7fr)',
+        width: 'minmax(110px, 0.85fr)',
         value: (row) => formatSessionDue(row.dueAt),
       },
       {
@@ -177,7 +177,7 @@ export class SessionsComponent implements OnInit, OnDestroy {
     return this.flow.deleteConfirmedSession();
   }
 
-  onFieldInput(field: 'title' | 'locationId' | 'dueTime'): void {
+  onFieldInput(field: 'title' | 'locationId' | 'dueDate' | 'dueTime'): void {
     this.flow.onFieldInput(field);
   }
 

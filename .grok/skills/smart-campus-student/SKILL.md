@@ -58,12 +58,14 @@ Admin creates account (POST /api/students with password)
   → /student/scan
   → GET /api/sessions/open (all open sessions + same live QR as teacher)
   → tap “Mark me present” or scan QR / Camera deep link
-  → browser reads device GPS (getCurrentCoordinates())
+  → browser watches device GPS (watchDeviceLocation + getCurrentCoordinates)
+  → Leaflet + OSM map shows student pin vs session geofence circle
+    (pin stays on original GPS)
   → GPS denied / unsupported / timed out:
       NO request sent — "Cannot mark present / Try again" dialog opens
       Try again → re-prompts permission and retries the same submit
-  → GPS fix obtained:
-      POST /api/attendance/submit { payload, latitude, longitude } (identity from Bearer token)
+  → GPS fix obtained (live reading used immediately — no accuracy wait):
+      POST /api/attendance/submit { payload, latitude, longitude, accuracyMeters }
       → if before session dueAt:
           inside location radius → Present
           outside location radius → Outside Location (still recorded)
@@ -78,11 +80,14 @@ GPS on a plain `http://` LAN page.
 The scan flow (`buildSubmitRequest` in `student-scan.flow.ts`) never calls the
 submit API without a GPS fix — denied/unsupported/timeout opens a
 `locationBlocked` confirm dialog (`StudentScanPageState`) with a "Try again"
-retry instead of submitting. The backend independently rejects (400, via
+retry instead of submitting. A live watch reading is submitted immediately
+(no ±30 m wait). The backend independently rejects (400, via
 `AttendanceService.requireCoordinates`) any submit with no coordinates, so a
 direct API call can't bypass the rule either. Once coordinates ARE present,
 `evaluateGeofence` (Haversine distance vs the location's `radiusMeters`)
-decides `Present` vs `Outside Location` — that part is unchanged. See
+decides `Present` vs `Outside Location`. The stored **Scanned at** name is a single Nominatim reverse of the scan
+GPS (street + sangkat; building name only when OSM has one at that pin).
+Submit does **not** reload sessions or wait on Overpass. See
 `smart-campus-dev/references/architecture.md` for the file map.
 
 ## Session due time on `/student/scan`
@@ -166,7 +171,9 @@ frontend/src/app/services/auth.service.ts            # login, session, role path
 frontend/src/app/services/student.service.ts         # live /students API + error mapping
 frontend/src/app/services/student-attendance.service.ts  # open sessions + submit + me
 frontend/src/app/features/attendance/pages/student-scan/  # scan UI + due dialog + history table + geofence submit
-frontend/src/app/core/utils/geolocation.util.ts       # getCurrentCoordinates(): browser GPS, null on deny/unsupported
+frontend/src/app/core/utils/geolocation.util.ts       # getCurrentCoordinates / watchDeviceLocation
+frontend/src/app/core/utils/geofence.util.ts          # Turf.js inside-zone preview
+frontend/src/app/shared/components/scan-map/          # Leaflet + OSM student pin + zone circle
 frontend/src/app/shared/components/table/            # My attendance app-table
 frontend/src/app/shared/components/confirm-dialog/   # due blocked confirm shell
 frontend/src/app/core/utils/date.util.ts             # formatSessionDue, isSessionPastDue, formatSessionOpened

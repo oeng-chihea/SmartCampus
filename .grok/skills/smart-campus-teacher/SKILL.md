@@ -50,7 +50,7 @@ Login uses Nest `POST /api/auth/login` and stores Bearer token in
 Login as teacher
   → Dashboard (optional)
   → Sessions
-  → Create session (dialog: title, location, due time today)
+  → Create session (dialog: title, location, due date + time)
   → Live QR on left (payload SMARTCAMPUS|sessionId|token)
   → Students see same live QR on /student/scan → Mark me present
        · Before dueAt → Present
@@ -66,7 +66,7 @@ Login as teacher
 
 | Concept | Meaning |
 |---------|---------|
-| **Due time** | Clock time **today** set at create (`dueAt` ISO). Teacher may pick **any** time today (including already passed). Students may mark present only **before** this time. |
+| **Due time** | Date + clock time set at create (`dueAt` ISO). Teacher may pick **any** calendar day and time (including already passed, or tomorrow). Students may mark present only **before** this instant. |
 | **After due** | Submit rejected (API 403). Session can stay **Open** until teacher **Close**. Students still see the card. |
 | **Close session** | Status Closed; QR stops; session **removed** from student open list. |
 | **QR TTL (300s)** | Short-lived QR **token** rotation only — not the same as due time. Do not show QR Expires on student UI. |
@@ -117,9 +117,9 @@ Requires `Authorization: Bearer <accessToken>`.
 
 ## UI notes for Sessions (teacher)
 
-- **Left:** Live QR · Short-lived session code · **Scan link** (`https://<lan-ip>:4200` from `GET /api/runtime/scan-origin`) · **Due** time for selected session  
+- **Left:** Live QR · Short-lived session code · **Scan link** (`https://<lan-ip>:4200` from `GET /api/runtime/scan-origin`) · **Due** date+time for selected session  
 - **Right:** Open attendance → **Create session** button → dialog form  
-- Create form fields: **title**, **location**, **due time** (`type="time"`, required, any clock time today — no “must be in the future” check)  
+- Create form fields: **title**, **location**, **due** (`type="date"` + `type="time"`, required, any calendar day — no “must be in the future” check)  
 - Not an always-visible create form  
 - Session log table (`app-table`) columns: Session · Location · Teacher · Opened · **Due** · Status · Actions  
 - **Actions (⋮ menu):**  
@@ -142,8 +142,8 @@ Requires `Authorization: Bearer <accessToken>`.
 
 | Field | Format | Example |
 |-------|--------|---------|
-| Opened | `M-D-YY/h:mmAm\|Pm` (no leading zeros; `Pm`/`Am` suffix) | `8-8-26/6:32Pm` |
-| Due | Clock only | `7:30Pm` |
+| Opened | `M-D-YY-h:mmAm\|Pm` (no leading zeros; hyphen before time; `Pm`/`Am` suffix) | `8-16-26-11:04Pm` |
+| Due | Same stamp as Opened (date + time) | `8-16-26-11:04Pm` |
 | Location (table + QR panel) | `Building-Room N` | `Building A-Room 201` |
 | Campus location (create dialog dropdown) | same | `Building A-Room 201` |
 

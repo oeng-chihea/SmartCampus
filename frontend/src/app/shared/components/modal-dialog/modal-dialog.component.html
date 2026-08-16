@@ -37,7 +37,13 @@
       <ng-content />
     </div>
 
-    <!-- Optional footer actions projected by the host module -->
-    <ng-content select="[modalFooter]" />
+    <!--
+      Footer stays pinned to the panel bottom. `.record-detail__actions` is
+      selected by class so every information dialog keeps that class and still
+      gets the full-width divider; `[modalFooter]` remains for other modules.
+    -->
+    <footer class="modal-dialog__footer">
+      <ng-content select="[modalFooter], .record-detail__actions" />
+    </footer>
   </div>
 </div>

@@ -14,6 +14,7 @@ import {
  * Generic modal shell for admin/teacher flows.
  *
  * - Layout: backdrop + panel + header (eyebrow/title/×) + projected body
+ * - Footer: `.record-detail__actions` or `[modalFooter]` sit below a hairline
  * - Module-specific fields / actions go in projected content
  * - Outside click / Escape: shake (lockDismiss) or emit closed
  * - Shake uses Web Animations API so it restarts on every outside click

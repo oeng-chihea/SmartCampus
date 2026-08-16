@@ -199,7 +199,7 @@
 }
 
 .data-table__primary strong,
-.data-table__primary span {
+.data-table__primary-subtitle {
   display: block;
   overflow-wrap: break-word;
 }
@@ -209,15 +209,52 @@
   font-weight: 700;
 }
 
-.data-table__primary span,
+.data-table__primary:has(.data-table__primary-title--truncate) {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.data-table__primary-title--truncate {
+  max-width: min(100%, 480px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.data-table__primary-subtitle,
 .data-table__row > .data-table__cell:not(.data-table__primary):not(.data-table__status-cell):not(.data-table__actions-cell) {
   color: var(--color-muted);
   min-width: 0;
 }
 
-.data-table__primary span {
-  font-size: 1rem;
-  margin-top: 3px;
+.data-table__primary-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin-top: 5px;
+  min-width: 0;
+}
+
+.data-table__primary-subtitle {
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+.data-table__accuracy {
+  background: var(--color-brand-soft);
+  border: 1px solid var(--color-brand-muted);
+  border-radius: var(--radius-pill);
+  color: var(--color-brand-deep);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  padding: 4px 8px;
+  white-space: nowrap;
 }
 
 .data-table__status-cell {
@@ -261,6 +298,7 @@
 
 .data-table__badge--active,
 .data-table__badge--present,
+.data-table__badge--inside,
 .data-table__badge--open {
   background: var(--color-brand-soft);
   color: var(--color-brand-strong);
@@ -273,16 +311,27 @@
 
 .data-table__badge--inactive,
 .data-table__badge--absent,
-.data-table__badge--closed {
+.data-table__badge--closed,
+.data-table__badge--empty {
   background: var(--color-brand-faint);
   border: 1px solid var(--border-subtle);
   color: var(--color-muted);
 }
 
-.data-table__badge--outside-location {
-  background: var(--color-brand-faint);
+.data-table__badge--outside-location,
+.data-table__badge--outside {
+  background: var(--color-danger-faint);
+  border: 1px solid var(--color-danger-soft);
+  color: var(--color-danger-strong);
+}
+
+.data-table__badge--distance {
+  background: var(--color-brand-soft);
   border: 1px solid var(--color-brand-muted);
-  color: var(--color-brand-strong);
+  color: var(--color-brand-deep);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  min-width: 4.75rem;
 }
 
 .data-table__actions-cell {
@@ -327,22 +376,75 @@
 
 .table-card--compact .data-table__cell,
 .table-card--compact .data-table__primary strong,
-.table-card--compact .data-table__primary span {
+.table-card--compact .data-table__primary-subtitle {
   hyphens: none;
   overflow-wrap: normal;
   white-space: nowrap;
   word-break: keep-all;
 }
 
-.table-card--compact .data-table__primary span {
-  font-size: 0.7rem;
+.table-card--compact .data-table__primary-meta {
+  flex-wrap: nowrap;
   margin-top: 2px;
+}
+
+.table-card--compact .data-table__primary-subtitle {
+  font-size: 0.7rem;
+}
+
+.table-card--compact .data-table__accuracy {
+  font-size: 0.64rem;
+  padding: 3px 7px;
 }
 
 .table-card--compact .data-table__badge {
   font-size: 0.7rem;
   min-width: 0;
   padding: 3px 8px;
+}
+
+.table-card--compact .data-table__badge--distance,
+.table-card--compact .data-table__badge--empty {
+  min-width: 4.25rem;
+}
+
+/*
+ * Attendance history — roomier tracks, two-line time, address ellipsis.
+ * Location / scanned-at shrink first; distance + status badges stay on one line.
+ */
+.table-card--comfortable .data-table {
+  overflow-x: auto;
+}
+
+.table-card--comfortable .data-table__row {
+  column-gap: clamp(24px, 2.6cqw, 32px);
+  padding: 16px 28px;
+}
+
+.table-card--comfortable .data-table__cell--scanned-at {
+  min-width: 0;
+  padding-inline-end: 8px;
+}
+
+.table-card--comfortable .data-table__primary-meta {
+  flex-wrap: nowrap;
+  gap: 8px 12px;
+}
+
+.table-card--comfortable .data-table__badge,
+.table-card--comfortable .data-table__badge--distance,
+.table-card--comfortable .data-table__badge--empty {
+  white-space: nowrap;
+}
+
+.table-card--comfortable
+  .data-table__row
+  > .data-table__cell:not(.data-table__primary):not(.data-table__status-cell):not(
+    .data-table__actions-cell
+  ) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @container (max-width: 720px) {
@@ -398,6 +500,10 @@
     text-transform: uppercase;
   }
 
+  .data-table__primary-meta {
+    grid-column: 2;
+  }
+
   /* Stacked mobile cards: keep values left under labels. */
   .data-table__status-cell,
   .data-table__status-cell.data-table__cell--center,
@@ -422,5 +528,22 @@
 
   .table-card--compact .data-table__row > [role='cell']::before {
     font-size: 0.68rem;
+  }
+
+  .table-card--comfortable .data-table {
+    overflow: visible;
+  }
+
+  .table-card--comfortable .data-table__row {
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .table-card--comfortable .data-table__cell--scanned-at {
+    padding-inline-end: 0;
+  }
+
+  .table-card--comfortable .data-table__primary-title--truncate {
+    max-width: 100%;
   }
 }
