@@ -42,7 +42,8 @@ Dialog opens
   - title (e.g. SE401 · Morning Lecture)
   - locationId — dropdown labels use Building A-Room 201 format
     (Active locations from GET /api/locations)
-  - dueTime (any clock time today, including already passed)
+  - dueDate + dueTime (any calendar day and clock time, including already passed
+    or tomorrow)
     → frontend builds dueAt ISO. Students can mark present only before dueAt.
   │
   │  submit "Create & show QR"
@@ -79,7 +80,7 @@ DELETE permanently removes the session + its attendance history
 
 | Timer / action | Who sets it | Student effect |
 |----------------|-------------|----------------|
-| **Due time** (`dueAt`) | Teacher at create (any clock time today) | After due: cannot mark/scan (dialog); card **stays** until Close |
+| **Due time** (`dueAt`) | Teacher at create (any date + clock time) | After due: cannot mark/scan (dialog); card **stays** until Close |
 | **Close session** | Teacher ⋮ Close | Session leaves `GET /api/sessions/open` → gone from student UI |
 | **QR token TTL** (~300s) | System auto-rotate | Old QR payload fails; new live token still works while Open and before due |
 
@@ -92,8 +93,8 @@ There is **no** “Late after (minutes)” field anymore.
 | Session | Title + session id |
 | Location | `Building A-Room 201` (`formatCampusLocationLabel`) |
 | Teacher | Teacher name |
-| Opened | `8-8-26/6:32Pm` (`formatSessionOpened`) |
-| Due | `7:30Pm` (`formatSessionDue`) — student mark-present cutoff |
+| Opened | `8-16-26-11:04Pm` (`formatSessionOpened`) |
+| Due | `8-16-26-11:04Pm` (`formatSessionDue`) — student mark-present cutoff |
 | Status | Open / Closed badge |
 | Actions | ⋮ menu — Show QR / Close / Delete (by status) |
 
@@ -232,7 +233,7 @@ Teacher session
 - [x] Display short-lived QR + Due on QR panel / table  
 - [x] Close session / stop QR (also drops from student open list; history kept)  
 - [x] Delete session (row + cascade attendance records for that sessionId)  
-- [x] Opened / Due columns (`M-D-YY/h:mmPm`, `h:mmPm`)  
+- [x] Opened / Due columns (`M-D-YY-h:mmPm`)  
 - [x] Student mark before due → Present; after due → blocked (dialog), card kept  
 
 - [ ] Server-side location validation on submit (next phase)  

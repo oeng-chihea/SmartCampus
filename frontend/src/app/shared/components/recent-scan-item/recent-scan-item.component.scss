@@ -95,7 +95,8 @@
   white-space: nowrap;
 }
 
-.status-present {
+.status-present,
+.status-inside {
   background: var(--color-brand-soft);
   color: var(--color-brand-strong);
 }
@@ -111,10 +112,11 @@
   color: var(--color-muted);
 }
 
-.status-outside-location {
-  background: var(--color-brand-faint);
-  border: 1px solid var(--color-brand-muted);
-  color: var(--color-brand-strong);
+.status-outside-location,
+.status-outside {
+  background: var(--color-danger-faint);
+  border: 1px solid var(--color-danger-soft);
+  color: var(--color-danger-strong);
 }
 
 @media (max-width: 560px) {

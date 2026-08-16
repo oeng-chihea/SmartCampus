@@ -397,6 +397,27 @@
   color: var(--color-danger-deep);
 }
 
+.session-create-form__due-row {
+  display: grid;
+  gap: clamp(8px, 1.2vw, 12px);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  min-width: 0;
+}
+
+.session-create-form__due-part {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.session-create-form__due-caption {
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
 .session-create-form__hint {
   color: var(--color-muted);
   font-size: 0.82rem;
@@ -493,6 +514,10 @@
   .sessions-page {
     gap: 12px;
     padding: 12px;
+  }
+
+  .session-create-form__due-row {
+    grid-template-columns: 1fr;
   }
 
   .session-create-form__actions {

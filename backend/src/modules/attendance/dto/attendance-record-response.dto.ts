@@ -4,6 +4,7 @@ export interface AttendanceRecordResponseDto {
   id: string;
   student: string;
   studentId: string;
+  sessionId: string;
   session: string;
   location: string;
   recordedAt: string;
@@ -20,4 +21,6 @@ export interface AttendanceRecordResponseDto {
   longitude: number | null;
   /** Reverse-geocoded place name of the device GPS. Null if lookup failed. */
   scannedLocation: string | null;
+  /** Browser-reported GPS accuracy in meters. Null on older rows. */
+  accuracyMeters: number | null;
 }

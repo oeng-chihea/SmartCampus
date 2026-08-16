@@ -7,6 +7,8 @@ export interface AttendanceRecord {
   id: string;
   student: string;
   studentId: string;
+  /** Owning live session id — used to match cards, not the display title. */
+  sessionId: string;
   session: string;
   location: string;
   recordedAt: string;
@@ -18,6 +20,8 @@ export interface AttendanceRecord {
   longitude: number | null;
   /** Reverse-geocoded place name of the device GPS. */
   scannedLocation: string | null;
+  /** Browser-reported GPS accuracy in meters. Null on older rows. */
+  accuracyMeters: number | null;
 }
 
 /**
@@ -29,6 +33,7 @@ export interface SubmitAttendanceRequest {
   payload: string;
   latitude?: number;
   longitude?: number;
+  accuracyMeters?: number;
 }
 
 /** Preview after QR decode — does not create a record. */

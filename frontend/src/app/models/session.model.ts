@@ -53,7 +53,7 @@ export interface SessionPickerSelection {
 export interface CreateSessionRequest {
   title: string;
   locationId: string;
-  /** Absolute due instant (ISO) built from local today + time input. */
+  /** Absolute due instant (ISO) built from the teacher’s local date + time. */
   dueAt: string;
 }
 
@@ -71,7 +71,11 @@ export interface SessionQrResponse {
 export interface OpenLiveSession {
   id: string;
   title: string;
+  locationId: string;
   locationName: string;
+  latitude: number;
+  longitude: number;
+  radiusMeters: number;
   teacherName: string;
   dueAt: string | null;
   openedAt: string;
@@ -87,6 +91,8 @@ export interface OpenLiveSessionCard extends OpenLiveSession {
 export interface SessionsFormState {
   title: string;
   locationId: string;
+  /** HTML date input value `YYYY-MM-DD` (local). */
+  dueDate: string;
   /** HTML time input value `HH:mm` (local). */
   dueTime: string;
 }

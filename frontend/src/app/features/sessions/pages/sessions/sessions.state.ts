@@ -1,4 +1,5 @@
 import { computed, Injectable, signal } from '@angular/core';
+import { defaultDueLocal } from '../../../../core/utils/date.util';
 import { FieldErrors } from '../../../../models/alert.model';
 import { CampusLocation } from '../../../../models/location.model';
 import {
@@ -29,7 +30,7 @@ export class SessionsPageState {
   /** Session awaiting delete confirmation (null = confirm dialog closed). */
   readonly deleteTarget = signal<AttendanceSession | null>(null);
 
-  /** Per-field create-form errors (title / locationId / dueTime). */
+  /** Per-field create-form errors (title / locationId / dueDate / dueTime). */
   readonly fieldErrors = signal<FieldErrors>({});
 
   // ── Domain data ───────────────────────────────────────────
@@ -44,7 +45,9 @@ export class SessionsPageState {
   // ── Dialog form (ngModel; plain fields) ───────────────────
   title = '';
   locationId = '';
-  /** HTML `type="time"` value (local HH:mm) — when attendance stops. */
+  /** HTML `type="date"` value (local YYYY-MM-DD) — calendar day attendance stops. */
+  dueDate = '';
+  /** HTML `type="time"` value (local HH:mm) — clock time attendance stops. */
   dueTime = '';
 
   /** Interval handle for QR rotation — not shown in the template. */
@@ -93,9 +96,10 @@ export class SessionsPageState {
   resetCreateForm(): void {
     this.title = '';
     this.locationId = this.defaultLocationId();
-    // Suggested start: 30 minutes from now. Teachers may change this to any time today.
-    const due = new Date(Date.now() + 30 * 60 * 1000);
-    this.dueTime = `${String(due.getHours()).padStart(2, '0')}:${String(due.getMinutes()).padStart(2, '0')}`;
+    // Suggested start: 30 minutes from now (rolls to tomorrow if that crosses midnight).
+    const due = defaultDueLocal(30);
+    this.dueDate = due.date;
+    this.dueTime = due.time;
     this.dialogError.set(null);
     this.fieldErrors.set({});
   }
@@ -279,6 +283,7 @@ export class SessionsPageState {
     return {
       title: this.title.trim(),
       locationId: this.locationId,
+      dueDate: this.dueDate.trim(),
       dueTime: this.dueTime.trim(),
     };
   }

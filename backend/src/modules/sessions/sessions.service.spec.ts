@@ -456,6 +456,29 @@ describe('SessionsService', () => {
     expect(otherPage.pagination.total).toBe(0);
   });
 
+  it('includes the campus zone coordinates on the student open list', async () => {
+    await service.create(
+      {
+        title: 'Live map session',
+        locationId: 'LOC-001',
+        dueAt: dueInMinutes(40),
+      },
+      teacher,
+    );
+
+    const live = await service.listOpenLive();
+    expect(live).toHaveLength(1);
+    expect(live[0]).toMatchObject({
+      title: 'Live map session',
+      locationId: 'LOC-001',
+      locationName: 'Building A, Room 201',
+      latitude: 11.5479313,
+      longitude: 104.9405941,
+      radiusMeters: 80,
+    });
+    expect(live[0].qr.payload).toContain('SMARTCAMPUS|');
+  });
+
   it('resolves an open session for student scan with a valid QR token', async () => {
     const dueAt = dueInMinutes(40);
     const created = await service.create(

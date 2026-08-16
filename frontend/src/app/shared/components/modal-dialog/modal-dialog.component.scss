@@ -48,6 +48,8 @@
   overflow: visible;
   transform-origin: center center;
   width: min(720px, calc(100vw - 40px));
+  /* Hairlines need more contrast than --border-subtle on a white panel */
+  --modal-dialog-rule: color-mix(in srgb, var(--color-brand-deep) 28%, #ffffff);
 }
 
 .modal-dialog--md {
@@ -72,7 +74,7 @@
 
 .modal-dialog__header {
   align-items: flex-start;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--modal-dialog-rule);
   display: flex;
   gap: clamp(12px, 2vw, 20px);
   justify-content: space-between;
@@ -138,6 +140,25 @@
   padding: clamp(20px, 2.8vw, 28px) clamp(24px, 3.5vw, 36px) clamp(24px, 3vw, 32px);
 }
 
+/*
+ * Full-width hairline above dialog actions. Hidden when no footer is projected.
+ */
+.modal-dialog__footer:not(:has(*)) {
+  display: none;
+}
+
+.modal-dialog:has(.record-detail__actions) .modal-dialog__body {
+  padding-bottom: clamp(12px, 1.6vw, 16px);
+}
+
+.modal-dialog__footer:has(.record-detail__actions) {
+  border-top: 1px solid var(--modal-dialog-rule);
+  flex: 0 0 auto;
+  margin-top: auto;
+  min-width: 0;
+  padding: clamp(14px, 2vw, 18px) clamp(24px, 3.5vw, 36px) clamp(18px, 2.4vw, 24px);
+}
+
 @keyframes modal-dialog-in {
   from {
     opacity: 0;
@@ -179,5 +200,9 @@
   .modal-dialog__body {
     gap: 14px;
     padding: 16px 18px 20px;
+  }
+
+  .modal-dialog__footer:has(.record-detail__actions) {
+    padding: 14px 18px 18px;
   }
 }

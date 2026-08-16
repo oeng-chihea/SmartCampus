@@ -33,7 +33,10 @@
       [columns]="visitColumns"
       [rows]="state.visits()"
       [showExport]="true"
-      [compact]="true"
+      [comfortable]="true"
+      [interactive]="true"
+      [activeRowId]="selectedVisit()?.id ?? null"
+      (rowSelect)="onVisitSelect($event)"
       [loading]="state.loading()"
       loadingMessage="Loading student location visits from API…"
       [emptyTitle]="
@@ -49,3 +52,65 @@
     />
   </section>
 </section>
+
+@if (selectedVisit(); as visit) {
+  <app-modal-dialog
+    eyebrow="Location visit"
+    [title]="visit.student"
+    closeAriaLabel="Close visit detail"
+    size="lg"
+    [spacious]="true"
+    [lockDismiss]="true"
+    (closed)="closeVisitDetail()"
+  >
+    <dl class="record-detail">
+      <div class="record-detail__item">
+        <dt>Student ID</dt>
+        <dd>{{ visit.studentId }}</dd>
+      </div>
+      <div class="record-detail__item">
+        <dt>Session</dt>
+        <dd>{{ visit.session }}</dd>
+      </div>
+      <div class="record-detail__item">
+        <dt>Location</dt>
+        <dd>{{ campusLabel(visit) }}</dd>
+      </div>
+      <div class="record-detail__item">
+        <dt>Building</dt>
+        <dd>{{ visit.building }}</dd>
+      </div>
+      <div class="record-detail__item record-detail__item--wide">
+        <dt>Scanned at</dt>
+        <dd>{{ visit.scannedLocation || coordinatesLabel(visit) }}</dd>
+      </div>
+      <div class="record-detail__item">
+        <dt>Coordinates</dt>
+        <dd>{{ coordinatesLabel(visit) }}</dd>
+      </div>
+      <div class="record-detail__item">
+        <dt>Accuracy</dt>
+        <dd>{{ accuracyLabel(visit) }}</dd>
+      </div>
+      <div class="record-detail__item">
+        <dt>Time</dt>
+        <dd>{{ recordedLabel(visit) }}</dd>
+      </div>
+      <div class="record-detail__item">
+        <dt>Distance</dt>
+        <dd>{{ distanceLabel(visit) }}</dd>
+      </div>
+      <div class="record-detail__item record-detail__item--wide">
+        <dt>Status</dt>
+        <dd>
+          <span [class]="statusClass(visit.status)">{{ visit.status }}</span>
+        </dd>
+      </div>
+    </dl>
+    <div class="record-detail__actions" modalFooter>
+      <button type="button" class="record-detail__close" (click)="closeVisitDetail()">
+        Close
+      </button>
+    </div>
+  </app-modal-dialog>
+}

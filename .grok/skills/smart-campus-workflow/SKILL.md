@@ -88,7 +88,7 @@ Read `references/page-flows.md` for the full route table and file map.
 | Any admin page | Sidebar → Attendance | `/attendance` |
 | Any admin page | Sidebar → Locations | `/locations` |
 | Any admin page | Sidebar → Sessions | `/sessions` (live: create + due time / QR / close / delete) |
-| Sessions | Create session (title, location, any due time today) | Same page; dueAt ISO; QR auto-refreshes ~30s |
+| Sessions | Create session (title, location, due date + time) | Same page; dueAt ISO; QR auto-refreshes ~30s |
 | Sessions | ⋮ → Close | Same page; Closed; students lose open card; history kept |
 | Sessions | ⋮ → Delete | Same page; session removed; **attendance for that sessionId cascaded** |
 | Any admin page | Sidebar → Reports | `/reports` (placeholder) |
@@ -197,11 +197,11 @@ API are live. Dashboard still uses mock JSON.
 ## Teacher role (short)
 
 Teachers share the admin shell but **cannot** open `/students`. Their primary
-live workflow is **`/sessions`**: create session dialog (**title, location, due time**)
+live workflow is **`/sessions`**: create session dialog (**title, location, due date + time**)
 → short-lived QR → **Close** (end class; drops student open list; history kept) and/or
 **Delete** (remove log row + cascade attendance by `sessionId`).
 
-Sessions table display: location `Building A-Room 201`, opened `8-8-26/6:32Pm`,
-due `7:30Pm`.
+Sessions table display: location `Building A-Room 201`, opened and due
+`8-16-26-11:04Pm`.
 
 Full teacher map: **`smart-campus-teacher`** + `references/teacher-workflow.md`.

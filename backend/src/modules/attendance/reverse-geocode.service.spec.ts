@@ -8,24 +8,72 @@ describe('ReverseGeocodeService', () => {
     jest.restoreAllMocks();
   });
 
-  it('returns a compact place name from Nominatim', async () => {
+  it('composes a street + area label from one Nominatim call', async () => {
     global.fetch = jest.fn(async () => ({
       ok: true,
       json: async () => ({
-        name: 'Institute of Technology of Cambodia',
-        display_name: 'Institute of Technology of Cambodia, Phnom Penh, Cambodia',
+        addresstype: 'road',
         address: {
-          amenity: 'Institute of Technology of Cambodia',
-          road: 'Russian Federation Boulevard',
-          city: 'Phnom Penh',
+          road: 'Street 430',
+          hamlet: 'Boeung Trabek',
+          village: 'Sangkat Phsar Daeum Thkov',
+          state: 'Phnom Penh',
         },
       }),
     })) as unknown as typeof fetch;
 
     const service = new ReverseGeocodeService();
-    await expect(service.lookup(11.5479313, 104.9405941)).resolves.toBe(
-      'Institute of Technology of Cambodia, Russian Federation Boulevard, Phnom Penh',
+    await expect(service.lookup(11.528405, 104.922953, 40)).resolves.toBe(
+      'Street 430, Boeung Trabek, Sangkat Phsar Daeum Thkov, Phnom Penh',
     );
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(String((global.fetch as jest.Mock).mock.calls[0][0])).toContain(
+      'layer=address',
+    );
+  });
+
+  it('uses a nearby building name from the same reverse payload', async () => {
+    global.fetch = jest.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        name: 'Rainbow Residences',
+        addresstype: 'residential',
+        lat: '11.52832',
+        lon: '104.92302',
+        address: {
+          residential: 'Rainbow Residences',
+          road: 'Street 430',
+          hamlet: 'Boeung Trabek',
+          village: 'Sangkat Phsar Daeum Thkov',
+          state: 'Phnom Penh',
+        },
+      }),
+    })) as unknown as typeof fetch;
+
+    const service = new ReverseGeocodeService();
+    await expect(service.lookup(11.528405, 104.922953, 40)).resolves.toBe(
+      'Rainbow Residences, Street 430, Boeung Trabek, Sangkat Phsar Daeum Thkov, Phnom Penh',
+    );
+  });
+
+  it('omits the street when accuracy is too coarse', async () => {
+    global.fetch = jest.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        addresstype: 'hamlet',
+        address: {
+          hamlet: 'Boeung Trabek',
+          village: 'Sangkat Phsar Daeum Thkov',
+          state: 'Phnom Penh',
+        },
+      }),
+    })) as unknown as typeof fetch;
+
+    const service = new ReverseGeocodeService();
+    await expect(service.lookup(11.528405, 104.922953, 220)).resolves.toBe(
+      'Boeung Trabek, Sangkat Phsar Daeum Thkov, Phnom Penh',
+    );
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
   it('returns null when Nominatim is down and does not throw', async () => {

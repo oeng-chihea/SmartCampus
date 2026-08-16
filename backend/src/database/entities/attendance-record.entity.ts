@@ -51,4 +51,8 @@ export class AttendanceRecordEntity {
   /** Human place name from reverse geocode of the device GPS. */
   @Column({ name: 'scanned_location', type: 'varchar', length: 255, nullable: true })
   scannedLocation!: string | null;
+
+  /** Browser-reported GPS accuracy in meters. Null on older rows. */
+  @Column({ name: 'accuracy_meters', type: 'double', nullable: true })
+  accuracyMeters!: number | null;
 }

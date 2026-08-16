@@ -1,11 +1,21 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { formatSessionOpened } from '../../../../core/utils/date.util';
-import { formatScannedAtCell } from '../../../../core/utils/format.util';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import {
+  formatAttendanceDateTime,
+  formatAttendanceDateTimeLabel,
+} from '../../../../core/utils/date.util';
+import {
+  distanceBadgeVariant,
+  formatDistanceMeters,
+  formatScanAccuracy,
+  formatScanCoordinates,
+  formatScannedAtCell,
+} from '../../../../core/utils/format.util';
 import {
   AttendanceFilterState,
   AttendanceRecord,
 } from '../../../../models/attendance.model';
 import { AttendanceFilterComponent } from '../../../../shared/components/attendance-filter/attendance-filter.component';
+import { ModalDialogComponent } from '../../../../shared/components/modal-dialog/modal-dialog.component';
 import { StatCardComponent } from '../../../../shared/components/stat-card/stat-card.component';
 import { TableComponent } from '../../../../shared/components/table/table.component';
 import { TableColumn } from '../../../../shared/components/table/table.model';
@@ -23,7 +33,12 @@ import { AdminRecordsState } from './admin-records.state';
  */
 @Component({
   selector: 'app-admin-records',
-  imports: [StatCardComponent, AttendanceFilterComponent, TableComponent],
+  imports: [
+    StatCardComponent,
+    AttendanceFilterComponent,
+    TableComponent,
+    ModalDialogComponent,
+  ],
   templateUrl: './admin-records.component.html',
   styleUrl: './admin-records.component.scss',
   providers: [AdminRecordsState, AdminRecordsFlow],
@@ -33,52 +48,66 @@ export class AdminRecordsComponent implements OnInit {
   readonly state = inject(AdminRecordsState);
   private readonly flow = inject(AdminRecordsFlow);
 
+  /** Row opened in the shared detail dialog. */
+  readonly selectedRecord = signal<AttendanceRecord | null>(null);
+
   /** Attendance scan-log columns (titles owned by this page). */
   readonly attendanceColumns: TableColumn<AttendanceRecord>[] = [
     {
       key: 'student',
       header: 'Student',
       type: 'primary',
-      width: 'minmax(max-content, 1.25fr)',
+      width: 'minmax(7rem, 0.85fr)',
       primary: (row) => ({ title: row.student, subtitle: row.studentId }),
     },
     {
       key: 'session',
       header: 'Session',
-      width: 'minmax(max-content, 1.1fr)',
+      width: 'minmax(6.5rem, 0.75fr)',
       value: (row) => row.session,
     },
     {
       key: 'location',
       header: 'Location',
-      width: 'minmax(max-content, 1.1fr)',
+      width: 'minmax(0, 0.65fr)',
       value: (row) => row.location,
     },
     {
       key: 'scannedAt',
       header: 'Scanned at',
       type: 'primary',
-      width: 'minmax(max-content, 1.3fr)',
+      width: 'minmax(16rem, 2.5fr)',
+      cellClass: 'data-table__cell--scanned-at',
       primary: (row) =>
-        formatScannedAtCell(row.scannedLocation, row.latitude, row.longitude),
+        formatScannedAtCell(
+          row.scannedLocation,
+          row.latitude,
+          row.longitude,
+          row.accuracyMeters,
+        ),
     },
     {
       key: 'time',
       header: 'Time',
-      width: 'minmax(max-content, 0.85fr)',
-      value: (row) => formatSessionOpened(row.recordedAt),
+      type: 'primary',
+      width: 'minmax(7.25rem, 1.05fr)',
+      primary: (row) => formatAttendanceDateTime(row.recordedAt),
     },
     {
       key: 'distance',
       header: 'Distance',
-      width: 'minmax(max-content, 0.45fr)',
-      value: (row) => (row.distanceMeters == null ? '—' : `${row.distanceMeters} m`),
+      type: 'badge',
+      width: 'minmax(5.75rem, 0.8fr)',
+      align: 'start',
+      value: (row) => formatDistanceMeters(row.distanceMeters),
+      badgeVariant: (row) => distanceBadgeVariant(row.distanceMeters),
     },
     {
       key: 'status',
       header: 'Status',
       type: 'badge',
-      width: 'minmax(max-content, 0.7fr)',
+      width: 'minmax(9.5rem, 0.95fr)',
+      align: 'start',
       value: (row) => row.status,
       badgeVariant: (row) => row.status.toLowerCase().replace(/\s+/g, '-'),
     },
@@ -90,5 +119,33 @@ export class AdminRecordsComponent implements OnInit {
 
   onFilterApply(filters: AttendanceFilterState): void {
     void this.flow.applyFilters(filters);
+  }
+
+  onRecordSelect(record: AttendanceRecord): void {
+    this.selectedRecord.set(record);
+  }
+
+  closeRecordDetail(): void {
+    this.selectedRecord.set(null);
+  }
+
+  coordinatesLabel(record: AttendanceRecord): string {
+    return formatScanCoordinates(record.latitude, record.longitude);
+  }
+
+  accuracyLabel(record: AttendanceRecord): string {
+    return formatScanAccuracy(record.accuracyMeters) ?? '—';
+  }
+
+  distanceLabel(record: AttendanceRecord): string {
+    return formatDistanceMeters(record.distanceMeters);
+  }
+
+  recordedLabel(record: AttendanceRecord): string {
+    return formatAttendanceDateTimeLabel(record.recordedAt);
+  }
+
+  statusClass(status: string): string {
+    return `record-detail__badge record-detail__badge--${status.toLowerCase().replace(/\s+/g, '-')}`;
   }
 }

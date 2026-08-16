@@ -113,6 +113,11 @@ describe('AttendanceService', () => {
         ({ ...data }) as AttendanceRecordEntity,
       ),
       save: jest.fn(async (entity: AttendanceRecordEntity) => {
+        const byId = recordStore.find((row) => row.id === entity.id);
+        if (byId) {
+          Object.assign(byId, entity);
+          return byId;
+        }
         const dup = recordStore.find(
           (row) =>
             row.studentId === entity.studentId &&
@@ -128,6 +133,7 @@ describe('AttendanceService', () => {
         recordStore.push(entity);
         return entity;
       }),
+      update: jest.fn(async () => ({ affected: 1 })),
       find: jest.fn(async ({ where }: { where: { userId: string } }) =>
         recordStore
           .filter((row) => row.userId === where.userId)
@@ -199,7 +205,7 @@ describe('AttendanceService', () => {
     const { payload } = await openSessionWithPayload(45);
     // LOC-001 is KIT Phnom Penh (11.5479313, 104.9405941), 80m radius.
     const record = await attendance.submit(
-      { payload, latitude: 11.54795, longitude: 104.94061 },
+      { payload, latitude: 11.54795, longitude: 104.94061, accuracyMeters: 18 },
       student,
     );
 
@@ -207,11 +213,13 @@ describe('AttendanceService', () => {
     expect(record.student).toBe('Sok Dara');
     expect(record.studentId).toBe('SC-1024');
     expect(record.session).toBe('SE401 · Morning Lecture');
+    expect(record.sessionId).toMatch(/^sess-/);
     expect(record.location).toContain('Building A');
     expect(record.distanceMeters).not.toBeNull();
     expect(record.latitude).toBe(11.54795);
     expect(record.longitude).toBe(104.94061);
     expect(record.scannedLocation).toContain('Institute of Technology of Cambodia');
+    expect(record.accuracyMeters).toBe(18);
     expect(record.id).toMatch(/^att-/);
   });
 
@@ -235,7 +243,7 @@ describe('AttendanceService', () => {
     const { payload } = await openSessionWithPayload(45);
     // LOC-001 is KIT Phnom Penh (11.5479313, 104.9405941), 80m radius.
     const record = await attendance.submit(
-      { payload, latitude: 11.54795, longitude: 104.94061 },
+      { payload, latitude: 11.54795, longitude: 104.94061, accuracyMeters: 12 },
       student,
     );
 
@@ -250,7 +258,7 @@ describe('AttendanceService', () => {
     const { payload } = await openSessionWithPayload(45);
     // Same session (LOC-001, 80m radius) but far outside coordinates.
     const record = await attendance.submit(
-      { payload, latitude: 11.6, longitude: 105.0 },
+      { payload, latitude: 11.6, longitude: 105.0, accuracyMeters: 20 },
       student,
     );
 
@@ -279,7 +287,11 @@ describe('AttendanceService', () => {
 
   it('rejects duplicate submit for the same student and session', async () => {
     const { payload } = await openSessionWithPayload();
-    const coords = { latitude: 11.5479313, longitude: 104.9405941 };
+    const coords = {
+      latitude: 11.5479313,
+      longitude: 104.9405941,
+      accuracyMeters: 18,
+    };
     await attendance.submit({ payload, ...coords }, student);
 
     await expect(

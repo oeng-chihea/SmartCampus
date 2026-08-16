@@ -143,10 +143,10 @@ When implementing API modules:
    locations/sessions/QR/delete. Page layout:
    - State → `sessions.state.ts`, flow → `sessions.flow.ts`, shell → component
    - Session log via shared `app-table`; ⋮ actions: **Show QR**, **Close**, **Delete**
-   - Create form: title, location, **due time** (any clock time today) → `dueAt` ISO
+   - Create form: title, location, **due date + time** (any calendar day) → `dueAt` ISO
      (no “must be 1 minute ahead” check; replaces removed **Late after**)
-   - Display helpers: `formatSessionOpened` → `8-8-26/6:32Pm`;
-     `formatSessionDue` → `7:30Pm`; `isSessionPastDue` for student gate;
+   - Display helpers: `formatSessionOpened` / `formatSessionDue` → `8-16-26-11:04Pm`;
+     `isSessionPastDue` for student gate;
      `formatCampusLocationLabel` → `Building A-Room 201` (table + create dialog)
    - QR deep links use `GET /api/runtime/scan-origin` (`https://<lan-ip>:4200`)
      so phones get a secure context for Safari GPS (HTTP LAN cannot prompt)
@@ -168,19 +168,18 @@ When implementing API modules:
    (`POST /api/locations/visits`) with assigned zone, student GPS, and a
    reverse-geocoded `scannedLocation` place name persisted at submit;
    the zone catalog stays on `GET /api/locations` for session create.
-   **Geofence check (FR-02, live) — hard location gate:** before submit, the
-   flow reads `getCurrentCoordinates()` (browser Geolocation API,
-   `core/utils/geolocation.util.ts`). If denied/unsupported/timed out, the
-   flow **does not call the API at all** — it opens a "Cannot mark present /
-   Try again" confirm dialog (`StudentScanPageState.locationBlocked`) whose
-   confirm action retries the same submit (re-prompting for permission). If a
-   fix is obtained, `{ latitude, longitude }` is sent with the payload and the
-   backend's `AttendanceService.requireCoordinates` + `evaluateGeofence`
-   compare it to the session's `LocationEntity` via Haversine
-   (`common/utils/geo.util.ts`): inside `radiusMeters` → **Present**; outside
-   → **Outside Location** (still recorded). A request with no coordinates at
-   all is rejected server-side too (400) — this is defense in depth in case
-   the API is called directly, bypassing the UI.
+   **Geofence check (FR-02, live) — hard location gate:** the scan page
+   watches device GPS (`getCurrentCoordinates` / `watchDeviceLocation` in
+   `core/utils/geolocation.util.ts`) and draws it on **Leaflet + OSM**
+   (`app-scan-map`) with a Turf.js circle preview (`core/utils/geofence.util.ts`).
+   If GPS is denied/unsupported/timed out, the flow **does not call the API**
+   — "Cannot mark present / Try again". A granted fix (including the live
+   watch reading) is submitted immediately as
+   `{ latitude, longitude, accuracyMeters }`. The backend remains the
+   authority: `evaluateGeofence` (Haversine vs `radiusMeters`) → **Present**
+   or **Outside Location**. The stored name is one Nominatim reverse of the
+   scan GPS (street + sangkat; no Overpass wait on submit).
+   A request with no coordinates is rejected (400).
 9. Live student accounts: `StudentService` (frontend) ↔ `StudentsModule`/
    `UsersModule` (Nest, TypeORM users + students tables). When adding account
    features, keep the link `users.student_id` ↔ `students.student_id` and

@@ -1,39 +1,88 @@
-import { afterEach, describe, expect, it } from 'vitest';
-import { getCurrentCoordinates } from './geolocation.util';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { getCurrentCoordinates, watchDeviceLocation } from './geolocation.util';
 
-function stubGeolocation(
-  impl: (
+const FIXED_TIMESTAMP = 1_723_795_860_000;
+
+function stubGeolocation(impl: {
+  getCurrentPosition: (
     success: PositionCallback,
     error?: PositionErrorCallback,
-  ) => void,
-): void {
+  ) => void;
+  watchPosition?: (
+    success: PositionCallback,
+    error?: PositionErrorCallback,
+  ) => number;
+  clearWatch?: (id: number) => void;
+}): void {
   Object.defineProperty(globalThis.navigator, 'geolocation', {
     configurable: true,
-    value: { getCurrentPosition: impl },
+    value: impl,
   });
+}
+
+function position(
+  latitude: number,
+  longitude: number,
+  accuracy?: number,
+): GeolocationPosition {
+  return {
+    coords: { latitude, longitude, accuracy },
+    timestamp: FIXED_TIMESTAMP,
+  } as GeolocationPosition;
 }
 
 describe('geolocation.util', () => {
   afterEach(() => {
     Reflect.deleteProperty(globalThis.navigator, 'geolocation');
+    vi.useRealTimers();
   });
 
-  it('resolves coordinates on success', async () => {
-    stubGeolocation((success) => {
-      success({
-        coords: { latitude: 11.5479313, longitude: 104.9405941 },
-      } as GeolocationPosition);
+  it('resolves coordinates on success when watchPosition is unavailable', async () => {
+    stubGeolocation({
+      getCurrentPosition: (success) => {
+        success(position(11.5479313, 104.9405941, 18));
+      },
     });
 
     await expect(getCurrentCoordinates()).resolves.toEqual({
       ok: true,
-      coords: { latitude: 11.5479313, longitude: 104.9405941 },
+      coords: {
+        latitude: 11.5479313,
+        longitude: 104.9405941,
+        accuracyMeters: 18,
+        timestampMs: FIXED_TIMESTAMP,
+      },
+    });
+  });
+
+  it('accepts the first reading immediately, including a coarse fix', async () => {
+    stubGeolocation({
+      getCurrentPosition: (success) => {
+        success(position(11.52832, 104.922968, 68));
+      },
+      watchPosition: (success) => {
+        success(position(11.52832, 104.922968, 68));
+        return 7;
+      },
+      clearWatch: () => undefined,
+    });
+
+    await expect(getCurrentCoordinates()).resolves.toEqual({
+      ok: true,
+      coords: {
+        latitude: 11.52832,
+        longitude: 104.922968,
+        accuracyMeters: 68,
+        timestampMs: FIXED_TIMESTAMP,
+      },
     });
   });
 
   it('reports denied when the browser rejects the request', async () => {
-    stubGeolocation((_success, error) => {
-      error?.({ code: 1, message: 'denied' } as GeolocationPositionError);
+    stubGeolocation({
+      getCurrentPosition: (_success, error) => {
+        error?.({ code: 1, message: 'denied' } as GeolocationPositionError);
+      },
     });
 
     await expect(getCurrentCoordinates()).resolves.toEqual({
@@ -42,12 +91,17 @@ describe('geolocation.util', () => {
     });
   });
 
-  it('reports timeout when the GPS fix times out', async () => {
-    stubGeolocation((_success, error) => {
-      error?.({ code: 3, message: 'timeout' } as GeolocationPositionError);
+  it('reports timeout when no reading arrives at all', async () => {
+    vi.useFakeTimers();
+    stubGeolocation({
+      getCurrentPosition: () => undefined,
+      watchPosition: () => 1,
+      clearWatch: () => undefined,
     });
 
-    await expect(getCurrentCoordinates()).resolves.toEqual({
+    const pending = getCurrentCoordinates(5_000);
+    await vi.advanceTimersByTimeAsync(5_000);
+    await expect(pending).resolves.toEqual({
       ok: false,
       reason: 'timeout',
     });
@@ -59,5 +113,33 @@ describe('geolocation.util', () => {
       ok: false,
       reason: 'unsupported',
     });
+  });
+
+  it('watchDeviceLocation emits live fixes and can be stopped', () => {
+    const clearWatch = vi.fn();
+    stubGeolocation({
+      getCurrentPosition: () => undefined,
+      watchPosition: (success) => {
+        success(position(11.528, 104.923, 40));
+        return 3;
+      },
+      clearWatch,
+    });
+
+    const seen: unknown[] = [];
+    const stop = watchDeviceLocation((result) => seen.push(result));
+    expect(seen).toEqual([
+      {
+        ok: true,
+        coords: {
+          latitude: 11.528,
+          longitude: 104.923,
+          accuracyMeters: 40,
+          timestampMs: FIXED_TIMESTAMP,
+        },
+      },
+    ]);
+    stop();
+    expect(clearWatch).toHaveBeenCalledWith(3);
   });
 });

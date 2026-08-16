@@ -113,10 +113,6 @@ export class AttendanceService {
       dto,
       await this.locationsService.findOne(session.locationId),
     );
-    const scannedLocation = await this.reverseGeocode.lookup(
-      dto.latitude as number,
-      dto.longitude as number,
-    );
 
     const record = this.records.create({
       id: this.nextRecordId(),
@@ -131,11 +127,13 @@ export class AttendanceService {
       distanceMeters,
       latitude: dto.latitude as number,
       longitude: dto.longitude as number,
-      scannedLocation,
+      scannedLocation: null,
+      accuracyMeters: dto.accuracyMeters ?? null,
     });
 
     try {
       await this.records.save(record);
+      await this.attachScannedLocation(record, dto);
     } catch (error) {
       // Race: unique (student_id, session_id) constraint
       if (this.isDuplicateKeyError(error)) {
@@ -375,6 +373,42 @@ export class AttendanceService {
     return studentId;
   }
 
+  /**
+   * Name lookup must not block the scan. Wait up to 1s for a single
+   * Nominatim call; if it is still running, return the saved row and
+   * patch `scannedLocation` when the name arrives.
+   */
+  private async attachScannedLocation(
+    record: AttendanceRecordEntity,
+    dto: SubmitAttendanceDto,
+  ): Promise<void> {
+    const lookup = this.reverseGeocode.lookup(
+      dto.latitude as number,
+      dto.longitude as number,
+      dto.accuracyMeters,
+    );
+
+    const scannedLocation = await withTimeout(lookup, 1_000);
+
+    if (scannedLocation) {
+      record.scannedLocation = scannedLocation;
+      await this.records.save(record);
+      return;
+    }
+
+    void lookup
+      .then(async (lateName) => {
+        if (!lateName) {
+          return;
+        }
+        await this.records.update(
+          { id: record.id },
+          { scannedLocation: lateName },
+        );
+      })
+      .catch(() => undefined);
+  }
+
   private async findByStudentAndSession(
     studentId: string,
     sessionId: string,
@@ -390,6 +424,7 @@ export class AttendanceService {
       id: record.id,
       student: record.student,
       studentId: record.studentId,
+      sessionId: record.sessionId,
       session: record.session,
       location: record.location,
       recordedAt: iso,
@@ -399,6 +434,7 @@ export class AttendanceService {
       latitude: record.latitude ?? null,
       longitude: record.longitude ?? null,
       scannedLocation: record.scannedLocation ?? null,
+      accuracyMeters: record.accuracyMeters ?? null,
     };
   }
 
@@ -417,5 +453,22 @@ export class AttendanceService {
       message.includes('Duplicate entry') ||
       message.includes('UQ_attendance_student_session')
     );
+  }
+}
+
+async function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
   }
 }

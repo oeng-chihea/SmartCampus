@@ -1,6 +1,7 @@
 <section
   class="table-card"
   [class.table-card--compact]="compact()"
+  [class.table-card--comfortable]="comfortable()"
   [attr.aria-labelledby]="headingId()"
 >
   <div class="table-card__header">
@@ -36,6 +37,7 @@
               [class.data-table__cell--start]="isStartAligned(column)"
               [class.data-table__cell--end]="isEndAligned(column)"
               [class.data-table__cell--center]="isCenterAligned(column)"
+              [class]="column.cellClass || null"
             >{{ column.header }}</span>
           }
         </div>
@@ -61,10 +63,26 @@
                     [class.data-table__cell--start]="isStartAligned(column)"
                     [class.data-table__cell--end]="isEndAligned(column)"
                     [class.data-table__cell--center]="isCenterAligned(column)"
+                    [class]="column.cellClass || null"
                   >
-                    <strong>{{ primaryValue(column, row).title }}</strong>
-                    @if (primaryValue(column, row).subtitle; as subtitle) {
-                      <span>{{ subtitle }}</span>
+                    @if (primaryValue(column, row); as primary) {
+                      <strong
+                        [class.data-table__primary-title--truncate]="primary.truncate"
+                        [attr.title]="primary.titleAttr ?? (primary.truncate ? primary.title : null)"
+                      >{{ primary.title }}</strong>
+                      @if (primary.subtitle || primary.chip) {
+                        <span class="data-table__primary-meta">
+                          @if (primary.subtitle) {
+                            <span class="data-table__primary-subtitle">{{ primary.subtitle }}</span>
+                          }
+                          @if (primary.chip; as chip) {
+                            <span
+                              class="data-table__accuracy"
+                              [attr.title]="chip.title ?? chip.label"
+                            >{{ chip.label }}</span>
+                          }
+                        </span>
+                      }
                     }
                   </div>
                 }
@@ -76,6 +94,7 @@
                     [class.data-table__cell--start]="isStartAligned(column)"
                     [class.data-table__cell--end]="isEndAligned(column)"
                     [class.data-table__cell--center]="isCenterAligned(column)"
+                    [class]="column.cellClass || null"
                   >
                     <span [class]="badgeClass(column, row)">{{ badgeLabel(column, row) }}</span>
                   </div>
@@ -88,6 +107,7 @@
                     [class.data-table__cell--start]="isStartAligned(column)"
                     [class.data-table__cell--end]="isEndAligned(column)"
                     [class.data-table__cell--center]="isCenterAligned(column)"
+                    [class]="column.cellClass || null"
                   >
                     @if (visibleActions(column, row); as actions) {
                       @if (actions.length > 0) {
@@ -110,6 +130,7 @@
                     [class.data-table__cell--start]="isStartAligned(column)"
                     [class.data-table__cell--end]="isEndAligned(column)"
                     [class.data-table__cell--center]="isCenterAligned(column)"
+                    [class]="column.cellClass || null"
                   >{{ textValue(column, row) }}</span>
                 }
               }

@@ -2,6 +2,10 @@
 export interface DeviceCoordinates {
   latitude: number;
   longitude: number;
+  /** Horizontal accuracy in meters. Null when the browser omits it. */
+  accuracyMeters: number | null;
+  /** `GeolocationPosition.timestamp` (ms since epoch). */
+  timestampMs?: number;
 }
 
 export type GeolocationFailureReason =
@@ -13,13 +17,20 @@ export type GeolocationFailureReason =
 
 export type GeolocationReadResult =
   | { ok: true; coords: DeviceCoordinates }
-  | { ok: false; reason: GeolocationFailureReason };
+  | { ok: false; reason: GeolocationFailureReason; coords?: DeviceCoordinates };
 
 const DEFAULT_TIMEOUT_MS = 8_000;
 
+const GEO_OPTIONS: PositionOptions = {
+  enableHighAccuracy: true,
+  timeout: DEFAULT_TIMEOUT_MS,
+  maximumAge: 0,
+};
+
 /**
  * Reads the student's current position for the attendance geofence check
- * (FR-02). Never throws — callers treat `ok: false` as a hard submit block.
+ * (FR-02). Uses the first available fix so submit is not delayed.
+ * Never throws.
  */
 export function getCurrentCoordinates(
   timeoutMs = DEFAULT_TIMEOUT_MS,
@@ -28,24 +39,141 @@ export function getCurrentCoordinates(
     return Promise.resolve({ ok: false, reason: 'insecure' });
   }
 
-  if (!('geolocation' in navigator)) {
+  if (!('geolocation' in navigator) || !navigator.geolocation) {
     return Promise.resolve({ ok: false, reason: 'unsupported' });
   }
 
+  const geo = navigator.geolocation;
+  const canWatch = typeof geo.watchPosition === 'function';
+  const options: PositionOptions = {
+    ...GEO_OPTIONS,
+    timeout: timeoutMs,
+  };
+
   return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (position) =>
-        resolve({
-          ok: true,
-          coords: {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          },
-        }),
-      (error) => resolve({ ok: false, reason: reasonFromPositionError(error) }),
-      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 0 },
-    );
+    let settled = false;
+    let best: DeviceCoordinates | null = null;
+    let watchId: number | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const finish = (result: GeolocationReadResult) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (watchId != null && typeof geo.clearWatch === 'function') {
+        geo.clearWatch(watchId);
+      }
+      if (timeoutId != null) {
+        clearTimeout(timeoutId);
+      }
+      resolve(result);
+    };
+
+    const consider = (position: GeolocationPosition) => {
+      const next = coordsFromPosition(position);
+      if (!best || isBetterFix(next, best)) {
+        best = next;
+      }
+      if (best) {
+        finish({ ok: true, coords: best });
+      }
+    };
+
+    const fail = (error?: GeolocationPositionError) => {
+      const reason = reasonFromPositionError(error);
+      if (reason === 'denied') {
+        finish({ ok: false, reason: 'denied', coords: best ?? undefined });
+        return;
+      }
+      if (!canWatch) {
+        finish(finishFromBest(best, reason));
+      }
+    };
+
+    timeoutId = setTimeout(() => {
+      finish(finishFromBest(best, 'timeout'));
+    }, timeoutMs);
+
+    geo.getCurrentPosition(consider, fail, options);
+
+    if (!canWatch) {
+      return;
+    }
+
+    watchId = geo.watchPosition(consider, fail, options);
   });
+}
+
+/**
+ * Live GPS feed for the scan map. Returns a stop function.
+ * Emits every new reading so the pin can move.
+ */
+export function watchDeviceLocation(
+  onChange: (result: GeolocationReadResult) => void,
+): () => void {
+  if (typeof window !== 'undefined' && window.isSecureContext === false) {
+    onChange({ ok: false, reason: 'insecure' });
+    return () => undefined;
+  }
+
+  if (!('geolocation' in navigator) || !navigator.geolocation) {
+    onChange({ ok: false, reason: 'unsupported' });
+    return () => undefined;
+  }
+
+  const geo = navigator.geolocation;
+  if (typeof geo.watchPosition !== 'function') {
+    geo.getCurrentPosition(
+      (position) => onChange({ ok: true, coords: coordsFromPosition(position) }),
+      (error) => onChange({ ok: false, reason: reasonFromPositionError(error) }),
+      GEO_OPTIONS,
+    );
+    return () => undefined;
+  }
+
+  const watchId = geo.watchPosition(
+    (position) => onChange({ ok: true, coords: coordsFromPosition(position) }),
+    (error) => onChange({ ok: false, reason: reasonFromPositionError(error) }),
+    GEO_OPTIONS,
+  );
+
+  return () => {
+    if (typeof geo.clearWatch === 'function') {
+      geo.clearWatch(watchId);
+    }
+  };
+}
+
+function finishFromBest(
+  best: DeviceCoordinates | null,
+  fallback: GeolocationFailureReason,
+): GeolocationReadResult {
+  if (best) {
+    return { ok: true, coords: best };
+  }
+  return { ok: false, reason: fallback };
+}
+
+function coordsFromPosition(position: GeolocationPosition): DeviceCoordinates {
+  const accuracy = position.coords.accuracy;
+  const timestamp = position.timestamp;
+  return {
+    latitude: position.coords.latitude,
+    longitude: position.coords.longitude,
+    accuracyMeters: Number.isFinite(accuracy) ? Math.round(accuracy) : null,
+    timestampMs: Number.isFinite(timestamp) ? timestamp : Date.now(),
+  };
+}
+
+function isBetterFix(next: DeviceCoordinates, current: DeviceCoordinates): boolean {
+  if (next.accuracyMeters == null) {
+    return current.accuracyMeters == null;
+  }
+  if (current.accuracyMeters == null) {
+    return true;
+  }
+  return next.accuracyMeters < current.accuracyMeters;
 }
 
 function reasonFromPositionError(

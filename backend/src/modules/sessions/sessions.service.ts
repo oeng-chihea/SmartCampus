@@ -342,10 +342,15 @@ export class SessionsService {
     session: SessionEntity,
   ): Promise<OpenSessionLiveDto> {
     await this.ensureFreshQr(session);
+    const location = await this.locationsService.findOne(session.locationId);
     return {
       id: session.id,
       title: session.title,
+      locationId: location.id,
       locationName: session.locationName,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      radiusMeters: location.radiusMeters,
       teacherName: session.teacherName,
       dueAt: session.dueAt ? toIsoDate(session.dueAt) : null,
       openedAt: toIsoDate(session.openedAt),
@@ -401,7 +406,7 @@ export class SessionsService {
     const dueAt = new Date(raw);
     if (Number.isNaN(dueAt.getTime())) {
       throw new BadRequestException(
-        'Due time is invalid. Choose a valid time for today.',
+        'Due time is invalid. Choose a valid date and time.',
       );
     }
     return dueAt;

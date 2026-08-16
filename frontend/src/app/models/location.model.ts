@@ -57,6 +57,8 @@ export interface LocationVisit {
   longitude: number | null;
   /** Reverse-geocoded place name of the student's scan point. */
   scannedLocation: string | null;
+  /** Browser-reported GPS accuracy in meters. Null on older rows. */
+  accuracyMeters: number | null;
 }
 
 export interface LocationVisitMetrics {
