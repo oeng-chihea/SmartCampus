@@ -60,7 +60,7 @@ export class TableComponent<T = unknown> {
 
   readonly gridTemplate = computed(() =>
     this.columns()
-      .map((column) => column.width ?? 'minmax(0, 1fr)')
+      .map((column) => column.width ?? 'minmax(7.5rem, 1fr)')
       .join(' '),
   );
 

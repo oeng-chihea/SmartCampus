@@ -23,7 +23,12 @@
       <p>{{ emptyMessage() }}</p>
     </div>
   } @else {
-    <div class="data-table" role="table" [attr.aria-label]="tableAriaLabel()">
+    <div
+      class="data-table"
+      role="table"
+      [attr.aria-label]="tableAriaLabel()"
+      [style.--table-columns]="gridTemplate()"
+    >
       <div class="data-table__grid">
         <div
           class="data-table__row data-table__row--head"
@@ -34,6 +39,7 @@
             <span
               role="columnheader"
               class="data-table__cell"
+              [class.data-table__cell--actions]="cellType(column) === 'actions'"
               [class.data-table__cell--start]="isStartAligned(column)"
               [class.data-table__cell--end]="isEndAligned(column)"
               [class.data-table__cell--center]="isCenterAligned(column)"
@@ -127,6 +133,7 @@
                     role="cell"
                     class="data-table__cell"
                     [attr.data-label]="column.header"
+                    [attr.title]="textValue(column, row)"
                     [class.data-table__cell--start]="isStartAligned(column)"
                     [class.data-table__cell--end]="isEndAligned(column)"
                     [class.data-table__cell--center]="isCenterAligned(column)"

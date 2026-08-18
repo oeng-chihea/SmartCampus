@@ -112,7 +112,13 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   min-width: 0;
+  overflow: visible;
   padding: clamp(14px, 1.6vw, 18px);
+}
+
+.sessions-page__workspace > app-table {
+  min-width: 0;
+  width: 100%;
 }
 
 .sessions-page__panel-head p,
