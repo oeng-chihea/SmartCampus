@@ -111,8 +111,8 @@ export class SessionsComponent implements OnInit, OnDestroy {
         key: 'actions',
         header: 'Actions',
         type: 'actions',
-        // Keep Actions compact and independent of Status alignment.
-        width: '4.5rem',
+        // Wide enough for the ⋮ trigger + last-column padding so it never clips.
+        width: 'minmax(5.5rem, 6rem)',
         align: 'center',
         actions: (row) => {
           const busy = closingId === row.id || deletingId === row.id;

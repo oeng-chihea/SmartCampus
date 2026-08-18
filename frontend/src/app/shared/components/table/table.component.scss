@@ -88,38 +88,67 @@
 }
 
 .data-table {
+  --table-pad-inline: 16px;
+  --table-col-gap: clamp(12px, 1.6cqw, 18px);
   margin-top: 14px;
+  max-width: 100%;
   min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+.data-table:has(.app-action-menu-host--open) {
   overflow: visible;
 }
 
 .data-table__grid {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  display: grid;
-  gap: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   min-width: 100%;
   overflow: visible;
-  width: 100%;
+  width: max-content;
 }
 
 .data-table__row {
   align-items: center;
   background: var(--surface);
   border-bottom: 1px solid var(--border-subtle);
-  column-gap: clamp(14px, 1.8cqw, 22px);
+  box-sizing: border-box;
+  column-gap: var(--table-col-gap);
   display: grid;
-  font-size: 1rem;
-  min-width: 0;
-  padding: 12px 16px;
+  flex: 0 0 auto;
+  font-size: 0.95rem;
+  grid-template-columns: var(--table-columns);
+  min-width: 100%;
+  padding: 12px 0;
   position: relative;
   row-gap: 0;
-  width: 100%;
+  width: max-content;
   z-index: 0;
 }
 
 .data-table__row:has(.app-action-menu-host--open) {
   z-index: 4;
+}
+
+@supports (grid-template-columns: subgrid) {
+  .data-table__grid {
+    display: grid;
+    grid-template-columns: var(--table-columns);
+    width: max(100%, min-content);
+  }
+
+  .data-table__row {
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    min-width: 0;
+    width: auto;
+  }
 }
 
 .data-table__row:first-child {
@@ -165,7 +194,7 @@
 .data-table__row--head {
   background: var(--surface-muted);
   color: var(--color-muted);
-  font-size: 1rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -173,13 +202,29 @@
 
 .data-table__row--head > .data-table__cell {
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 /* Shared cell alignment (headers + body stay on the same edge). */
 .data-table__cell {
+  box-sizing: border-box;
   min-width: 0;
+  overflow: hidden;
   text-align: start;
+}
+
+.data-table__row > :first-child {
+  background: inherit;
+  padding-inline-start: var(--table-pad-inline);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.data-table__row > :last-child {
+  padding-inline-end: var(--table-pad-inline);
 }
 
 .data-table__cell--start {
@@ -201,7 +246,8 @@
 .data-table__primary strong,
 .data-table__primary-subtitle {
   display: block;
-  overflow-wrap: break-word;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .data-table__primary strong {
@@ -215,16 +261,32 @@
 }
 
 .data-table__primary-title--truncate {
-  max-width: min(100%, 480px);
+  max-width: 20rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.data-table__cell--scanned-at {
+  max-width: 22rem;
+}
+
 .data-table__primary-subtitle,
-.data-table__row > .data-table__cell:not(.data-table__primary):not(.data-table__status-cell):not(.data-table__actions-cell) {
+.data-table__row
+  > .data-table__cell:not(.data-table__primary):not(.data-table__status-cell):not(
+    .data-table__actions-cell
+  ) {
   color: var(--color-muted);
   min-width: 0;
+}
+
+.data-table__row
+  > .data-table__cell:not(.data-table__primary):not(.data-table__status-cell):not(
+    .data-table__actions-cell
+  ) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .data-table__primary-meta {
@@ -260,15 +322,19 @@
 .data-table__status-cell {
   display: flex;
   justify-content: flex-start;
-  min-width: 0;
+  min-width: max-content;
+  overflow: visible;
   width: 100%;
 }
 
 .data-table__status-cell.data-table__cell--start {
   justify-content: flex-start;
   margin-inline: 0;
-  padding-inline-end: 0.85rem;
   padding-inline-start: 0;
+}
+
+.data-table__row > .data-table__status-cell:not(:last-child) {
+  padding-inline-end: 0.85rem;
 }
 
 .data-table__status-cell.data-table__cell--center {
@@ -336,8 +402,10 @@
 
 .data-table__actions-cell {
   display: flex;
+  flex: 0 0 auto;
   justify-content: flex-start;
-  min-width: 0;
+  min-width: 2.5rem;
+  overflow: visible;
 }
 
 .data-table__actions-cell.data-table__cell--center {
@@ -346,6 +414,16 @@
 
 .data-table__actions-cell.data-table__cell--end {
   justify-content: flex-end;
+}
+
+.data-table__row > .data-table__actions-cell,
+.data-table__row--head > .data-table__cell--actions {
+  background: inherit;
+  min-width: 3.25rem;
+  overflow: visible;
+  position: sticky;
+  right: 0;
+  z-index: 2;
 }
 
 .data-table__muted {
@@ -357,24 +435,20 @@
  * Hyphenated timestamps (8-14-26/12:46Am) wrap at `-` unless nowrap is set.
  */
 .table-card--compact .data-table {
-  overflow-x: auto;
-}
-
-.table-card--compact .data-table__grid {
-  min-width: max-content;
+  --table-pad-inline: 12px;
+  --table-col-gap: 12px;
 }
 
 .table-card--compact .data-table__row {
-  column-gap: 12px;
   font-size: 0.75rem;
-  padding: 8px 12px;
+  padding: 8px 0;
 }
 
 .table-card--compact .data-table__row--head {
   font-size: 0.68rem;
 }
 
-.table-card--compact .data-table__cell,
+.table-card--compact .data-table__cell:not(.data-table__actions-cell),
 .table-card--compact .data-table__primary strong,
 .table-card--compact .data-table__primary-subtitle {
   hyphens: none;
@@ -413,17 +487,26 @@
  * Location / scanned-at shrink first; distance + status badges stay on one line.
  */
 .table-card--comfortable .data-table {
-  overflow-x: auto;
+  --table-pad-inline: 18px;
+  --table-col-gap: clamp(14px, 1.8cqw, 20px);
 }
 
 .table-card--comfortable .data-table__row {
-  column-gap: clamp(24px, 2.6cqw, 32px);
-  padding: 16px 28px;
+  padding: 14px 0;
 }
 
 .table-card--comfortable .data-table__cell--scanned-at {
+  max-width: 22rem;
   min-width: 0;
   padding-inline-end: 8px;
+}
+
+.table-card--comfortable .data-table__status-cell {
+  min-width: max-content;
+}
+
+.table-card--comfortable .data-table__badge {
+  font-size: 0.82rem;
 }
 
 .table-card--comfortable .data-table__primary-meta {
@@ -447,6 +530,21 @@
   white-space: nowrap;
 }
 
+@container (max-width: 1100px) {
+  .data-table {
+    --table-pad-inline: 14px;
+    --table-col-gap: 12px;
+  }
+
+  .data-table__row {
+    font-size: 0.88rem;
+  }
+
+  .data-table__row--head {
+    font-size: 0.7rem;
+  }
+}
+
 @container (max-width: 720px) {
   .table-card__header {
     flex-direction: column;
@@ -457,13 +555,19 @@
   }
 
   .data-table {
+    --table-pad-inline: 0px;
+    --table-col-gap: 10px;
     overflow: visible;
   }
 
   .data-table__grid {
     border: 0;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
+    min-width: 0;
     overflow: visible;
+    width: 100%;
   }
 
   .data-table__row--head {
@@ -475,9 +579,19 @@
     background: var(--surface-muted);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
-    gap: 10px;
+    column-gap: 10px;
     grid-template-columns: 1fr !important;
+    min-width: 0;
     padding: 14px;
+    width: 100%;
+  }
+
+  .data-table__row > :first-child,
+  .data-table__row > :last-child,
+  .data-table__row > .data-table__actions-cell,
+  .data-table__row--head > .data-table__cell--actions {
+    padding-inline: 0;
+    position: static;
   }
 
   .data-table__row:last-child {
@@ -489,12 +603,14 @@
     display: grid;
     gap: 6px;
     grid-template-columns: minmax(96px, 0.4fr) minmax(0, 1fr);
+    overflow: visible;
+    white-space: normal;
   }
 
   .data-table__row > [role='cell']::before {
     color: var(--color-muted);
     content: attr(data-label);
-    font-size: 1rem;
+    font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -517,21 +633,12 @@
     text-align: start;
   }
 
-  /* Compact stacked cards: keep values on one line; drop the desktop min-width. */
-  .table-card--compact .data-table {
-    overflow: visible;
-  }
-
   .table-card--compact .data-table__grid {
     min-width: 0;
   }
 
   .table-card--compact .data-table__row > [role='cell']::before {
     font-size: 0.68rem;
-  }
-
-  .table-card--comfortable .data-table {
-    overflow: visible;
   }
 
   .table-card--comfortable .data-table__row {
@@ -543,7 +650,12 @@
     padding-inline-end: 0;
   }
 
-  .table-card--comfortable .data-table__primary-title--truncate {
+  .table-card--comfortable .data-table__primary-title--truncate,
+  .table-card--comfortable .data-table__cell--scanned-at {
     max-width: 100%;
+  }
+
+  .data-table__status-cell {
+    min-width: 0;
   }
 }
