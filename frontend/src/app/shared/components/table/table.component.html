@@ -11,7 +11,14 @@
       <span class="table-card__count">{{ countLabel() }}</span>
     </div>
     @if (showExport()) {
-      <button type="button" (click)="onExport()">Export</button>
+      <button
+        type="button"
+        [disabled]="exporting()"
+        [attr.aria-busy]="exporting()"
+        (click)="onExport()"
+      >
+        {{ exporting() ? 'Exporting…' : 'Export' }}
+      </button>
     }
   </div>
 

@@ -6,15 +6,18 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomBytes } from 'crypto';
-import { In, Repository } from 'typeorm';
+import { FindOptionsWhere, In, IsNull, Not, Repository } from 'typeorm';
 import { QR_PAYLOAD_PREFIX } from '../../common/constants/session.constant';
 import {
+  ADMIN_ATTENDANCE_STATUS_OPTIONS,
   ATTENDANCE_STATUS,
+  AttendanceCheckInStatus,
   AttendanceStatus,
 } from '../../common/constants/status.constant';
 import { USER_ROLES } from '../../common/constants/roles.constant';
 import { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { toIsoDate } from '../../common/utils/date.util';
+import { ExcelFile } from '../../common/utils/excel.util';
 import {
   GeoCoordinates,
   haversineDistanceMeters,
@@ -22,10 +25,12 @@ import {
 } from '../../common/utils/geo.util';
 import { AttendanceRecordEntity } from '../../database/entities/attendance-record.entity';
 import { SessionEntity } from '../../database/entities/session.entity';
+import { StudentEntity } from '../../database/entities/student.entity';
 import { AuthService } from '../auth/auth.service';
 import { CampusLocationResponseDto } from '../locations/dto/location-response.dto';
 import { LocationsService } from '../locations/locations.service';
 import { SessionsService } from '../sessions/sessions.service';
+import { buildAttendanceExcel } from './attendance-excel';
 import { AdminAttendanceFilterDto } from './dto/admin-attendance-filter.dto';
 import {
   AdminAttendanceMetricsDto,
@@ -51,6 +56,8 @@ export class AttendanceService {
     private readonly records: Repository<AttendanceRecordEntity>,
     @InjectRepository(SessionEntity)
     private readonly sessions: Repository<SessionEntity>,
+    @InjectRepository(StudentEntity)
+    private readonly students: Repository<StudentEntity>,
     private readonly sessionsService: SessionsService,
     private readonly locationsService: LocationsService,
     private readonly authService: AuthService,
@@ -159,24 +166,27 @@ export class AttendanceService {
       where: { userId: actor.userId },
       order: { recordedAt: 'DESC' },
     });
+    const scans = rows.filter(
+      (row) => row.status !== ATTENDANCE_STATUS.absent,
+    );
 
-    if (rows.length === 0) {
+    if (scans.length === 0) {
       return [];
     }
 
-    const sessionIds = [...new Set(rows.map((row) => row.sessionId))];
+    const sessionIds = [...new Set(scans.map((row) => row.sessionId))];
     const existing = await this.sessions.find({
       where: { id: In(sessionIds) },
       select: { id: true },
     });
     const existingIds = new Set(existing.map((session) => session.id));
 
-    const orphans = rows.filter((row) => !existingIds.has(row.sessionId));
+    const orphans = scans.filter((row) => !existingIds.has(row.sessionId));
     if (orphans.length > 0) {
       await this.records.delete(orphans.map((row) => row.id));
     }
 
-    return rows
+    return scans
       .filter((row) => existingIds.has(row.sessionId))
       .map((row) => this.toResponse(row));
   }
@@ -190,7 +200,10 @@ export class AttendanceService {
   async findAdminRecords(
     dto: AdminAttendanceFilterDto,
     actor: AuthenticatedUser,
+    now: Date = new Date(),
   ): Promise<AdminAttendanceResponseDto> {
+    await this.reconcileAbsents(actor, now);
+
     const qb = this.records
       .createQueryBuilder('record')
       .orderBy('record.recorded_at', 'DESC');
@@ -209,8 +222,24 @@ export class AttendanceService {
       });
     }
 
-    if (dto.status) {
-      qb.andWhere('record.status = :status', { status: dto.status });
+    if (dto.status === 'inside') {
+      qb.andWhere('record.status = :insideStatus', {
+        insideStatus: ATTENDANCE_STATUS.present,
+      });
+    } else if (dto.status === 'outside') {
+      qb.andWhere('record.status = :outsideStatus', {
+        outsideStatus: ATTENDANCE_STATUS.outsideLocation,
+      });
+    }
+
+    if (dto.attendanceStatus === ATTENDANCE_STATUS.absent) {
+      qb.andWhere('record.status = :checkInStatus', {
+        checkInStatus: ATTENDANCE_STATUS.absent,
+      });
+    } else if (dto.attendanceStatus === ATTENDANCE_STATUS.present) {
+      qb.andWhere('record.status != :absentStatus', {
+        absentStatus: ATTENDANCE_STATUS.absent,
+      });
     }
 
     if (dto.date) {
@@ -234,8 +263,130 @@ export class AttendanceService {
     return {
       records: rows.map((row) => this.toResponse(row)),
       metrics: this.buildAdminMetrics(rows),
-      statusOptions: this.uniqueStatuses(rows),
+      statusOptions: ADMIN_ATTENDANCE_STATUS_OPTIONS,
     };
+  }
+
+  /**
+   * Same filters and role scope as `findAdminRecords`, returned as an .xlsx
+   * workbook (full scanned-at text, Unicode-safe).
+   */
+  async exportAdminExcel(
+    dto: AdminAttendanceFilterDto,
+    actor: AuthenticatedUser,
+    now: Date = new Date(),
+  ): Promise<ExcelFile> {
+    const page = await this.findAdminRecords(dto, actor, now);
+    return buildAttendanceExcel(page, dto, now);
+  }
+
+  /**
+   * Persist Absent rows only after the session due time.
+   * Until dueAt, Attendance lists scanners only — never the full student roster.
+   * Close does not write absents early. Premature Absent rows (from an earlier
+   * load while due was already treated as past) are removed if due is still ahead.
+   */
+  async reconcileAbsents(
+    actor: AuthenticatedUser,
+    now: Date = new Date(),
+  ): Promise<void> {
+    const where: FindOptionsWhere<SessionEntity> = {};
+    if (actor.role === USER_ROLES.teacher) {
+      where.teacherId = actor.userId;
+    }
+
+    const visible = await this.sessions.find({ where });
+    const pendingDue: SessionEntity[] = [];
+
+    for (const session of visible) {
+      if (!this.isDuePassed(session, now)) {
+        await this.clearPrematureAbsents(session);
+        continue;
+      }
+      if (!session.absentsFinalized) {
+        pendingDue.push(session);
+      }
+    }
+
+    if (pendingDue.length === 0) {
+      return;
+    }
+
+    const roster = (
+      await this.students.find({
+        where: { userId: Not(IsNull()) },
+      })
+    ).filter((student) => Boolean(student.userId));
+
+    for (const session of pendingDue) {
+      await this.finalizeSessionAbsents(session, roster, now);
+    }
+  }
+
+  /** Same gate as student scan: no dueAt means the window is still open. */
+  private isDuePassed(session: SessionEntity, now: Date): boolean {
+    if (!session.dueAt) {
+      return false;
+    }
+    return now.getTime() >= new Date(session.dueAt).getTime();
+  }
+
+  private async clearPrematureAbsents(session: SessionEntity): Promise<void> {
+    await this.records.delete({
+      sessionId: session.id,
+      status: ATTENDANCE_STATUS.absent,
+    });
+    if (session.absentsFinalized) {
+      session.absentsFinalized = false;
+      await this.sessions.save(session);
+    }
+  }
+
+  private async finalizeSessionAbsents(
+    session: SessionEntity,
+    roster: StudentEntity[],
+    now: Date,
+  ): Promise<void> {
+    const existing = await this.records.find({
+      where: { sessionId: session.id },
+      select: { studentId: true },
+    });
+    const recordedIds = new Set(existing.map((row) => row.studentId));
+    const recordedAt = session.dueAt ?? session.closedAt ?? now;
+
+    for (const student of roster) {
+      if (!student.userId || recordedIds.has(student.studentId)) {
+        continue;
+      }
+
+      try {
+        await this.records.save(
+          this.records.create({
+            id: this.nextRecordId(),
+            userId: student.userId,
+            student: student.name,
+            studentId: student.studentId,
+            sessionId: session.id,
+            session: session.title,
+            location: session.locationName,
+            recordedAt,
+            status: ATTENDANCE_STATUS.absent,
+            distanceMeters: null,
+            latitude: null,
+            longitude: null,
+            scannedLocation: null,
+            accuracyMeters: null,
+          }),
+        );
+      } catch (error) {
+        if (!this.isDuplicateKeyError(error)) {
+          throw error;
+        }
+      }
+    }
+
+    session.absentsFinalized = true;
+    await this.sessions.save(session);
   }
 
   /**
@@ -270,6 +421,10 @@ export class AttendanceService {
       present: this.countStatus(rows, ATTENDANCE_STATUS.present),
       late: this.countStatus(rows, ATTENDANCE_STATUS.late),
       absent: this.countStatus(rows, ATTENDANCE_STATUS.absent),
+      outsideLocation: this.countStatus(
+        rows,
+        ATTENDANCE_STATUS.outsideLocation,
+      ),
     };
   }
 
@@ -278,14 +433,6 @@ export class AttendanceService {
     status: AttendanceStatus,
   ): number {
     return rows.reduce((total, row) => total + (row.status === status ? 1 : 0), 0);
-  }
-
-  /** Real statuses in stable canonical order (Present, Late, Absent, Outside Location). */
-  private uniqueStatuses(rows: AttendanceRecordEntity[]): AttendanceStatus[] {
-    const present = new Set(rows.map((row) => row.status as AttendanceStatus));
-    return (Object.values(ATTENDANCE_STATUS) as AttendanceStatus[]).filter(
-      (status) => present.has(status),
-    );
   }
 
   /**
@@ -430,12 +577,19 @@ export class AttendanceService {
       recordedAt: iso,
       submittedAt: iso,
       status: record.status as AttendanceStatus,
+      attendanceStatus: this.toCheckInStatus(record.status),
       distanceMeters: record.distanceMeters,
       latitude: record.latitude ?? null,
       longitude: record.longitude ?? null,
       scannedLocation: record.scannedLocation ?? null,
       accuracyMeters: record.accuracyMeters ?? null,
     };
+  }
+
+  private toCheckInStatus(status: string): AttendanceCheckInStatus {
+    return status === ATTENDANCE_STATUS.absent
+      ? ATTENDANCE_STATUS.absent
+      : ATTENDANCE_STATUS.present;
   }
 
   private nextRecordId(): string {

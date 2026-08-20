@@ -1,10 +1,19 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import type { Response } from 'express';
 import { USER_ROLES } from '../../common/constants/roles.constant';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { sendExcelFile } from '../../common/utils/excel-response';
 import { AttendanceService } from './attendance.service';
 import { AdminAttendanceFilterDto } from './dto/admin-attendance-filter.dto';
 import { SubmitAttendanceDto } from './dto/submit-attendance.dto';
@@ -58,5 +67,22 @@ export class AttendanceController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.attendanceService.findAdminRecords(body, user);
+  }
+
+  /**
+   * Excel download of the admin/teacher attendance log.
+   * Body is the same filter payload as POST /attendance/admin.
+   */
+  @Post('admin/excel')
+  @Roles(USER_ROLES.admin, USER_ROLES.teacher)
+  async exportAdminExcel(
+    @Body() body: AdminAttendanceFilterDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @Res() res: Response,
+  ): Promise<void> {
+    sendExcelFile(
+      res,
+      await this.attendanceService.exportAdminExcel(body ?? {}, user),
+    );
   }
 }

@@ -4,6 +4,10 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { API_ENDPOINTS } from '../core/constants/api-endpoints';
 import {
+  downloadBlob,
+  filenameFromContentDisposition,
+} from '../core/utils/download.util';
+import {
   CampusLocation,
   LocationFilterState,
   LocationVisitFilterRequest,
@@ -48,6 +52,30 @@ export class LocationService {
         this.url(API_ENDPOINTS.locationVisits),
         this.toFilterRequest(state),
         { headers: this.authHeaders() },
+      ),
+    );
+  }
+
+  /** Download the current visit filters as an .xlsx from POST /locations/visits/excel. */
+  async exportVisitsExcel(
+    filters: Partial<LocationFilterState> = {},
+  ): Promise<void> {
+    const state = { ...DEFAULT_FILTERS, ...filters };
+    const response = await firstValueFrom(
+      this.http.post(this.url(API_ENDPOINTS.locationVisitsExcel), this.toFilterRequest(state), {
+        headers: this.authHeaders(),
+        responseType: 'blob',
+        observe: 'response',
+      }),
+    );
+    if (!response.body) {
+      throw new Error('The Excel export was empty.');
+    }
+    downloadBlob(
+      response.body,
+      filenameFromContentDisposition(
+        response.headers.get('Content-Disposition'),
+        'location-visits.xlsx',
       ),
     );
   }

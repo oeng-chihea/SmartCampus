@@ -12,7 +12,7 @@ Last reviewed against the Angular routes, Sessions live API, and role skills.
 | `/auth` (empty) | — | redirect → `login` | — | Active |
 | `/dashboard` | AdminLayout | `DashboardComponent` | auth + admin\|teacher | Active (mock data) |
 | `/students` | AdminLayout | `StudentsComponent` | auth + **admin only** | **Live API** directory + create account + login toggle |
-| `/attendance` | AdminLayout | `AdminRecordsComponent` | auth + admin\|teacher | Active (mock data) |
+| `/attendance` | AdminLayout | `AdminRecordsComponent` | auth + admin\|teacher | **Live API** Present + Absent (teachers: own sessions) |
 | `/locations` | AdminLayout | `LocationsComponent` | auth + admin\|teacher | **Live API** student visit log + API filters (assigned zone + scan GPS) |
 | `/sessions` | AdminLayout | `SessionsComponent` | auth + admin\|teacher | **Live API** create / QR / **edit** / close / **delete** |
 | `/reports` | AdminLayout | `AdminPlaceholderPageComponent` | auth + admin\|teacher | Placeholder |
@@ -65,6 +65,7 @@ Browser                Guards              AuthService           Pages
    | click Attendance    |                      |                   |
    | routerLink /attendance                     |                   |
    |-------------------->| ok                   |  AdminRecords     |
+   | POST /api/attendance/admin                 |  Present + Absent |
    | Sign out            |                      | logout()          |
    | navigate /auth/login                       | clear storage     |
 ```
@@ -144,8 +145,11 @@ Any /dashboard|/students|... request:
 /locations (loads)
   → POST /api/locations/visits {} → student visit rows + unfiltered metrics
        (empty until a student scans QR or marks present)
-  → LocationFilter Apply → POST /api/locations/visits { search?, building?, status? }
+  → Building / Status dropdowns (and search) apply immediately — no Apply button
+       → POST /api/locations/visits { search?, building?, status? }
        (server-side; body visible in Network)
+  → Export → POST /api/locations/visits/excel (same body) → location-visits-YYYY-MM-DD.xlsx
+       (ExcelJS; full scanned-at text; teacher sees own sessions only)
   → Table columns: Student · Session · Location (assigned zone) · Building
        · Scanned at (place name + GPS) · Distance · Status · Recorded
   → No row dialog — every visit fact is a column
@@ -227,7 +231,7 @@ Detailed flow: `.grok/skills/smart-campus-student/references/student-account-flo
 | Student history route | In-page “My scans” only | `/student/history` route |
 | Reports page | Placeholder | Export / analytics |
 | Dashboard UI | Mock JSON | Optional live API later |
-| Teacher live feed of scans | Not built | Session-side attendance list |
+| Teacher live feed of scans | **Live on `/attendance`** — Present + Absent for the teacher's sessions after due/close | Optional live list on Sessions |
 | Student account bulk import | Admin creates one-by-one | CSV/SIS import + first-login password reset |
 | Persistence | In-memory sessions/locations/scans | TypeORM / MySQL later |
 | Courses / requests / notifications | Mentioned in older plans | Not in attendance-first nav |

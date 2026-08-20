@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import ExcelJS from 'exceljs';
 import { Repository } from 'typeorm';
 import { USER_ROLES } from '../../common/constants/roles.constant';
 import { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
@@ -165,6 +166,7 @@ describe('LocationsService', () => {
         let searchNeedle: string | undefined;
         let building: string | undefined;
         let status: string | undefined;
+        let excludeStatus: string | undefined;
 
         const applyFilters = (): AttendanceRecordEntity[] => {
           return records
@@ -185,6 +187,9 @@ describe('LocationsService', () => {
                 return false;
               }
               if (building && location.building !== building) {
+                return false;
+              }
+              if (excludeStatus && row.status === excludeStatus) {
                 return false;
               }
               if (status && row.status !== status) {
@@ -227,6 +232,9 @@ describe('LocationsService', () => {
               }
               if (params?.status) {
                 status = params.status;
+              }
+              if (params?.absentStatus) {
+                excludeStatus = params.absentStatus;
               }
               if (params?.needle) {
                 searchNeedle = String(params.needle).replace(/%/g, '');
@@ -361,6 +369,60 @@ describe('LocationsService', () => {
     expect(byStatus.visits).toHaveLength(1);
     expect(byStatus.visits[0].studentId).toBe('SC-1024');
     expect(byStatus.metrics.outsideLocation).toBe(1);
+  });
+
+  it('excludes Absent attendance rows from the visit log', async () => {
+    records.push({
+      id: 'att-absent',
+      student: 'Missing',
+      studentId: 'SC-1099',
+      sessionId: 'ses-a',
+      session: 'SE401',
+      location: 'Building A, Room 201',
+      recordedAt: new Date('2026-08-14T12:00:00Z'),
+      status: 'Absent',
+      distanceMeters: null,
+      latitude: null,
+      longitude: null,
+    } as AttendanceRecordEntity);
+
+    const page = await service.findVisits({}, admin);
+    expect(page.visits.map((visit) => visit.id)).not.toContain('att-absent');
+    expect(page.visits).toHaveLength(3);
+  });
+
+  it('exports filtered visits as an xlsx workbook with full scanned-at text', async () => {
+    const now = new Date(2026, 7, 20, 12, 0, 0);
+    const file = await service.exportVisitsExcel(
+      { status: 'Present' },
+      admin,
+      now,
+    );
+
+    expect(file.filename).toBe('location-visits-2026-08-20.xlsx');
+    expect(file.buffer.subarray(0, 2).toString()).toBe('PK');
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(file.buffer);
+    const sheet = workbook.getWorksheet('Location visits');
+    expect(sheet).toBeDefined();
+    expect(sheet?.getRow(1).getCell(1).value).toBe('Student');
+    const headers: string[] = [];
+    sheet?.getRow(1).eachCell((cell) => headers.push(String(cell.value ?? '')));
+    expect(headers).not.toContain('GPS accuracy (m)');
+    expect(sheet?.rowCount).toBeGreaterThan(1);
+    const scannedAtValues: string[] = [];
+    sheet?.eachRow((row, index) => {
+      if (index > 1) {
+        scannedAtValues.push(String(row.getCell(7).value ?? ''));
+      }
+    });
+    expect(
+      scannedAtValues.some((value) =>
+        value.includes('Institute of Technology of Cambodia'),
+      ),
+    ).toBe(true);
+    expect(workbook.getWorksheet('Summary')).toBeDefined();
   });
 });
 

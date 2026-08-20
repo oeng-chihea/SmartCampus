@@ -5,11 +5,12 @@ export interface AdminAttendanceMetricsDto {
   present: number;
   late: number;
   absent: number;
+  outsideLocation: number;
 }
 
 export interface AdminAttendanceResponseDto {
   records: AttendanceRecordResponseDto[];
   metrics: AdminAttendanceMetricsDto;
-  /** Real statuses present in the data (stable canonical order). */
+  /** Live filter values: Present, Absent, Outside Location. */
   statusOptions: AttendanceStatus[];
 }

@@ -30,6 +30,13 @@ export class SessionEntity {
   status!: string;
 
   /**
+   * True after Absent rows have been written for this session's roster.
+   * Prevents students created later from being backfilled onto old sessions.
+   */
+  @Column({ name: 'absents_finalized', type: 'boolean', default: false })
+  absentsFinalized!: boolean;
+
+  /**
    * When student mark-present / scan stops being accepted.
    * Session may stay Open until the teacher closes it manually.
    * Nullable for rows created before the due-time feature.

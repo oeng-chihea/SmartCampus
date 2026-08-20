@@ -7,7 +7,7 @@
         name="search"
         [placeholder]="filters().searchPlaceholder"
         [ngModel]="search()"
-        (ngModelChange)="search.set($event)"
+        (ngModelChange)="onSearchChange($event)"
       />
     </label>
 
@@ -42,7 +42,18 @@
         name="status"
         [options]="filters().statusOptions"
         [ngModel]="status()"
-        (ngModelChange)="status.set($event)"
+        (ngModelChange)="onStatusChange($event)"
+        [compact]="true"
+      />
+    </label>
+
+    <label>
+      <span>Attendance status</span>
+      <app-select-dropdown
+        name="attendanceStatus"
+        [options]="filters().attendanceStatusOptions"
+        [ngModel]="attendanceStatus()"
+        (ngModelChange)="onAttendanceStatusChange($event)"
         [compact]="true"
       />
     </label>
@@ -53,12 +64,10 @@
         name="date"
         [options]="filters().dateOptions"
         [ngModel]="date()"
-        (ngModelChange)="date.set($event)"
+        (ngModelChange)="onDateChange($event)"
         [compact]="true"
       />
     </label>
-
-    <button type="submit">Apply</button>
   </div>
 </form>
 

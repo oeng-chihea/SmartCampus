@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { messageFromHttpError } from '../../../../core/utils/http-error.util';
 import { AttendanceFilterState } from '../../../../models/attendance.model';
 import { AttendanceService } from '../../../../services/attendance.service';
 import { AdminRecordsState } from './admin-records.state';
@@ -39,6 +40,25 @@ export class AdminRecordsFlow {
   async applyFilters(filters: AttendanceFilterState): Promise<void> {
     this.state.setFilters(filters);
     await this.fetchRecords();
+  }
+
+  async exportExcel(): Promise<void> {
+    if (this.state.exporting()) {
+      return;
+    }
+    this.state.beginExport();
+    try {
+      await this.attendanceService.exportAdminExcel(this.state.getFilters());
+    } catch (error) {
+      this.state.setPageError(
+        await messageFromHttpError(
+          error,
+          'Could not export attendance records. Try again.',
+        ),
+      );
+    } finally {
+      this.state.endExport();
+    }
   }
 
   private async fetchRecords(): Promise<void> {

@@ -34,7 +34,7 @@ Login uses Nest `POST /api/auth/login` and stores Bearer token in
 |------------|------------|-------------|
 | Sign in / sign out | `/auth/login`, sidebar | Live API login |
 | View dashboard summary | `/dashboard` | Mock JSON |
-| Review attendance records + filters | `/attendance` | Mock JSON |
+| Review attendance records + filters | `/attendance` | **Live API** (own sessions; Present + Absent) |
 | Review student location visits (assigned zone + scanned-at GPS) | `/locations` | **Live API** |
 | **Create attendance session** (dialog) | `/sessions` | **Live API** |
 | **Show short-lived QR** (auto-refresh ~30s; encodes `https://<lan-ip>:4200`) | `/sessions` | **Live API** |
@@ -54,12 +54,17 @@ Login as teacher
   → Create session (dialog: title, location, due date + time)
   → Live QR on left (payload SMARTCAMPUS|sessionId|token)
   → Students see same live QR on /student/scan → Mark me present
-       · Before dueAt → Present
+       · Before dueAt → Present (or Outside Location)
        · After dueAt  → card stays visible; mark/scan blocked (confirm dialog)
+  → /attendance (same page as admin)
+       · Before dueAt → only students who scanned (Present / Outside Location)
+       · After dueAt  → those scanners plus Absent for login-account students who never scanned
+       · Attendance status Present = scanned on time; Absent = no scan by due time
   → Edit session (⋮ → Edit session) → POST /api/sessions/:id/edit
-       (title, location, due time; QR and status unchanged)
+       (title, location, due time; QR and status unchanged;
+       changing dueAt drops Absent rows so students can scan again if due is later)
   → Close session when class ends → session leaves student open list
-       (attendance history kept until Delete)
+       (attendance history kept until Delete; Absents still wait until dueAt)
   → Delete session → removes log row **and** all student attendance for that sessionId
        (student “My attendance” table drops those rows on next load/refresh)
   → Sign out
@@ -116,6 +121,7 @@ Defined in `admin-navigation.ts`; filtered in `AdminLayoutComponent` via
 | `POST /api/sessions/:id/close` | Yes (own / admin) |
 | `DELETE /api/sessions/:id` | Yes (own / admin) — removes record |
 | Student attendance submit | Yes (`POST /api/attendance/submit`, student role) |
+| Admin/teacher attendance log | Yes (`POST /api/attendance/admin`; own sessions; Present + Absent) |
 
 Requires `Authorization: Bearer <accessToken>`.
 

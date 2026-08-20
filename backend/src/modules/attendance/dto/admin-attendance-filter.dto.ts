@@ -1,5 +1,8 @@
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
-import { ATTENDANCE_STATUS } from '../../../common/constants/status.constant';
+import {
+  ADMIN_ATTENDANCE_STATUS_FILTERS,
+  ADMIN_LOCATION_STATUS_FILTERS,
+} from '../../../common/constants/status.constant';
 
 /**
  * Filter payload for POST /attendance/admin.
@@ -19,9 +22,15 @@ export class AdminAttendanceFilterDto {
   @MaxLength(64)
   sessionId?: string;
 
+  /** Geofence: inside (Present) or outside (Outside Location). */
   @IsOptional()
-  @IsIn(Object.values(ATTENDANCE_STATUS))
-  status?: string;
+  @IsIn([...ADMIN_LOCATION_STATUS_FILTERS])
+  status?: (typeof ADMIN_LOCATION_STATUS_FILTERS)[number];
+
+  /** Check-in: Present (scanned) or Absent (no scan). */
+  @IsOptional()
+  @IsIn([...ADMIN_ATTENDANCE_STATUS_FILTERS])
+  attendanceStatus?: (typeof ADMIN_ATTENDANCE_STATUS_FILTERS)[number];
 
   @IsOptional()
   @IsIn(['today', 'yesterday', 'week'])

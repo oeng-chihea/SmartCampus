@@ -93,4 +93,20 @@ describe('formatScannedAtCell', () => {
       },
     });
   });
+
+  it('omits the accuracy chip when meters are not passed', () => {
+    expect(
+      formatScannedAtCell(
+        'Street 430, Boeung Trabek, Sangkat Phsar Daeum Thkov, Phnom Penh',
+        11.52824,
+        104.923032,
+      ),
+    ).toEqual({
+      title: 'Street 430, Boeung Trabek, Sangkat Phsar Daeum Thkov, Phnom Penh',
+      subtitle: '11.528240, 104.923032',
+      chip: undefined,
+      truncate: true,
+      titleAttr: 'Street 430, Boeung Trabek, Sangkat Phsar Daeum Thkov, Phnom Penh',
+    });
+  });
 });

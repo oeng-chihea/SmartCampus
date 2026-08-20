@@ -3,8 +3,8 @@
     <div class="attendance-page__copy">
       <h1 id="attendance-title">Attendance records</h1>
       <p>
-        Review student scans with identity, exact timestamps, location checks, and attendance
-        status.
+        Review present and absent students with identity, timestamps, location checks, and
+        attendance status.
       </p>
     </div>
   </header>
@@ -25,7 +25,7 @@
     </div>
     <app-table
       eyebrow="Attendance records"
-      title="Student scan log"
+      title="Student attendance log"
       [countLabel]="state.records().length + ' records'"
       tableAriaLabel="Attendance scan records"
       [columns]="attendanceColumns"
@@ -33,12 +33,14 @@
       [loading]="state.loading()"
       loadingMessage="Loading attendance records from API…"
       [showExport]="true"
+      [exporting]="state.exporting()"
+      (exportClick)="onExport()"
       [comfortable]="true"
       [interactive]="true"
       [activeRowId]="selectedRecord()?.id ?? null"
       (rowSelect)="onRecordSelect($event)"
       emptyTitle="No records match your filters"
-      emptyMessage="Try another student ID, session, or status."
+      emptyMessage="Try another student ID, session, or attendance status."
     />
   </section>
 </section>
@@ -79,17 +81,21 @@
         <dd>{{ coordinatesLabel(record) }}</dd>
       </div>
       <div class="record-detail__item">
-        <dt>Accuracy</dt>
-        <dd>{{ accuracyLabel(record) }}</dd>
-      </div>
-      <div class="record-detail__item">
         <dt>Distance</dt>
         <dd>{{ distanceLabel(record) }}</dd>
       </div>
-      <div class="record-detail__item record-detail__item--wide">
+      <div class="record-detail__item">
         <dt>Status</dt>
         <dd>
           <span [class]="statusClass(record.status)">{{ record.status }}</span>
+        </dd>
+      </div>
+      <div class="record-detail__item">
+        <dt>Attendance status</dt>
+        <dd>
+          <span [class]="statusClass(record.attendanceStatus)">{{
+            record.attendanceStatus
+          }}</span>
         </dd>
       </div>
     </dl>

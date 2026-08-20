@@ -45,6 +45,7 @@ function toSelectOptions(values: string[]): SelectOption[] {
 @Injectable()
 export class LocationsPageState {
   readonly loading = signal(false);
+  readonly exporting = signal(false);
   readonly error = signal<string | null>(null);
 
   readonly visits = signal<LocationVisit[]>([]);
@@ -103,6 +104,15 @@ export class LocationsPageState {
 
   endLoad(): void {
     this.loading.set(false);
+  }
+
+  beginExport(): void {
+    this.exporting.set(true);
+    this.error.set(null);
+  }
+
+  endExport(): void {
+    this.exporting.set(false);
   }
 
   setPageError(message: string | null): void {

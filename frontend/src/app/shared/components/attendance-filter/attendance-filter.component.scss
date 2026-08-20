@@ -13,7 +13,8 @@
   align-items: end;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 0.7fr) auto;
+  grid-template-columns:
+    minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 0.75fr) minmax(0, 0.95fr) minmax(0, 0.7fr);
   min-width: 0;
 }
 
@@ -31,7 +32,6 @@
 }
 
 .attendance-filter input,
-.attendance-filter__controls > button,
 .attendance-filter__session-trigger {
   border-radius: var(--radius-sm);
   font: inherit;
@@ -114,27 +114,9 @@
   outline: 0;
 }
 
-.attendance-filter__controls > button[type='submit'] {
-  background: var(--color-brand);
-  border: 0;
-  color: #ffffff;
-  cursor: pointer;
-  font-weight: 700;
-  padding: 0 16px;
-  white-space: nowrap;
-}
-
-.attendance-filter__controls > button[type='submit']:hover {
-  background: var(--color-brand-strong);
-}
-
 @media (max-width: 1100px) {
   .attendance-filter__controls {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .attendance-filter__controls > button[type='submit'] {
-    grid-column: 1 / -1;
   }
 }
 

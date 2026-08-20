@@ -12,6 +12,7 @@ function record(
     recordedAt: '2026-08-16T00:42:00.000Z',
     submittedAt: '2026-08-16T00:42:00.000Z',
     status: 'Outside Location',
+    attendanceStatus: 'Present',
     distanceMeters: 2900,
     latitude: 11.528,
     longitude: 104.923,

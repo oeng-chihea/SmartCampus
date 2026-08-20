@@ -3,6 +3,12 @@ import { SelectOption } from '../shared/components/select-dropdown/select-dropdo
 /** FR-06 attendance statuses */
 export type AttendanceStatus = 'Present' | 'Late' | 'Absent' | 'Outside Location';
 
+/** Did the student check in on time? Present includes Outside Location scans. */
+export type AttendanceCheckInStatus = 'Present' | 'Absent';
+
+/** Geofence filter values sent as `status` on POST /attendance/admin. */
+export type AttendanceLocationFilter = 'inside' | 'outside';
+
 export interface AttendanceRecord {
   id: string;
   student: string;
@@ -14,6 +20,8 @@ export interface AttendanceRecord {
   recordedAt: string;
   submittedAt: string;
   status: AttendanceStatus;
+  /** Present = scanned on time; Absent = no scan by due / close. */
+  attendanceStatus: AttendanceCheckInStatus;
   distanceMeters: number | null;
   /** Device GPS at submit time. Null on rows saved before GPS was stored. */
   latitude: number | null;
@@ -53,6 +61,7 @@ export interface AttendanceMetrics {
   present: number;
   late: number;
   absent: number;
+  outsideLocation: number;
 }
 
 /** Real response of POST /attendance/admin — records + summary + status list. */
@@ -65,12 +74,14 @@ export interface AdminAttendanceResponse {
 /**
  * POST /attendance/admin request body.
  * Mirrors the backend `AdminAttendanceFilterDto` field-for-field
- * (`search?`, `sessionId?`, `status?`, `date?`) — omitted fields = no filter.
+ * (`search?`, `sessionId?`, `status?`, `attendanceStatus?`, `date?`) —
+ * omitted fields = no filter.
  */
 export interface AdminAttendanceFilterRequest {
   search?: string;
   sessionId?: string;
-  status?: AttendanceStatus;
+  status?: AttendanceLocationFilter;
+  attendanceStatus?: AttendanceCheckInStatus;
   date?: 'today' | 'yesterday' | 'week';
 }
 
@@ -82,6 +93,7 @@ export interface AttendanceFilterState {
   search: string;
   sessionId: string;
   status: string;
+  attendanceStatus: string;
   date: string;
 }
 
@@ -89,5 +101,6 @@ export interface AttendanceFilterState {
 export interface AttendanceFilterOptions {
   searchPlaceholder: string;
   statusOptions: SelectOption[];
+  attendanceStatusOptions: SelectOption[];
   dateOptions: SelectOption[];
 }

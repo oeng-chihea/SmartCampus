@@ -190,18 +190,40 @@ describe('SessionsService', () => {
 
     const attendanceRepo = {
       createQueryBuilder: jest.fn(() => {
+        let sessionId: string | undefined;
+        let status: string | undefined;
         const qb = {
           delete: jest.fn().mockReturnThis(),
           from: jest.fn().mockReturnThis(),
-          where: jest.fn().mockReturnThis(),
+          where: jest.fn(
+            (_clause: string, params?: { sessionId?: string }) => {
+              if (params?.sessionId) {
+                sessionId = params.sessionId;
+              }
+              return qb;
+            },
+          ),
+          andWhere: jest.fn(
+            (_clause: string, params?: { status?: string }) => {
+              if (params?.status) {
+                status = params.status;
+              }
+              return qb;
+            },
+          ),
           execute: jest.fn(async () => {
-            // Last where call is "session_id = :sessionId"
-            const whereMock = qb.where as jest.Mock;
-            const lastCall = whereMock.mock.calls[whereMock.mock.calls.length - 1];
-            const params = (lastCall?.[1] ?? {}) as { sessionId?: string };
-            if (params.sessionId) {
-              await attendanceDelete(params.sessionId);
+            if (!sessionId) {
+              return { affected: 0 };
             }
+            if (status === 'Absent') {
+              const before = attendanceStore.length;
+              attendanceStore = attendanceStore.filter(
+                (row) =>
+                  !(row.sessionId === sessionId && row.status === 'Absent'),
+              );
+              return { affected: before - attendanceStore.length };
+            }
+            await attendanceDelete(sessionId);
             return { affected: 0 };
           }),
         };
@@ -731,5 +753,60 @@ describe('SessionsService', () => {
 
     expect(edited.title).toBe('Admin correction');
     expect(edited.teacherId).toBe(teacher.userId);
+  });
+
+  it('clears Absent rows and unfinalizes when dueAt changes', async () => {
+    const created = await service.create(
+      {
+        title: 'Due change',
+        locationId: 'LOC-001',
+        dueAt: dueInMinutes(-10),
+      },
+      teacher,
+    );
+    const row = sessionStore.find((entry) => entry.id === created.id);
+    expect(row).toBeDefined();
+    row!.absentsFinalized = true;
+    attendanceStore.push(
+      {
+        id: 'att-present',
+        userId: 'u-student-1',
+        student: 'Sok Dara',
+        studentId: 'SC-1024',
+        sessionId: created.id,
+        session: created.title,
+        location: created.locationName,
+        recordedAt: new Date(),
+        status: 'Present',
+        distanceMeters: 8,
+      } as AttendanceRecordEntity,
+      {
+        id: 'att-absent',
+        userId: 'u-student-2',
+        student: 'Chihea',
+        studentId: 'SC-1001',
+        sessionId: created.id,
+        session: created.title,
+        location: created.locationName,
+        recordedAt: new Date(),
+        status: 'Absent',
+        distanceMeters: null,
+      } as AttendanceRecordEntity,
+    );
+
+    await service.edit(
+      created.id,
+      {
+        title: 'Due change',
+        locationId: 'LOC-001',
+        dueAt: dueInMinutes(40),
+      },
+      teacher,
+    );
+
+    expect(attendanceStore.map((entry) => entry.id)).toEqual(['att-present']);
+    expect(
+      sessionStore.find((entry) => entry.id === created.id)?.absentsFinalized,
+    ).toBe(false);
   });
 });

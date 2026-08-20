@@ -1,4 +1,7 @@
-import { AttendanceStatus } from '../../../common/constants/status.constant';
+import {
+  AttendanceCheckInStatus,
+  AttendanceStatus,
+} from '../../../common/constants/status.constant';
 
 export interface AttendanceRecordResponseDto {
   id: string;
@@ -11,9 +14,14 @@ export interface AttendanceRecordResponseDto {
   submittedAt: string;
   status: AttendanceStatus;
   /**
+   * Present = student scanned / marked present (including Outside Location).
+   * Absent = no scan by due time or session close.
+   */
+  attendanceStatus: AttendanceCheckInStatus;
+  /**
    * Distance (meters) from the session's location at submit time.
-   * Always set — submit is rejected outright when the client has no GPS fix
-   * (FR-02 hard location gate), so a saved record never has an unknown distance.
+   * Null on Absent rows (no GPS). Scan rows always have a distance because
+   * submit is rejected without coordinates (FR-02 hard location gate).
    */
   distanceMeters: number | null;
   /** Device GPS at submit time. Null only on rows saved before GPS was stored. */

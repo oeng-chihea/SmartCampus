@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { messageFromHttpError } from '../../../../core/utils/http-error.util';
 import { LocationFilterState } from '../../../../models/location.model';
 import { LocationService } from '../../../../services/location.service';
 import { LocationsPageState } from './locations.state';
@@ -19,6 +20,25 @@ export class LocationsPageFlow {
   async applyFilters(filters: LocationFilterState): Promise<void> {
     this.state.setFilters(filters);
     await this.fetchVisits();
+  }
+
+  async exportExcel(): Promise<void> {
+    if (this.state.exporting()) {
+      return;
+    }
+    this.state.beginExport();
+    try {
+      await this.locationService.exportVisitsExcel(this.state.getFilters());
+    } catch (error) {
+      this.state.setPageError(
+        await messageFromHttpError(
+          error,
+          'Could not export location visits. Try again.',
+        ),
+      );
+    } finally {
+      this.state.endExport();
+    }
   }
 
   private async fetchVisits(): Promise<void> {

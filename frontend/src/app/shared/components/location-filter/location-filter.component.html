@@ -7,7 +7,7 @@
         name="search"
         [placeholder]="filters().searchPlaceholder"
         [ngModel]="search()"
-        (ngModelChange)="search.set($event)"
+        (ngModelChange)="onSearchChange($event)"
       />
     </label>
 
@@ -18,7 +18,7 @@
         inputId="location-building-filter"
         [options]="filters().buildingOptions"
         [ngModel]="building()"
-        (ngModelChange)="building.set($event)"
+        (ngModelChange)="onBuildingChange($event)"
         [compact]="true"
         placeholder="All buildings"
       />
@@ -31,12 +31,10 @@
         inputId="location-status-filter"
         [options]="filters().statusOptions"
         [ngModel]="status()"
-        (ngModelChange)="status.set($event)"
+        (ngModelChange)="onStatusChange($event)"
         [compact]="true"
         placeholder="All statuses"
       />
     </label>
-
-    <button type="submit">Apply</button>
   </div>
 </form>
