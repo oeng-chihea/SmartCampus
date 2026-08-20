@@ -21,6 +21,7 @@ import { SessionEntity } from '../../database/entities/session.entity';
 import { AuthService } from '../auth/auth.service';
 import { LocationsService } from '../locations/locations.service';
 import { CreateSessionDto } from './dto/create-session.dto';
+import { EditSessionDto } from './dto/edit-session.dto';
 import {
   OpenSessionLiveDto,
   PaginatedSessionsResponseDto,
@@ -176,6 +177,42 @@ export class SessionsService {
 
     await this.ensureFreshQr(session);
     return this.toQrResponse(session);
+  }
+
+  /**
+   * Update title, campus location, and due time on an existing session.
+   * Owner or admin only. Does not rotate QR, change status, or reopen a closed session.
+   * Open sessions that move to another Active location transfer the usage counter.
+   */
+  async edit(
+    id: string,
+    dto: EditSessionDto,
+    actor: AuthenticatedUser,
+  ): Promise<SessionResponseDto> {
+    const session = await this.requireSession(id);
+    this.assertCanManage(session, actor);
+
+    const location = await this.locationsService.findActiveById(dto.locationId);
+    const dueAt = this.parseDueAt(dto.dueAt);
+    const previousLocationId = session.locationId;
+    const locationChanged = previousLocationId !== location.id;
+
+    session.title = dto.title.trim();
+    session.locationId = location.id;
+    session.locationName = location.name;
+    session.dueAt = dueAt;
+    await this.sessions.save(session);
+
+    if (locationChanged && session.status === SESSION_STATUS.open) {
+      await this.locationsService.decrementSessionsUsing(previousLocationId);
+      await this.locationsService.incrementSessionsUsing(location.id);
+    }
+
+    return this.toResponse(
+      session,
+      actor,
+      session.status === SESSION_STATUS.open,
+    );
   }
 
   async close(

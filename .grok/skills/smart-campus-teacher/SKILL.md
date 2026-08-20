@@ -38,6 +38,7 @@ Login uses Nest `POST /api/auth/login` and stores Bearer token in
 | Review student location visits (assigned zone + scanned-at GPS) | `/locations` | **Live API** |
 | **Create attendance session** (dialog) | `/sessions` | **Live API** |
 | **Show short-lived QR** (auto-refresh ~30s; encodes `https://<lan-ip>:4200`) | `/sessions` | **Live API** |
+| **Edit session** (title, location, due time) | `/sessions` ⋮ menu | **Live API** |
 | **Close session** (invalidates QR) | `/sessions` | **Live API** |
 | **Delete session** (row + store + **cascade attendance**) | `/sessions` ⋮ menu | **Live API** |
 | List **own** sessions only | `GET /api/sessions` | Live API |
@@ -55,6 +56,8 @@ Login as teacher
   → Students see same live QR on /student/scan → Mark me present
        · Before dueAt → Present
        · After dueAt  → card stays visible; mark/scan blocked (confirm dialog)
+  → Edit session (⋮ → Edit session) → POST /api/sessions/:id/edit
+       (title, location, due time; QR and status unchanged)
   → Close session when class ends → session leaves student open list
        (attendance history kept until Delete)
   → Delete session → removes log row **and** all student attendance for that sessionId
@@ -109,6 +112,7 @@ Defined in `admin-navigation.ts`; filtered in `AdminLayoutComponent` via
 | `GET /api/sessions` | Yes (own sessions) |
 | `GET /api/sessions/:id` | Yes (own / admin) |
 | `GET /api/sessions/:id/qr` | Yes (own / admin) |
+| `POST /api/sessions/:id/edit` | Yes (own / admin) — title, location, dueAt |
 | `POST /api/sessions/:id/close` | Yes (own / admin) |
 | `DELETE /api/sessions/:id` | Yes (own / admin) — removes record |
 | Student attendance submit | Yes (`POST /api/attendance/submit`, student role) |
@@ -123,8 +127,8 @@ Requires `Authorization: Bearer <accessToken>`.
 - Not an always-visible create form  
 - Session log table (`app-table`) columns: Session · Location · Teacher · Opened · **Due** · Status · Actions  
 - **Actions (⋮ menu):**  
-  - Open row → **Show QR**, **Close**, **Delete**  
-  - Closed row → **Delete** only  
+  - Open row → **Show QR**, **Edit session**, **Close**, **Delete**  
+  - Closed row → **Edit session**, **Delete**  
 - **Delete** (`DELETE /api/sessions/:id`):
   1. Deletes all `attendance_records` with that `session_id`
   2. Removes the session row
@@ -161,8 +165,8 @@ GPS / Outside Location on student submit is **live** (FR-02) — see
 
 1. Keep teacher on **AdminLayout** children; do not invent a separate teacher layout.  
 2. Never grant `/students` without product decision.  
-3. Session create / QR / close / **delete** go through `SessionService` + Bearer token.  
-4. Prefer dialogs for create forms (match Sessions).  
+3. Session create / QR / **edit** / close / **delete** go through `SessionService` + Bearer token.  
+4. Prefer dialogs for create / edit forms (match Sessions).  
 5. Keep Sessions display formats via the shared helpers above (do not reintroduce locale `short` dates or `, Room ` labels on this page).  
 6. Update this skill + `smart-campus-workflow` when teacher routes or Sessions actions change.  
 

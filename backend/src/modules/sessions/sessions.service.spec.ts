@@ -547,4 +547,189 @@ describe('SessionsService', () => {
       service.resolveOpenSessionForScan(open.id, 'bad-token'),
     ).rejects.toThrow(ForbiddenException);
   });
+
+  it('edits title, location, and dueAt without rotating QR or changing status', async () => {
+    const originalDue = dueInMinutes(30);
+    const created = await service.create(
+      {
+        title: 'Original title',
+        locationId: 'LOC-001',
+        dueAt: originalDue,
+      },
+      teacher,
+    );
+    const qrBefore = await service.getQr(created.id, teacher);
+    const nextDue = dueInMinutes(90);
+
+    const edited = await service.edit(
+      created.id,
+      {
+        title: 'Updated lecture',
+        locationId: 'LOC-002',
+        dueAt: nextDue,
+      },
+      teacher,
+    );
+
+    expect(edited.id).toBe(created.id);
+    expect(edited.status).toBe('Open');
+    expect(edited.title).toBe('Updated lecture');
+    expect(edited.locationId).toBe('LOC-002');
+    expect(edited.locationName).toContain('Building B');
+    expect(edited.dueAt).toBe(new Date(nextDue).toISOString());
+    expect(edited.teacherId).toBe(teacher.userId);
+    expect(edited.openedAt).toBe(created.openedAt);
+
+    const qrAfter = await service.getQr(created.id, teacher);
+    expect(qrAfter.token).toBe(qrBefore.token);
+    expect(
+      locationStore.find((row) => row.id === 'LOC-001')?.sessionsUsing,
+    ).toBe(0);
+    expect(
+      locationStore.find((row) => row.id === 'LOC-002')?.sessionsUsing,
+    ).toBe(1);
+  });
+
+  it('does not change location usage when the open session stays on the same zone', async () => {
+    const created = await service.create(
+      {
+        title: 'Same room',
+        locationId: 'LOC-001',
+        dueAt: dueInMinutes(30),
+      },
+      teacher,
+    );
+
+    await service.edit(
+      created.id,
+      {
+        title: 'Same room renamed',
+        locationId: 'LOC-001',
+        dueAt: dueInMinutes(45),
+      },
+      teacher,
+    );
+
+    expect(
+      locationStore.find((row) => row.id === 'LOC-001')?.sessionsUsing,
+    ).toBe(1);
+  });
+
+  it('edits a closed session without restoring location usage or reopening it', async () => {
+    const created = await service.create(
+      {
+        title: 'Will close',
+        locationId: 'LOC-001',
+        dueAt: dueInMinutes(30),
+      },
+      teacher,
+    );
+    await service.close(created.id, teacher);
+    expect(
+      locationStore.find((row) => row.id === 'LOC-001')?.sessionsUsing,
+    ).toBe(0);
+
+    const edited = await service.edit(
+      created.id,
+      {
+        title: 'Closed but corrected',
+        locationId: 'LOC-002',
+        dueAt: dueInMinutes(60),
+      },
+      teacher,
+    );
+
+    expect(edited.status).toBe('Closed');
+    expect(edited.title).toBe('Closed but corrected');
+    expect(edited.locationId).toBe('LOC-002');
+    expect(
+      locationStore.find((row) => row.id === 'LOC-001')?.sessionsUsing,
+    ).toBe(0);
+    expect(
+      locationStore.find((row) => row.id === 'LOC-002')?.sessionsUsing,
+    ).toBe(0);
+  });
+
+  it('rejects edit on an inactive location, missing session, other teacher, or bad dueAt', async () => {
+    const created = await service.create(
+      {
+        title: 'Guard rails',
+        locationId: 'LOC-001',
+        dueAt: dueInMinutes(30),
+      },
+      teacher,
+    );
+
+    await expect(
+      service.edit(
+        created.id,
+        {
+          title: 'Blocked location',
+          locationId: 'LOC-005',
+          dueAt: dueInMinutes(40),
+        },
+        teacher,
+      ),
+    ).rejects.toThrow(NotFoundException);
+
+    await expect(
+      service.edit(
+        'sess-missing',
+        {
+          title: 'Ghost session',
+          locationId: 'LOC-001',
+          dueAt: dueInMinutes(40),
+        },
+        teacher,
+      ),
+    ).rejects.toThrow(NotFoundException);
+
+    await expect(
+      service.edit(
+        created.id,
+        {
+          title: 'Not my session',
+          locationId: 'LOC-001',
+          dueAt: dueInMinutes(40),
+        },
+        otherTeacher,
+      ),
+    ).rejects.toThrow(ForbiddenException);
+
+    await expect(
+      service.edit(
+        created.id,
+        {
+          title: 'Bad due',
+          locationId: 'LOC-001',
+          dueAt: 'not-a-date',
+        },
+        teacher,
+      ),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('allows an admin to edit another teacher’s session', async () => {
+    const created = await service.create(
+      {
+        title: 'Teacher owned',
+        locationId: 'LOC-001',
+        dueAt: dueInMinutes(30),
+      },
+      teacher,
+    );
+
+    const edited = await service.edit(
+      created.id,
+      {
+        title: 'Admin correction',
+        locationId: 'LOC-001',
+        dueAt: dueInMinutes(50),
+      },
+      admin,
+    );
+
+    expect(edited.title).toBe('Admin correction');
+    expect(edited.teacherId).toBe(teacher.userId);
+  });
 });

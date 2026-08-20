@@ -17,6 +17,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CreateSessionDto } from './dto/create-session.dto';
+import { EditSessionDto } from './dto/edit-session.dto';
 import { ListSessionsQueryDto } from './dto/list-sessions-query.dto';
 import { SessionsService } from './sessions.service';
 
@@ -80,6 +81,21 @@ export class SessionsController {
   @Roles(USER_ROLES.admin, USER_ROLES.teacher)
   close(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.sessionsService.close(id, user);
+  }
+
+  /**
+   * Update title, location, and due time on an existing session.
+   * Separate from POST /sessions (create) — does not rotate QR or change status.
+   */
+  @Post(':id/edit')
+  @HttpCode(HttpStatus.OK)
+  @Roles(USER_ROLES.admin, USER_ROLES.teacher)
+  edit(
+    @Param('id') id: string,
+    @Body() body: EditSessionDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.sessionsService.edit(id, body, user);
   }
 
   @Delete(':id')

@@ -68,7 +68,7 @@ Read `references/page-flows.md` for the full route table and file map.
     /students    → StudentsComponent       (admin only — extra roleGuard)
     /attendance  → AdminRecordsComponent   (records + filters)
     /locations   → LocationsComponent      (student visit log table)
-    /sessions    → SessionsComponent       (create session, live QR, close, delete)
+    /sessions    → SessionsComponent       (create session, live QR, edit, close, delete)
     /reports     → AdminPlaceholderPage    ("Attendance reports")
     **           → redirect to dashboard
 ```
@@ -87,8 +87,9 @@ Read `references/page-flows.md` for the full route table and file map.
 | Any admin page | Sidebar → Students | `/students` (admin only; teacher blocked by guard → home) |
 | Any admin page | Sidebar → Attendance | `/attendance` |
 | Any admin page | Sidebar → Locations | `/locations` |
-| Any admin page | Sidebar → Sessions | `/sessions` (live: create + due time / QR / close / delete) |
+| Any admin page | Sidebar → Sessions | `/sessions` (live: create + due time / QR / edit / close / delete) |
 | Sessions | Create session (title, location, due date + time) | Same page; dueAt ISO; QR auto-refreshes ~30s |
+| Sessions | ⋮ → Edit session | Same page; `POST /api/sessions/:id/edit`; title / location / due time |
 | Sessions | ⋮ → Close | Same page; Closed; students lose open card; history kept |
 | Sessions | ⋮ → Delete | Same page; session removed; **attendance for that sessionId cascaded** |
 | Any admin page | Sidebar → Reports | `/reports` (placeholder) |
@@ -198,7 +199,8 @@ API are live. Dashboard still uses mock JSON.
 
 Teachers share the admin shell but **cannot** open `/students`. Their primary
 live workflow is **`/sessions`**: create session dialog (**title, location, due date + time**)
-→ short-lived QR → **Close** (end class; drops student open list; history kept) and/or
+→ short-lived QR → **Edit session** (`POST /api/sessions/:id/edit`) → **Close**
+(end class; drops student open list; history kept) and/or
 **Delete** (remove log row + cascade attendance by `sessionId`).
 
 Sessions table display: location `Building A-Room 201`, opened and due

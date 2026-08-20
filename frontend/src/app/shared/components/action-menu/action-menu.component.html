@@ -5,6 +5,7 @@
   (mouseleave)="onMenuMouseLeave()"
 >
   <button
+    #trigger
     type="button"
     class="action-menu__trigger"
     [attr.aria-label]="ariaLabel()"
@@ -24,9 +25,15 @@
 
   @if (open() && visibleItems().length > 0) {
     <div
+      #panel
       class="action-menu__panel"
       role="presentation"
       [class.action-menu__panel--up]="openUpward()"
+      [class.action-menu__panel--ready]="panelReady()"
+      [style.top.px]="panelTop()"
+      [style.left.px]="panelLeft()"
+      (mouseenter)="onMenuMouseEnter()"
+      (mouseleave)="onMenuMouseLeave()"
       (click)="$event.stopPropagation()"
     >
       <ul [id]="listId()" class="action-menu__list" role="menu">

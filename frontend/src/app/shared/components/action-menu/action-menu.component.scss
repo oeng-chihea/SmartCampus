@@ -77,16 +77,34 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card-hover);
   min-width: 156px;
-  overflow: hidden;
   padding: 6px;
+  position: fixed;
+  right: auto;
+  z-index: 1200;
+}
+
+.action-menu__panel:not(.action-menu__panel--ready) {
+  animation: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Hover bridge so the pointer can travel the 4px gap without closing. */
+.action-menu__panel::before {
+  content: '';
+  height: 10px;
+  left: 0;
   position: absolute;
   right: 0;
-  top: calc(100% + 4px);
+  top: -10px;
 }
 
 .action-menu__panel--up {
   animation-name: action-menu-in-up;
-  bottom: calc(100% + 4px);
+}
+
+.action-menu__panel--up::before {
+  bottom: -10px;
   top: auto;
 }
 

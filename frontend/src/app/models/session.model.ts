@@ -57,6 +57,14 @@ export interface CreateSessionRequest {
   dueAt: string;
 }
 
+/** Body for POST /sessions/:id/edit — same fields as create, separate endpoint. */
+export interface EditSessionRequest {
+  title: string;
+  locationId: string;
+  /** Absolute due instant (ISO) built from the teacher’s local date + time. */
+  dueAt: string;
+}
+
 export interface SessionQrResponse {
   sessionId: string;
   token: string;
@@ -87,7 +95,7 @@ export interface OpenLiveSessionCard extends OpenLiveSession {
   qrDataUrl: string;
 }
 
-/** Writable form fields for the create-session dialog. */
+/** Writable form fields for the create/edit session dialog. */
 export interface SessionsFormState {
   title: string;
   locationId: string;
@@ -110,6 +118,7 @@ export interface SessionsDataState {
 export interface SessionsUiState {
   loading: boolean;
   creating: boolean;
+  editing: boolean;
   closingId: string | null;
   qrLoading: boolean;
   createDialogOpen: boolean;

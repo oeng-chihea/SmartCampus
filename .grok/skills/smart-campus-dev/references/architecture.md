@@ -21,7 +21,7 @@ smart-campus-system/
 | `features/students` | students | `/students` | `StudentService` | **live API** (`GET/POST /api/students`, `PATCH /:id/access`) |
 | `features/attendance` | admin-records, student-scan | `/attendance`, `/student/scan` | `AttendanceService` (+ auth for scan) | `attendance-records.json` |
 | `features/locations` | locations | `/locations` | `LocationService` | **Live API** (`POST /api/locations/visits` — visit log with assigned zone + student GPS). Catalog `GET /api/locations` is for Sessions / geofence only. |
-| `features/sessions` | sessions (state + flow + UI) | `/sessions` | `SessionService` | **Live API** create / QR / close / delete |
+| `features/sessions` | sessions (state + flow + UI) | `/sessions` | `SessionService` | **Live API** create / QR / edit / close / delete |
 | `features/reports` | empty folder | `/reports` placeholder | — | — |
 
 ## Shared components → consumers
@@ -38,7 +38,7 @@ smart-campus-system/
 | `location-filter` | Locations |
 | `table` | Sessions log; student My attendance; locations/admin attendance |
 | `confirm-dialog` | Sessions delete; student due-time blocked mark/scan |
-| `modal-dialog` / `select-dropdown` | Sessions create form; other dialogs |
+| `modal-dialog` / `select-dropdown` | Sessions create / edit form; other dialogs |
 
 ## Models
 
@@ -49,7 +49,7 @@ smart-campus-system/
 | `student.model.ts` | `Student` (+ `hasAccount`), `CreateStudentRequest` |
 | `attendance.model.ts` | `AttendanceRecord`, filter state, admin page shape |
 | `location.model.ts` | `CampusLocation`, `LocationVisit`, filters |
-| `session.model.ts` | `AttendanceSession`, `CreateSessionRequest`, QR types |
+| `session.model.ts` | `AttendanceSession`, `CreateSessionRequest`, `EditSessionRequest`, QR types |
 | `api-response.model.ts` | generic API envelope (for future HTTP) |
 | `pagination.model.ts` | pagination shape (for future lists) |
 
@@ -68,7 +68,7 @@ smart-campus-system/
 | `dashboard` | Registered module with frontend-aligned dashboard contract |
 | `attendance` | **Live** student submit + `GET /me` (existing sessions only; purges orphans); submit runs the **geofence check** (FR-02, Haversine vs `radiusMeters`) when the client sends GPS coordinates |
 | `locations` | **Live** zone catalog (`GET /api/locations`) for session create + geofence, and student visit log (`POST /api/locations/visits` with search/building/status). Default pin is **KIT Phnom Penh Campus** (`LOC-001`, 11.5479313, 104.9405941, 80 m). Visit rows show the assigned zone plus the student’s scan GPS (`latitude` / `longitude` stored on `attendance_records`); zone `latitude/longitude/radiusMeters` are consumed by the attendance geofence check |
-| `sessions` | **Live** create / list / QR / close / **delete** (delete cascades attendance by `session_id`) |
+| `sessions` | **Live** create / list / QR / **edit** (`POST /:id/edit`) / close / **delete** (delete cascades attendance by `session_id`) |
 | `reports` | Registered boundary; frontend page is still a placeholder |
 | TypeORM / migrations | Users/students/sessions/attendance persist via TypeORM (`synchronize: true` in dev) |
 
@@ -107,7 +107,7 @@ they are not listed on `/locations` until someone visits them via a scan.
 features/sessions/pages/sessions/
   sessions.component.ts|html|scss   # thin UI shell + table column defs
   sessions.state.ts                  # signals, form fields, metrics
-  sessions.flow.ts                  # reload / create / showQr / close / delete
+  sessions.flow.ts                  # reload / create / edit / showQr / close / delete
 services/session.service.ts         # HTTP client (Bearer)
 services/scan-origin.service.ts     # GET /api/runtime/scan-origin → https://<lan-ip>:4200
 core/utils/date.util.ts             # formatSessionOpened / formatSessionDue / isSessionPastDue
@@ -152,9 +152,10 @@ Session log ⋮ menu:
 
 | Status | Actions |
 |--------|---------|
-| Open | Show QR · Close · Delete |
-| Closed | Delete |
+| Open | Show QR · Edit session · Close · Delete |
+| Closed | Edit session · Delete |
 
+- **Edit session** → `POST /api/sessions/:id/edit` (title, location, due time; separate from create; does not rotate QR or change status)
 - **Close** → `POST /api/sessions/:id/close` (row stays Closed; student open card gone; history kept)  
 - **Delete** → `DELETE /api/sessions/:id` (session removed + **cascade** `attendance_records` for that `session_id`; student My attendance drops those rows)
 - Student `GET /api/attendance/me` only returns rows for sessions that still exist and deletes orphan rows

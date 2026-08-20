@@ -1,7 +1,7 @@
 # Teacher workflow — detailed reference
 
-Last aligned with live Sessions API + Sessions page UI (create / QR / close /
-**delete**, **due time**, location + opened display formats).
+Last aligned with live Sessions API + Sessions page UI (create / QR / **edit** /
+close / **delete**, **due time**, location + opened display formats).
 
 ## 1. Entry
 
@@ -25,7 +25,7 @@ Both **frontend** and **backend** must run for Sessions and Locations.
     │ sidebar
     ├─► /attendance ───────────────────── mock attendance records + filters
     ├─► /locations ────────────────────── live student visit log (zone + scan GPS)
-    ├─► /sessions  ────────────────────── LIVE create / QR / close / delete  ★ primary
+    ├─► /sessions  ────────────────────── LIVE create / QR / edit / close / delete  ★ primary
     ├─► /reports   ────────────────────── placeholder title only
     └─► /students  ────────────────────── BLOCKED (guard → /dashboard)
 ```
@@ -61,17 +61,21 @@ POST /api/sessions { title, locationId, dueAt }
   │  → Only teacher Close removes session from student open list
   ▼
 Table ⋮ Actions on an Open row:
-  - "Show QR"  → load / refresh Live QR panel
-  - "Close"    → POST /api/sessions/:id/close
-                 → status Closed, QR cleared; row stays in log
-                 → students no longer see this session as open
-  - "Delete"   → DELETE /api/sessions/:id
-                 → cascade-delete attendance_records for session_id
-                 → row removed from table + sessions store
-                 → Live QR cleared if that session was selected
-                 → student My attendance drops those rows (on refresh / poll)
+  - "Show QR"       → load / refresh Live QR panel
+  - "Edit session"  → POST /api/sessions/:id/edit
+                      { title, locationId, dueAt }
+                      → dialog prefilled; does not use POST /api/sessions
+                      → QR token and Open/Closed status unchanged
+  - "Close"         → POST /api/sessions/:id/close
+                      → status Closed, QR cleared; row stays in log
+                      → students no longer see this session as open
+  - "Delete"        → DELETE /api/sessions/:id
+                      → cascade-delete attendance_records for session_id
+                      → row removed from table + sessions store
+                      → Live QR cleared if that session was selected
+                      → student My attendance drops those rows (on refresh / poll)
   │
-  │  Closed rows only expose "Delete"
+  │  Closed rows expose "Edit session" and "Delete"
   ▼
 DELETE permanently removes the session + its attendance history
 ```
@@ -96,7 +100,7 @@ There is **no** “Late after (minutes)” field anymore.
 | Opened | `8-16-26-11:04Pm` (`formatSessionOpened`) |
 | Due | `8-16-26-11:04Pm` (`formatSessionDue`) — student mark-present cutoff |
 | Status | Open / Closed badge |
-| Actions | ⋮ menu — Show QR / Close / Delete (by status) |
+| Actions | ⋮ menu — Show QR / Edit session / Close / Delete (by status) |
 
 ### QR payload format
 
@@ -133,6 +137,17 @@ Example: `SMARTCAMPUS|sess-63608b870d1c|3e35183cb7bb6b0cfcc387a0129cda78`
 The page lists **visits**, not the 8 seeded zones. Session create still uses
 `GET /api/locations` (Active catalog). Teachers only see visits from their
 own sessions.
+
+### Edit session details
+
+```text
+/sessions → ⋮ on a row → Edit session
+  → dialog prefilled with title, location, due date + time
+  → Save changes → POST /api/sessions/:id/edit { title, locationId, dueAt }
+  → does not call POST /api/sessions (create)
+  → QR token, openedAt, teacher, and Open/Closed status stay the same
+  → Open sessions that change location transfer the location usage counter
+```
 
 ### Delete a mistaken or finished session
 
@@ -174,7 +189,7 @@ Sidebar footer "Sign out" → AuthService.logout() → /auth/login
 
 - Create: `teacherId` = authenticated user id; `teacherName` from user profile.  
 - List: teacher sees only sessions where `teacherId === actor.userId`.  
-- QR / close / **delete**: only owner or admin.  
+- QR / **edit** / close / **delete**: only owner or admin.  
 - Locations seed is shared; only **Active** locations host sessions.  
 - Delete of an **Open** session decrements that location’s `sessionsUsing` counter (same as close).  
 - Sessions persist via TypeORM; do not assume a Nest restart always wipes them.
@@ -199,7 +214,7 @@ Sidebar footer "Sign out" → AuthService.logout() → /auth/login
 | Concern | Path |
 |---------|------|
 | Login | `modules/auth/auth.service.ts` |
-| Sessions + QR + delete | `modules/sessions/sessions.service.ts` |
+| Sessions + QR + edit + delete | `modules/sessions/sessions.service.ts` |
 | Roles on controller | `modules/sessions/sessions.controller.ts` |
 | Locations seed | `modules/locations/data/locations.seed.ts` |
 | Guards | `common/guards/auth.guard.ts`, `roles.guard.ts` |
@@ -213,6 +228,7 @@ Sidebar footer "Sign out" → AuthService.logout() → /auth/login
 | `POST` | `/api/sessions` | Create open session (`title`, `locationId`, `dueAt` ISO) |
 | `GET` | `/api/sessions` | List (own for teacher) |
 | `GET` | `/api/sessions/:id/qr` | Current short-lived QR |
+| `POST` | `/api/sessions/:id/edit` | Edit title, location, due time (does not rotate QR) |
 | `POST` | `/api/sessions/:id/close` | Close (keep row) |
 | `DELETE` | `/api/sessions/:id` | Permanently remove session |
 
@@ -230,6 +246,7 @@ Teacher session
 
 - [x] Login as teacher via API  
 - [x] Create session with location + **due time** (dropdown `Building A-Room 201`)  
+- [x] Edit session via `POST /api/sessions/:id/edit` (title, location, due time)  
 - [x] Display short-lived QR + Due on QR panel / table  
 - [x] Close session / stop QR (also drops from student open list; history kept)  
 - [x] Delete session (row + cascade attendance records for that sessionId)  

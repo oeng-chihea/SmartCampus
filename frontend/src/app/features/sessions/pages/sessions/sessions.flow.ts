@@ -40,7 +40,23 @@ export class SessionsPageFlow {
   }
 
   openCreateDialog(): void {
+    if (this.state.formBusy()) {
+      return;
+    }
+    if (!this.state.deletingId()) {
+      this.state.closeDeleteDialog();
+    }
     this.state.openDialog();
+  }
+
+  openEditDialog(session: AttendanceSession): void {
+    if (this.state.formBusy()) {
+      return;
+    }
+    if (!this.state.deletingId()) {
+      this.state.closeDeleteDialog();
+    }
+    this.state.openEditDialog(session);
   }
 
   closeCreateDialog(): void {
@@ -53,6 +69,14 @@ export class SessionsPageFlow {
     if (this.state.dialogError() && !this.state.hasAnyFieldError()) {
       this.state.setDialogError(null);
     }
+  }
+
+  async submitSessionForm(): Promise<void> {
+    if (this.state.editTarget()) {
+      await this.editSession();
+      return;
+    }
+    await this.createSession();
   }
 
   async createSession(): Promise<void> {
@@ -82,6 +106,40 @@ export class SessionsPageFlow {
       );
     } finally {
       this.state.endCreate();
+    }
+  }
+
+  async editSession(): Promise<void> {
+    const target = this.state.editTarget();
+    if (!target) {
+      return;
+    }
+
+    const validation = this.validateCreateForm();
+    this.state.setFieldErrors(validation.fieldErrors);
+
+    if (!validation.valid || !validation.dueAt) {
+      this.state.setDialogError(validation.summary || 'Please fix the highlighted fields.');
+      return;
+    }
+
+    const form = this.state.getForm();
+
+    this.state.beginEdit();
+    try {
+      const session = await this.sessionService.editSession(target.id, {
+        title: form.title,
+        locationId: form.locationId,
+        dueAt: validation.dueAt,
+      });
+      this.state.editSucceeded(session.title);
+      await this.reload();
+    } catch (error) {
+      this.state.setDialogError(
+        this.sessionService.mapError(error, 'Could not update the attendance session.'),
+      );
+    } finally {
+      this.state.endEdit();
     }
   }
 
@@ -149,6 +207,9 @@ export class SessionsPageFlow {
 
   /** Open the confirmation dialog before any destructive API call. */
   askDelete(session: AttendanceSession): void {
+    if (!this.state.formBusy()) {
+      this.state.closeDialog();
+    }
     this.state.requestDelete(session);
   }
 

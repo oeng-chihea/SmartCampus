@@ -141,9 +141,13 @@
 
 @if (state.createDialogOpen()) {
   <app-modal-dialog
-    eyebrow="New session"
-    title="Create attendance session"
-    closeAriaLabel="Close create session dialog"
+    [eyebrow]="state.isEditDialog() ? 'Edit session' : 'New session'"
+    [title]="
+      state.isEditDialog() ? 'Edit attendance session' : 'Create attendance session'
+    "
+    [closeAriaLabel]="
+      state.isEditDialog() ? 'Close edit session dialog' : 'Close create session dialog'
+    "
     size="lg"
     [lockDismiss]="true"
     [spacious]="true"
@@ -152,7 +156,7 @@
     <!-- Sessions-module fields; shell + shake live in shared modal-dialog -->
     <form
       class="session-create-form"
-      (ngSubmit)="createSession(); $event.preventDefault()"
+      (ngSubmit)="submitSessionForm(); $event.preventDefault()"
       novalidate
     >
       @if (state.dialogError()) {
@@ -273,15 +277,24 @@
       </div>
 
       <footer class="session-create-form__actions">
-        <button type="button" class="sessions-page__btn-secondary" (click)="closeCreateDialog()">
+        <button
+          type="button"
+          class="sessions-page__btn-secondary"
+          (click)="closeCreateDialog()"
+          [disabled]="state.formBusy()"
+        >
           Cancel
         </button>
         <button
           type="submit"
           class="sessions-page__btn-primary"
-          [disabled]="state.creating() || state.locations().length === 0"
+          [disabled]="state.formBusy() || state.locations().length === 0"
         >
-          {{ state.creating() ? 'Creating…' : 'Create & show QR' }}
+          @if (state.isEditDialog()) {
+            {{ state.editing() ? 'Saving…' : 'Save changes' }}
+          } @else {
+            {{ state.creating() ? 'Creating…' : 'Create & show QR' }}
+          }
         </button>
       </footer>
     </form>
