@@ -1,5 +1,9 @@
 import { computed, Injectable, signal } from '@angular/core';
-import { defaultDueLocal } from '../../../../core/utils/date.util';
+import {
+  defaultDueLocal,
+  toLocalDateInput,
+  toLocalTimeInput,
+} from '../../../../core/utils/date.util';
 import { FieldErrors } from '../../../../models/alert.model';
 import { CampusLocation } from '../../../../models/location.model';
 import {
@@ -19,6 +23,7 @@ export class SessionsPageState {
   // ── UI flags ──────────────────────────────────────────────
   readonly loading = signal(true);
   readonly creating = signal(false);
+  readonly editing = signal(false);
   readonly closingId = signal<string | null>(null);
   readonly deletingId = signal<string | null>(null);
   readonly error = signal<string | null>(null);
@@ -29,6 +34,9 @@ export class SessionsPageState {
 
   /** Session awaiting delete confirmation (null = confirm dialog closed). */
   readonly deleteTarget = signal<AttendanceSession | null>(null);
+
+  /** Session being edited in the form dialog (null = create mode). */
+  readonly editTarget = signal<AttendanceSession | null>(null);
 
   /** Per-field create-form errors (title / locationId / dueDate / dueTime). */
   readonly fieldErrors = signal<FieldErrors>({});
@@ -91,6 +99,11 @@ export class SessionsPageState {
     return this.sessions().find((row) => row.id === id) ?? null;
   });
 
+  readonly isEditDialog = computed(() => this.editTarget() !== null);
+
+  /** Create or edit submit in flight — blocks dialog dismiss. */
+  readonly formBusy = computed(() => this.creating() || this.editing());
+
   // ── Local state helpers (no API) ──────────────────────────
 
   resetCreateForm(): void {
@@ -127,16 +140,27 @@ export class SessionsPageState {
   openDialog(): void {
     this.dialogError.set(null);
     this.error.set(null);
+    this.editTarget.set(null);
     this.resetCreateForm();
     this.createDialogOpen.set(true);
     // Body scroll lock is owned by shared `app-modal-dialog`.
   }
 
+  openEditDialog(session: AttendanceSession): void {
+    this.dialogError.set(null);
+    this.error.set(null);
+    this.success.set(null);
+    this.editTarget.set(session);
+    this.fillFormFromSession(session);
+    this.createDialogOpen.set(true);
+  }
+
   closeDialog(): void {
-    if (this.creating()) {
+    if (this.formBusy()) {
       return;
     }
     this.createDialogOpen.set(false);
+    this.editTarget.set(null);
     this.dialogError.set(null);
     this.fieldErrors.set({});
   }
@@ -156,8 +180,27 @@ export class SessionsPageState {
     this.title = '';
     this.locationId = '';
     this.fieldErrors.set({});
+    this.editTarget.set(null);
     this.createDialogOpen.set(false);
     this.success.set(`Session “${sessionTitle}” is open. Show the QR to students.`);
+  }
+
+  beginEdit(): void {
+    this.dialogError.set(null);
+    this.error.set(null);
+    this.success.set(null);
+    this.editing.set(true);
+  }
+
+  endEdit(): void {
+    this.editing.set(false);
+  }
+
+  editSucceeded(sessionTitle: string): void {
+    this.fieldErrors.set({});
+    this.editTarget.set(null);
+    this.createDialogOpen.set(false);
+    this.success.set(`Session “${sessionTitle}” was updated.`);
   }
 
   setDialogError(message: string | null): void {
@@ -286,6 +329,26 @@ export class SessionsPageState {
       dueDate: this.dueDate.trim(),
       dueTime: this.dueTime.trim(),
     };
+  }
+
+  private fillFormFromSession(session: AttendanceSession): void {
+    this.title = session.title;
+    this.locationId = session.locationId;
+    this.dialogError.set(null);
+    this.fieldErrors.set({});
+
+    if (session.dueAt) {
+      const due = new Date(session.dueAt);
+      if (!Number.isNaN(due.getTime())) {
+        this.dueDate = toLocalDateInput(due);
+        this.dueTime = toLocalTimeInput(due);
+        return;
+      }
+    }
+
+    const fallback = defaultDueLocal(30);
+    this.dueDate = fallback.date;
+    this.dueTime = fallback.time;
   }
 
   stopQrRefresh(): void {

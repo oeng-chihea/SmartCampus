@@ -142,7 +142,7 @@ When implementing API modules:
 7. Live teacher flow: `SessionService` + Sessions page use auth Bearer token for
    locations/sessions/QR/delete. Page layout:
    - State → `sessions.state.ts`, flow → `sessions.flow.ts`, shell → component
-   - Session log via shared `app-table`; ⋮ actions: **Show QR**, **Close**, **Delete**
+   - Session log via shared `app-table`; ⋮ actions: **Show QR**, **Edit session**, **Close**, **Delete**
    - Create form: title, location, **due date + time** (any calendar day) → `dueAt` ISO
      (no “must be 1 minute ahead” check; replaces removed **Late after**)
    - Display helpers: `formatSessionOpened` / `formatSessionDue` → `8-16-26-11:04Pm`;
@@ -150,8 +150,8 @@ When implementing API modules:
      `formatCampusLocationLabel` → `Building A-Room 201` (table + create dialog)
    - QR deep links use `GET /api/runtime/scan-origin` (`https://<lan-ip>:4200`)
      so phones get a secure context for Safari GPS (HTTP LAN cannot prompt)
-   - APIs: `POST/GET /api/sessions`, `GET …/:id/qr`, `POST …/:id/close`,
-     `DELETE …/:id`
+   - APIs: `POST/GET /api/sessions`, `GET …/:id/qr`, `POST …/:id/edit`,
+     `POST …/:id/close`, `DELETE …/:id`
    - After `dueAt`, submit is rejected; session stays Open until teacher Close
      (student UI keeps the card; mark/scan shows `app-confirm-dialog`)
    - **Delete cascade:** `SessionsService.remove` deletes `attendance_records`

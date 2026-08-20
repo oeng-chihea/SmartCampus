@@ -1,17 +1,21 @@
 import {
   Component,
+  DestroyRef,
   ElementRef,
   HostListener,
   inject,
   input,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
+import { computeActionMenuPosition } from './action-menu-position.util';
 import { ActionMenuItem } from './action-menu.model';
 
 /**
  * Compact ⋮ action trigger with a hover/click dropdown.
- * Reusable across tables and toolbars.
+ * The panel is portaled to document.body and pinned to the trigger in
+ * viewport coordinates so table overflow / sticky columns cannot clip it.
  */
 @Component({
   selector: 'app-action-menu',
@@ -24,8 +28,18 @@ import { ActionMenuItem } from './action-menu.model';
 })
 export class ActionMenuComponent {
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly triggerRef =
+    viewChild<ElementRef<HTMLButtonElement>>('trigger');
+  private readonly panelRef = viewChild<ElementRef<HTMLElement>>('panel');
   private readonly instanceId = `action-menu-${Math.random().toString(36).slice(2, 9)}`;
   private closeTimer: ReturnType<typeof setTimeout> | null = null;
+  private repositionBound = false;
+  private readonly onReposition = (): void => {
+    if (this.open()) {
+      this.updatePlacement();
+    }
+  };
 
   /** Menu entries (already filtered by the caller when needed). */
   readonly items = input.required<ActionMenuItem[]>();
@@ -38,6 +52,14 @@ export class ActionMenuComponent {
 
   readonly open = signal(false);
   readonly openUpward = signal(false);
+  readonly panelTop = signal(0);
+  readonly panelLeft = signal(0);
+  /** True after the panel is on document.body with viewport coords. */
+  readonly panelReady = signal(false);
+
+  constructor() {
+    this.destroyRef.onDestroy(() => this.teardown());
+  }
 
   listId(): string {
     return `${this.instanceId}-list`;
@@ -48,11 +70,17 @@ export class ActionMenuComponent {
   }
 
   onMenuMouseEnter(): void {
+    if (!this.canHoverOpen()) {
+      return;
+    }
     this.clearCloseTimer();
     this.openPanel();
   }
 
   onMenuMouseLeave(): void {
+    if (!this.canHoverOpen()) {
+      return;
+    }
     this.scheduleClose();
   }
 
@@ -69,12 +97,26 @@ export class ActionMenuComponent {
     if (this.visibleItems().length === 0) {
       return;
     }
+    if (this.open()) {
+      this.updatePlacement();
+      return;
+    }
     this.updatePlacement();
+    this.panelReady.set(false);
     this.open.set(true);
+    this.listenReposition();
+    requestAnimationFrame(() => {
+      this.attachPanelToBody();
+      this.updatePlacement();
+      this.panelReady.set(true);
+    });
   }
 
   close(): void {
     this.clearCloseTimer();
+    this.unlistenReposition();
+    this.returnPanelToHost();
+    this.panelReady.set(false);
     this.open.set(false);
     this.openUpward.set(false);
   }
@@ -118,9 +160,16 @@ export class ActionMenuComponent {
       return;
     }
     const target = event.target as Node | null;
-    if (target && !this.host.nativeElement.contains(target)) {
-      this.close();
+    if (!target) {
+      return;
     }
+    if (this.host.nativeElement.contains(target)) {
+      return;
+    }
+    if (this.panelRef()?.nativeElement.contains(target)) {
+      return;
+    }
+    this.close();
   }
 
   @HostListener('window:resize')
@@ -132,7 +181,7 @@ export class ActionMenuComponent {
 
   private scheduleClose(): void {
     this.clearCloseTimer();
-    this.closeTimer = setTimeout(() => this.close(), 100);
+    this.closeTimer = setTimeout(() => this.close(), 120);
   }
 
   private clearCloseTimer(): void {
@@ -142,14 +191,76 @@ export class ActionMenuComponent {
     }
   }
 
+  private canHoverOpen(): boolean {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return true;
+    }
+    return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  }
+
+  private attachPanelToBody(): void {
+    const panel = this.panelRef()?.nativeElement;
+    if (!panel || typeof document === 'undefined') {
+      return;
+    }
+    if (panel.parentElement !== document.body) {
+      document.body.appendChild(panel);
+    }
+  }
+
+  private returnPanelToHost(): void {
+    const panel = this.panelRef()?.nativeElement;
+    const menu = this.host.nativeElement.querySelector('.action-menu');
+    if (!panel || !menu) {
+      return;
+    }
+    if (panel.parentElement === document.body) {
+      menu.appendChild(panel);
+    }
+  }
+
+  private listenReposition(): void {
+    if (this.repositionBound || typeof document === 'undefined') {
+      return;
+    }
+    document.addEventListener('scroll', this.onReposition, true);
+    this.repositionBound = true;
+  }
+
+  private unlistenReposition(): void {
+    if (!this.repositionBound || typeof document === 'undefined') {
+      return;
+    }
+    document.removeEventListener('scroll', this.onReposition, true);
+    this.repositionBound = false;
+  }
+
+  private teardown(): void {
+    this.clearCloseTimer();
+    this.unlistenReposition();
+    const panel = this.panelRef()?.nativeElement;
+    if (panel?.parentElement === document.body) {
+      panel.remove();
+    }
+  }
+
   private updatePlacement(): void {
-    const rect = this.host.nativeElement.getBoundingClientRect();
-    const estimatedHeight = Math.max(44, this.visibleItems().length * 40 + 12);
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
-    const openUp =
-      this.preferUp() ||
-      (spaceBelow < estimatedHeight + 8 && spaceAbove > spaceBelow);
-    this.openUpward.set(openUp);
+    const trigger = this.triggerRef()?.nativeElement ?? this.host.nativeElement;
+    const panel = this.panelRef()?.nativeElement;
+    const triggerBox = trigger.getBoundingClientRect();
+    const itemCount = this.visibleItems().length;
+    const panelSize = {
+      width: panel?.offsetWidth || 156,
+      height: panel?.offsetHeight || Math.max(44, itemCount * 40 + 12),
+    };
+    const placed = computeActionMenuPosition(
+      triggerBox,
+      panelSize,
+      { width: window.innerWidth, height: window.innerHeight },
+      { preferUp: this.preferUp() },
+    );
+    this.panelTop.set(placed.top);
+    this.panelLeft.set(placed.left);
+    this.openUpward.set(placed.openUpward);
   }
 }

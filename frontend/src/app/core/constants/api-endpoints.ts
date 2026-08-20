@@ -18,6 +18,7 @@ export const API_ENDPOINTS = {
   sessionById: (id: string) => `/sessions/${id}`,
   sessionQr: (id: string) => `/sessions/${id}/qr`,
   sessionClose: (id: string) => `/sessions/${id}/close`,
+  sessionEdit: (id: string) => `/sessions/${id}/edit`,
   sessionDelete: (id: string) => `/sessions/${id}`,
   reports: '/reports',
   scanOrigin: '/runtime/scan-origin',

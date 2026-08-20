@@ -27,7 +27,7 @@ import { SessionsPageState } from './sessions.state';
  * - Flow   → `sessions.flow.ts`  (API + orchestration)
  * - Types  → `models/session.model.ts`
  * - View   → this file + html/scss
- * - Create dialog shell / shake → shared `app-modal-dialog`
+ * - Create / edit dialog shell / shake → shared `app-modal-dialog`
  * - Session list → shared `app-table`
  */
 @Component({
@@ -60,11 +60,14 @@ export class SessionsComponent implements OnInit, OnDestroy {
 
   /**
    * Session log columns (titles owned by this page).
-   * Actions re-read closing/deleting ids from state so labels stay in sync.
+   * Actions re-read closing/deleting/editing ids from state so labels stay in sync.
    */
   readonly sessionColumns = computed<TableColumn<AttendanceSession>[]>(() => {
     const closingId = this.state.closingId();
     const deletingId = this.state.deletingId();
+    const editingId = this.state.editing()
+      ? (this.state.editTarget()?.id ?? null)
+      : null;
     return [
       {
         key: 'session',
@@ -115,19 +118,30 @@ export class SessionsComponent implements OnInit, OnDestroy {
         width: 'minmax(5.5rem, 6rem)',
         align: 'center',
         actions: (row) => {
-          const busy = closingId === row.id || deletingId === row.id;
+          const busy =
+            closingId === row.id ||
+            deletingId === row.id ||
+            editingId === row.id ||
+            this.state.formBusy();
           const items: TableAction[] = [];
 
           if (row.status === 'Open') {
-            items.push(
-              { id: 'show-qr', label: 'Show QR', disabled: busy },
-              {
-                id: 'close',
-                label: closingId === row.id ? 'Closing…' : 'Close',
-                variant: 'danger',
-                disabled: busy,
-              },
-            );
+            items.push({ id: 'show-qr', label: 'Show QR', disabled: busy });
+          }
+
+          items.push({
+            id: 'edit-session',
+            label: editingId === row.id ? 'Saving…' : 'Edit session',
+            disabled: busy,
+          });
+
+          if (row.status === 'Open') {
+            items.push({
+              id: 'close',
+              label: closingId === row.id ? 'Closing…' : 'Close',
+              variant: 'danger',
+              disabled: busy,
+            });
           }
 
           items.push({
@@ -185,8 +199,8 @@ export class SessionsComponent implements OnInit, OnDestroy {
     return formatSessionDue(value);
   }
 
-  createSession(): Promise<void> {
-    return this.flow.createSession();
+  submitSessionForm(): Promise<void> {
+    return this.flow.submitSessionForm();
   }
 
   showQr(sessionId: string): Promise<void> {
@@ -213,6 +227,10 @@ export class SessionsComponent implements OnInit, OnDestroy {
   onSessionAction(event: TableActionEvent<AttendanceSession>): void {
     if (event.actionId === 'show-qr') {
       void this.showQr(event.row.id);
+      return;
+    }
+    if (event.actionId === 'edit-session') {
+      this.flow.openEditDialog(event.row);
       return;
     }
     if (event.actionId === 'close') {

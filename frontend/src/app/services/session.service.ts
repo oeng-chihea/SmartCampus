@@ -7,6 +7,7 @@ import { CampusLocation } from '../models/location.model';
 import {
   AttendanceSession,
   CreateSessionRequest,
+  EditSessionRequest,
   ListSessionsPageParams,
   PaginatedSessionsResponse,
   SessionQrResponse,
@@ -62,6 +63,20 @@ export class SessionService {
       this.http.post<AttendanceSession>(this.url(API_ENDPOINTS.sessions), body, {
         headers: this.authHeaders(),
       }),
+    );
+  }
+
+  /** Update title, location, and due time via POST /sessions/:id/edit. */
+  editSession(
+    sessionId: string,
+    body: EditSessionRequest,
+  ): Promise<AttendanceSession> {
+    return firstValueFrom(
+      this.http.post<AttendanceSession>(
+        this.url(API_ENDPOINTS.sessionEdit(sessionId)),
+        body,
+        { headers: this.authHeaders() },
+      ),
     );
   }
 

@@ -14,7 +14,7 @@ Last reviewed against the Angular routes, Sessions live API, and role skills.
 | `/students` | AdminLayout | `StudentsComponent` | auth + **admin only** | **Live API** directory + create account + login toggle |
 | `/attendance` | AdminLayout | `AdminRecordsComponent` | auth + admin\|teacher | Active (mock data) |
 | `/locations` | AdminLayout | `LocationsComponent` | auth + admin\|teacher | **Live API** student visit log + API filters (assigned zone + scan GPS) |
-| `/sessions` | AdminLayout | `SessionsComponent` | auth + admin\|teacher | **Live API** create / QR / close / **delete** |
+| `/sessions` | AdminLayout | `SessionsComponent` | auth + admin\|teacher | **Live API** create / QR / **edit** / close / **delete** |
 | `/reports` | AdminLayout | `AdminPlaceholderPageComponent` | auth + admin\|teacher | Placeholder |
 | `/student/scan` | none (standalone page) | `StudentScanComponent` | auth + **student** | **Live** open session QR + Mark present |
 | Unknown under admin | AdminLayout | redirect → dashboard | — | Active |
@@ -35,7 +35,7 @@ Defined primarily in:
 | `/students` | ✓ | ✗ → home | ✗ → scan |
 | `/attendance` | ✓ | ✓ | ✗ → scan |
 | `/locations` | ✓ | ✓ | ✗ → scan |
-| `/sessions` create + QR + close + delete | ✓ | ✓ (own sessions) | ✗ |
+| `/sessions` create + QR + edit + close + delete | ✓ | ✓ (own sessions) | ✗ |
 | `/reports` placeholder | ✓ | ✓ | ✗ |
 | `/student/scan` | ✗ → dashboard | ✗ → dashboard | ✓ |
 | See Students in sidebar | ✓ | ✗ (filtered) | n/a |
@@ -88,12 +88,14 @@ Login teacher → /dashboard → sidebar Sessions → /sessions
        QR image encodes https://<lan-ip>:4200/student/scan?payload=…
        (GET /api/runtime/scan-origin; phones need HTTPS for GPS)
   → ⋮ Actions on Open row:
-       Show QR  → load QR panel
-       Close    → POST /api/sessions/:id/close
-                  (row stays Closed; student open card gone; history kept)
-       Delete   → DELETE /api/sessions/:id
-                  (session removed + attendance_records for session_id cascaded)
-  → Closed rows: Delete only
+       Show QR       → load QR panel
+       Edit session  → POST /api/sessions/:id/edit
+                       { title, locationId, dueAt } (not POST /api/sessions)
+       Close         → POST /api/sessions/:id/close
+                       (row stays Closed; student open card gone; history kept)
+       Delete        → DELETE /api/sessions/:id
+                       (session removed + attendance_records for session_id cascaded)
+  → Closed rows: Edit session + Delete
   → After dueAt: students cannot mark present (session may stay Open until Close)
 ```
 
