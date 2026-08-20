@@ -118,6 +118,7 @@ History is **not** a custom list or last-result hero card. Use shared `app-table
 | Status | Badge (`present` / `late` / …) |
 
 Data: `GET /api/attendance/me` via `StudentAttendanceService.listMine()`.
+Absent rows written for staff `/attendance` after due/close are **not** listed here.
 
 ### Delete cascade + orphan cleanup (backend)
 
@@ -151,7 +152,7 @@ Data: `GET /api/attendance/me` via `StudentAttendanceService.listMine()`.
 | `PATCH` | `/api/students/:studentId/access` | admin | Toggle `loginEnabled` |
 | `GET` | `/api/sessions/open` | student+ | Live open sessions + QR |
 | `POST` | `/api/attendance/submit` | student | Mark attendance (identity from token); `latitude`/`longitude` are **required** — 400 if missing (FR-02 hard gate); drive the geofence check |
-| `GET` | `/api/attendance/me` | student | Own scan history (only existing sessions; purges orphans) |
+| `GET` | `/api/attendance/me` | student | Own scan history (only existing sessions; purges orphans; excludes Absent) |
 
 ## Key files
 

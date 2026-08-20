@@ -38,6 +38,8 @@ export class TableComponent<T = unknown> {
   readonly interactive = input(false);
   /** Show green Export control in the header. */
   readonly showExport = input(false);
+  /** Disable Export and show “Exporting…” while the file request is in flight. */
+  readonly exporting = input(false);
   /**
    * Smaller cell type + single-line values (no mid-string wrap).
    * Used by sessions / location logs where stamps stay on one row.

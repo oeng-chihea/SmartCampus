@@ -16,10 +16,23 @@ const DATE_OPTIONS: SelectOption[] = [
   { value: 'week', label: 'This week' },
 ];
 
+const LOCATION_STATUS_OPTIONS: SelectOption[] = [
+  { value: 'all', label: 'All statuses' },
+  { value: 'inside', label: 'Inside' },
+  { value: 'outside', label: 'Outside' },
+];
+
+const ATTENDANCE_STATUS_OPTIONS: SelectOption[] = [
+  { value: 'all', label: 'All attendance statuses' },
+  { value: 'Present', label: 'Present' },
+  { value: 'Absent', label: 'Absent' },
+];
+
 const DEFAULT_FILTERS: AttendanceFilterState = {
   search: '',
   sessionId: 'all',
   status: 'all',
+  attendanceStatus: 'all',
   date: 'all',
 };
 
@@ -34,16 +47,12 @@ const DEFAULT_FILTERS: AttendanceFilterState = {
 export class AdminRecordsState {
   // ── UI flags ──────────────────────────────────────────────
   readonly loading = signal(false);
+  readonly exporting = signal(false);
   readonly error = signal<string | null>(null);
 
   // ── Domain data ───────────────────────────────────────────
   readonly records = signal<AttendanceRecord[]>([]);
   readonly metrics = signal<StatCard[]>([]);
-
-  /** Real statuses returned by the API (stable canonical order). */
-  readonly statusOptions = signal<SelectOption[]>([
-    { value: 'all', label: 'All statuses' },
-  ]);
 
   // ── Filter state (not shown directly) ─────────────────────
   private readonly filterState = signal<AttendanceFilterState>(DEFAULT_FILTERS);
@@ -51,7 +60,8 @@ export class AdminRecordsState {
   // ── Derived ───────────────────────────────────────────────
   readonly filters = computed<AttendanceFilterOptions>(() => ({
     searchPlaceholder: 'Search student name or ID',
-    statusOptions: this.statusOptions(),
+    statusOptions: LOCATION_STATUS_OPTIONS,
+    attendanceStatusOptions: ATTENDANCE_STATUS_OPTIONS,
     dateOptions: DATE_OPTIONS,
   }));
 
@@ -74,18 +84,30 @@ export class AdminRecordsState {
     this.loading.set(false);
   }
 
+  beginExport(): void {
+    this.exporting.set(true);
+    this.error.set(null);
+  }
+
+  endExport(): void {
+    this.exporting.set(false);
+  }
+
   setPageError(message: string | null): void {
     this.error.set(message);
   }
 
   /** Store the API response: scan rows, summary cards, and real status list. */
   applyResponse(page: AdminAttendanceResponse): void {
-    this.records.set(page.records);
+    this.records.set(
+      page.records.map((row) => ({
+        ...row,
+        attendanceStatus:
+          row.attendanceStatus ??
+          (row.status === 'Absent' ? 'Absent' : 'Present'),
+      })),
+    );
     this.metrics.set(this.buildMetrics(page.metrics));
-    this.statusOptions.set([
-      { value: 'all', label: 'All statuses' },
-      ...page.statusOptions.map((status) => ({ value: status, label: status })),
-    ]);
   }
 
   private buildMetrics(metrics: AttendanceMetrics): StatCard[] {
@@ -93,21 +115,21 @@ export class AdminRecordsState {
       {
         label: 'Present',
         value: String(metrics.present),
-        helper: 'Valid scans inside zone',
+        helper: 'Scanned on time inside zone',
         icon: 'present',
         tone: 'green',
       },
       {
-        label: 'Late',
-        value: String(metrics.late),
-        helper: 'After late threshold',
+        label: 'Outside Location',
+        value: String(metrics.outsideLocation ?? 0),
+        helper: 'Scanned on time, outside geofence',
         icon: 'late',
         tone: 'amber',
       },
       {
         label: 'Absent',
         value: String(metrics.absent),
-        helper: 'No successful check-in',
+        helper: 'No scan / mark present',
         icon: 'attendance',
         tone: 'violet',
       },

@@ -93,9 +93,11 @@ Read `references/page-flows.md` for the full route table and file map.
 | Sessions | ⋮ → Close | Same page; Closed; students lose open card; history kept |
 | Sessions | ⋮ → Delete | Same page; session removed; **attendance for that sessionId cascaded** |
 | Any admin page | Sidebar → Reports | `/reports` (placeholder) |
-| Locations | Apply filters | Same page; `POST /api/locations/visits` (search, building, status) |
+| Locations | Change filters | Same page; `POST /api/locations/visits` (search, building, status). Building and status dropdowns apply immediately (no Apply button). |
+| Locations | Export | Same page; `POST /api/locations/visits/excel` (same filters) → `.xlsx` download |
+| Attendance | Export | Same page; `POST /api/attendance/admin/excel` (same filters) → `.xlsx` download |
 | Students table | Toggle login / Add student account | Same page; toggles persist via `PATCH /api/students/:id/access`, creation via `POST /api/students` |
-| Attendance | Apply filters | Same page; filters records client-side |
+| Attendance | Change filters | Same page; `POST /api/attendance/admin` (search, session, **status** inside/outside, **attendanceStatus** Present/Absent, date). Dropdowns apply immediately (no Apply button). Before due: scanners only. After due: plus **Absent** for login-account students who never scanned. Export uses `POST /api/attendance/admin/excel` with the same body. |
 | Any admin page | Sign out | `/auth/login` |
 
 ### 3) Student shell
@@ -160,8 +162,8 @@ Pages do **not** yet call the Nest API for dashboard. Pattern:
 | Login | `AuthService` | Nest `POST /api/auth/login` + `localStorage` token |
 | Dashboard | `DashboardService` | `dashboard-attendance.json` |
 | Students | `StudentService` | **Nest live** `GET/POST /api/students`, `PATCH /api/students/:id/access` (admin) |
-| Attendance | `AttendanceService` | `attendance-records.json` |
-| Locations | `LocationService` | **Nest live** `POST /api/locations/visits` (visit log + API filters; includes student GPS). Zone catalog `GET /api/locations` is for Sessions only. |
+| Attendance | `AttendanceService` | **Nest live** `POST /api/attendance/admin` (Present + Absent; teachers: own sessions). Export: `POST /api/attendance/admin/excel` |
+| Locations | `LocationService` | **Nest live** `POST /api/locations/visits` (visit log + API filters; includes student GPS). Export: `POST /api/locations/visits/excel`. Zone catalog `GET /api/locations` is for Sessions only. |
 | Sessions | `SessionService` | Nest `/api/sessions` + `/api/locations` (Bearer token) |
 | Student scan | `StudentAttendanceService` | Nest open sessions + submit + me |
 

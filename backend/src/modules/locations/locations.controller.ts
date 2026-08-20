@@ -1,10 +1,20 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import type { Response } from 'express';
 import { USER_ROLES } from '../../common/constants/roles.constant';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { sendExcelFile } from '../../common/utils/excel-response';
 import { LocationVisitFilterDto } from './dto/location-visit-filter.dto';
 import { LocationsService } from './locations.service';
 
@@ -32,6 +42,23 @@ export class LocationsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.locationsService.findVisits(body ?? {}, user);
+  }
+
+  /**
+   * Excel download of the student visit log.
+   * Body is the same filter payload as POST /locations/visits.
+   */
+  @Post('visits/excel')
+  @Roles(USER_ROLES.admin, USER_ROLES.teacher)
+  async exportVisitsExcel(
+    @Body() body: LocationVisitFilterDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @Res() res: Response,
+  ): Promise<void> {
+    sendExcelFile(
+      res,
+      await this.locationsService.exportVisitsExcel(body ?? {}, user),
+    );
   }
 
   @Get(':id')

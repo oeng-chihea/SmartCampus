@@ -33,6 +33,8 @@
       [columns]="visitColumns"
       [rows]="state.visits()"
       [showExport]="true"
+      [exporting]="state.exporting()"
+      (exportClick)="onExport()"
       [comfortable]="true"
       [interactive]="true"
       [activeRowId]="selectedVisit()?.id ?? null"
@@ -87,10 +89,6 @@
       <div class="record-detail__item">
         <dt>Coordinates</dt>
         <dd>{{ coordinatesLabel(visit) }}</dd>
-      </div>
-      <div class="record-detail__item">
-        <dt>Accuracy</dt>
-        <dd>{{ accuracyLabel(visit) }}</dd>
       </div>
       <div class="record-detail__item">
         <dt>Time</dt>

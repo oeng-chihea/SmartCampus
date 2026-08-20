@@ -179,9 +179,9 @@
 }
 
 .record-detail__badge--absent {
-  background: var(--color-brand-faint);
-  border: 1px solid var(--border-subtle);
-  color: var(--color-muted);
+  background: var(--color-danger-faint);
+  border: 1px solid var(--color-danger-soft);
+  color: var(--color-danger-strong);
 }
 
 .record-detail__badge--outside-location,

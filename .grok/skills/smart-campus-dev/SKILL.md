@@ -159,8 +159,14 @@ When implementing API modules:
 8. Live student flow: `StudentAttendanceService` loads `GET /api/sessions/open`
    (all Open sessions + same live QR as teacher — **do not filter out past due**),
    then `POST /api/attendance/submit` (before due only; API 403 after due)
-   and `GET /api/attendance/me` (only rows for sessions that still exist; **purges
-   orphan records**). Past-due mark/scan opens shared `app-confirm-dialog`.
+   and `GET /api/attendance/me` (only **scan** rows for sessions that still exist;
+   **purges orphan records**; **excludes Absent**). Past-due mark/scan opens shared
+   `app-confirm-dialog`. `POST /api/attendance/admin` lists **only scanners** until
+   `dueAt`. After due, it materializes **Absent** rows for login-account students
+   who did not scan (`absents_finalized` snapshot). Close before due does **not**
+   write absents. Edit due time deletes Absent rows. Locations visits also exclude
+   Absent. Admin/teacher table column **Attendance status** is Present (scanned
+   on time) or Absent.
    My attendance UI: shared `app-table` (Session · Location · Scanned at place name · Recorded · Status);
    location `formatCampusLocationLabel` → `Building B-Room 105`.
    Admin records and Locations pages are live (`AttendanceService`,

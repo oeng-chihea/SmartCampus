@@ -4,7 +4,6 @@ import {
   distanceBadgeVariant,
   formatCampusLocationLabel,
   formatDistanceMeters,
-  formatScanAccuracy,
   formatScanCoordinates,
   formatScannedAtCell,
 } from '../../../../core/utils/format.util';
@@ -81,12 +80,7 @@ export class LocationsComponent implements OnInit {
       width: 'minmax(12rem, 1.8fr)',
       cellClass: 'data-table__cell--scanned-at',
       primary: (row) =>
-        formatScannedAtCell(
-          row.scannedLocation,
-          row.latitude,
-          row.longitude,
-          row.accuracyMeters,
-        ),
+        formatScannedAtCell(row.scannedLocation, row.latitude, row.longitude),
     },
     {
       key: 'recorded',
@@ -123,6 +117,10 @@ export class LocationsComponent implements OnInit {
     void this.flow.applyFilters(filters);
   }
 
+  onExport(): void {
+    void this.flow.exportExcel();
+  }
+
   onVisitSelect(visit: LocationVisit): void {
     this.selectedVisit.set(visit);
   }
@@ -137,10 +135,6 @@ export class LocationsComponent implements OnInit {
 
   coordinatesLabel(visit: LocationVisit): string {
     return formatScanCoordinates(visit.latitude, visit.longitude);
-  }
-
-  accuracyLabel(visit: LocationVisit): string {
-    return formatScanAccuracy(visit.accuracyMeters) ?? '—';
   }
 
   distanceLabel(visit: LocationVisit): string {

@@ -19,7 +19,7 @@ smart-campus-system/
 | `features/auth` | login | `/auth/login` | `AuthService` | none (live API; no demo chips) |
 | `features/dashboard` | dashboard | `/dashboard` | `DashboardService` | `dashboard-attendance.json` |
 | `features/students` | students | `/students` | `StudentService` | **live API** (`GET/POST /api/students`, `PATCH /:id/access`) |
-| `features/attendance` | admin-records, student-scan | `/attendance`, `/student/scan` | `AttendanceService` (+ auth for scan) | `attendance-records.json` |
+| `features/attendance` | admin-records, student-scan | `/attendance`, `/student/scan` | `AttendanceService` (+ auth for scan) | **Live API** (`POST /api/attendance/admin` Present + Absent; student submit / me) |
 | `features/locations` | locations | `/locations` | `LocationService` | **Live API** (`POST /api/locations/visits` — visit log with assigned zone + student GPS). Catalog `GET /api/locations` is for Sessions / geofence only. |
 | `features/sessions` | sessions (state + flow + UI) | `/sessions` | `SessionService` | **Live API** create / QR / edit / close / delete |
 | `features/reports` | empty folder | `/reports` placeholder | — | — |
@@ -66,8 +66,8 @@ smart-campus-system/
 | `users` | **Live** account provisioning: `POST /api/users` (admin); links student accounts to profiles |
 | `students` | **Live** directory: `GET /api/students`, `POST /api/students` (+ account), `PATCH /:id/access` |
 | `dashboard` | Registered module with frontend-aligned dashboard contract |
-| `attendance` | **Live** student submit + `GET /me` (existing sessions only; purges orphans); submit runs the **geofence check** (FR-02, Haversine vs `radiusMeters`) when the client sends GPS coordinates |
-| `locations` | **Live** zone catalog (`GET /api/locations`) for session create + geofence, and student visit log (`POST /api/locations/visits` with search/building/status). Default pin is **KIT Phnom Penh Campus** (`LOC-001`, 11.5479313, 104.9405941, 80 m). Visit rows show the assigned zone plus the student’s scan GPS (`latitude` / `longitude` stored on `attendance_records`); zone `latitude/longitude/radiusMeters` are consumed by the attendance geofence check |
+| `attendance` | **Live** student submit + `GET /me` (existing sessions only; purges orphans; **excludes Absent**); `POST /admin` lists scanners until `dueAt`, then materializes **Absent** for login-account students who never scanned (`absents_finalized`); submit runs the **geofence check** (FR-02, Haversine vs `radiusMeters`) when the client sends GPS coordinates. **Excel:** `POST /admin/excel` (same filter body, ExcelJS `.xlsx`) |
+| `locations` | **Live** zone catalog (`GET /api/locations`) for session create + geofence, and student visit log (`POST /api/locations/visits` with search/building/status). **Excel:** `POST /api/locations/visits/excel` (same filter body). Default pin is **KIT Phnom Penh Campus** (`LOC-001`, 11.5479313, 104.9405941, 80 m). Visit rows show the assigned zone plus the student’s scan GPS (`latitude` / `longitude` stored on `attendance_records`); zone `latitude/longitude/radiusMeters` are consumed by the attendance geofence check |
 | `sessions` | **Live** create / list / QR / **edit** (`POST /:id/edit`) / close / **delete** (delete cascades attendance by `session_id`) |
 | `reports` | Registered boundary; frontend page is still a placeholder |
 | TypeORM / migrations | Users/students/sessions/attendance persist via TypeORM (`synchronize: true` in dev) |
@@ -87,6 +87,9 @@ Root `README.md` lists broader product areas (courses, requests, notifications, 
 ```text
 LocationService.queryVisits(filters)
   POST /api/locations/visits { search?, building?, status? }
+LocationService.exportVisitsExcel(filters)
+  POST /api/locations/visits/excel { search?, building?, status? }
+    → .xlsx (ExcelJS; full scanned-at Unicode text)
     attendance_records
       INNER JOIN sessions (teacher: own sessions only)
       INNER JOIN locations
@@ -158,7 +161,8 @@ Session log ⋮ menu:
 - **Edit session** → `POST /api/sessions/:id/edit` (title, location, due time; separate from create; does not rotate QR or change status)
 - **Close** → `POST /api/sessions/:id/close` (row stays Closed; student open card gone; history kept)  
 - **Delete** → `DELETE /api/sessions/:id` (session removed + **cascade** `attendance_records` for that `session_id`; student My attendance drops those rows)
-- Student `GET /api/attendance/me` only returns rows for sessions that still exist and deletes orphan rows
+- Student `GET /api/attendance/me` only returns **scan** rows for sessions that still exist and deletes orphan rows (Absent rows are staff-only)
+- Admin/teacher `POST /api/attendance/admin` lists **only scanners** until `dueAt`. After due, it writes **Absent** for roster students (`students.user_id` set) who did not scan. Close before due does not write absents. `sessions.absents_finalized` prevents later backfill. `attendanceStatus` is Present (any scan, including Outside Location) or Absent. Changing `dueAt` on edit deletes Absent rows and clears the flag. Locations visits exclude Absent.
 
 ## Security notes (demo stage)
 

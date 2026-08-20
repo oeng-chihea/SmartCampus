@@ -60,6 +60,7 @@ export function configureApp(app: INestApplication): void {
       callback(null, false);
     },
     credentials: true,
+    exposedHeaders: ['Content-Disposition'],
   });
   app.useGlobalPipes(
     new ValidationPipe({

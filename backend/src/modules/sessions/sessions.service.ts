@@ -14,6 +14,7 @@ import {
   type SessionStatus,
 } from '../../common/constants/session.constant';
 import { USER_ROLES } from '../../common/constants/roles.constant';
+import { ATTENDANCE_STATUS } from '../../common/constants/status.constant';
 import { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { toIsoDate } from '../../common/utils/date.util';
 import { AttendanceRecordEntity } from '../../database/entities/attendance-record.entity';
@@ -64,6 +65,7 @@ export class SessionsService {
       teacherId: actor.userId,
       teacherName,
       status: SESSION_STATUS.open,
+      absentsFinalized: false,
       dueAt,
       createdAt: now,
       openedAt: now,
@@ -196,12 +198,20 @@ export class SessionsService {
     const dueAt = this.parseDueAt(dto.dueAt);
     const previousLocationId = session.locationId;
     const locationChanged = previousLocationId !== location.id;
+    const dueChanged = (session.dueAt?.getTime() ?? null) !== dueAt.getTime();
 
     session.title = dto.title.trim();
     session.locationId = location.id;
     session.locationName = location.name;
     session.dueAt = dueAt;
+    if (dueChanged) {
+      session.absentsFinalized = false;
+    }
     await this.sessions.save(session);
+
+    if (dueChanged) {
+      await this.deleteAbsentRecords(session.id);
+    }
 
     if (locationChanged && session.status === SESSION_STATUS.open) {
       await this.locationsService.decrementSessionsUsing(previousLocationId);
@@ -250,12 +260,7 @@ export class SessionsService {
     const wasOpen = session.status === SESSION_STATUS.open;
 
     // Cascade: remove every student attendance row for this session (column session_id).
-    await this.attendanceRecords
-      .createQueryBuilder()
-      .delete()
-      .from(AttendanceRecordEntity)
-      .where('session_id = :sessionId', { sessionId: id })
-      .execute();
+    await this.deleteAttendanceForSession(id);
 
     await this.sessions.remove(session);
 
@@ -454,6 +459,26 @@ export class SessionsService {
       return false;
     }
     return now.getTime() >= new Date(session.dueAt).getTime();
+  }
+
+  private async deleteAttendanceForSession(sessionId: string): Promise<void> {
+    await this.attendanceRecords
+      .createQueryBuilder()
+      .delete()
+      .from(AttendanceRecordEntity)
+      .where('session_id = :sessionId', { sessionId })
+      .execute();
+  }
+
+  /** Drop synthetic Absent rows so a later due time can accept scans again. */
+  private async deleteAbsentRecords(sessionId: string): Promise<void> {
+    await this.attendanceRecords
+      .createQueryBuilder()
+      .delete()
+      .from(AttendanceRecordEntity)
+      .where('session_id = :sessionId', { sessionId })
+      .andWhere('status = :status', { status: ATTENDANCE_STATUS.absent })
+      .execute();
   }
 
   private nextSessionId(): string {

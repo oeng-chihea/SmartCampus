@@ -6,7 +6,6 @@ import {
 import {
   distanceBadgeVariant,
   formatDistanceMeters,
-  formatScanAccuracy,
   formatScanCoordinates,
   formatScannedAtCell,
 } from '../../../../core/utils/format.util';
@@ -79,12 +78,7 @@ export class AdminRecordsComponent implements OnInit {
       width: 'minmax(16rem, 2.5fr)',
       cellClass: 'data-table__cell--scanned-at',
       primary: (row) =>
-        formatScannedAtCell(
-          row.scannedLocation,
-          row.latitude,
-          row.longitude,
-          row.accuracyMeters,
-        ),
+        formatScannedAtCell(row.scannedLocation, row.latitude, row.longitude),
     },
     {
       key: 'time',
@@ -111,6 +105,15 @@ export class AdminRecordsComponent implements OnInit {
       value: (row) => row.status,
       badgeVariant: (row) => row.status.toLowerCase().replace(/\s+/g, '-'),
     },
+    {
+      key: 'attendanceStatus',
+      header: 'Attendance status',
+      type: 'badge',
+      width: 'minmax(8.75rem, 0.9fr)',
+      align: 'start',
+      value: (row) => row.attendanceStatus,
+      badgeVariant: (row) => row.attendanceStatus.toLowerCase(),
+    },
   ];
 
   ngOnInit(): void {
@@ -119,6 +122,10 @@ export class AdminRecordsComponent implements OnInit {
 
   onFilterApply(filters: AttendanceFilterState): void {
     void this.flow.applyFilters(filters);
+  }
+
+  onExport(): void {
+    void this.flow.exportExcel();
   }
 
   onRecordSelect(record: AttendanceRecord): void {
@@ -131,10 +138,6 @@ export class AdminRecordsComponent implements OnInit {
 
   coordinatesLabel(record: AttendanceRecord): string {
     return formatScanCoordinates(record.latitude, record.longitude);
-  }
-
-  accuracyLabel(record: AttendanceRecord): string {
-    return formatScanAccuracy(record.accuracyMeters) ?? '—';
   }
 
   distanceLabel(record: AttendanceRecord): string {

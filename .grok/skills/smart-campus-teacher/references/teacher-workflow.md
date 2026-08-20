@@ -23,7 +23,7 @@ Both **frontend** and **backend** must run for Sessions and Locations.
     ▼
 /dashboard ────────────────────────────── mock metrics, chart, recent scans
     │ sidebar
-    ├─► /attendance ───────────────────── mock attendance records + filters
+    ├─► /attendance ───────────────────── live Present + Absent (own sessions)
     ├─► /locations ────────────────────── live student visit log (zone + scan GPS)
     ├─► /sessions  ────────────────────── LIVE create / QR / edit / close / delete  ★ primary
     ├─► /reports   ────────────────────── placeholder title only
@@ -118,10 +118,18 @@ Example: `SMARTCAMPUS|sess-63608b870d1c|3e35183cb7bb6b0cfcc387a0129cda78`
 /dashboard → view Present / Late / Outside summary (mock) → sidebar to Attendance or Sessions
 ```
 
-### Attendance records (review only today)
+### Attendance records (live)
 
 ```text
-/attendance → filter by session/status/date → export button (UI only; mock data)
+/attendance → POST /api/attendance/admin
+     { search?, sessionId?, status?: inside|outside, attendanceStatus?: Present|Absent, date? }
+  → dropdowns (Status, Attendance status, Date) and session picker apply immediately — no Apply button
+  → before due: only students who scanned (Present / Outside Location)
+  → after due: those scanners + Absent for login-account students who never scanned
+  → column Attendance status: Present | Absent
+  → metrics: Present · Outside Location · Absent
+  → teacher sees only own sessions
+  → Export → POST /api/attendance/admin/excel (same filters) → .xlsx download
 ```
 
 ### Locations browse (student visit log)
@@ -129,7 +137,9 @@ Example: `SMARTCAMPUS|sess-63608b870d1c|3e35183cb7bb6b0cfcc387a0129cda78`
 ```text
 /locations → POST /api/locations/visits {}
   → empty until a student scans QR or marks present
-  → Apply → POST /api/locations/visits { search?, building?, status? }
+  → Building / Status dropdowns apply immediately — no Apply button
+       → POST /api/locations/visits { search?, building?, status? }
+  → Export → POST /api/locations/visits/excel (same filters) → .xlsx download
   → table: Student · Session · Location (assigned zone) · Building
        · Scanned at (place name + GPS) · Distance · Status · Recorded
 ```
@@ -225,6 +235,8 @@ Sidebar footer "Sign out" → AuthService.logout() → /auth/login
 |--------|------|---------|
 | `GET` | `/api/locations` | Campus zone directory (session create) |
 | `POST` | `/api/locations/visits` | Student visit log + API filters (own sessions) |
+| `POST` | `/api/locations/visits/excel` | Visit log `.xlsx` (same filters, ExcelJS) |
+| `POST` | `/api/attendance/admin/excel` | Attendance log `.xlsx` (same filters as `/admin`) |
 | `POST` | `/api/sessions` | Create open session (`title`, `locationId`, `dueAt` ISO) |
 | `GET` | `/api/sessions` | List (own for teacher) |
 | `GET` | `/api/sessions/:id/qr` | Current short-lived QR |

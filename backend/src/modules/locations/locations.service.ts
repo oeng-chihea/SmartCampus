@@ -8,9 +8,11 @@ import {
 import { USER_ROLES } from '../../common/constants/roles.constant';
 import { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { toIsoDate } from '../../common/utils/date.util';
+import { ExcelFile } from '../../common/utils/excel.util';
 import { AttendanceRecordEntity } from '../../database/entities/attendance-record.entity';
 import { LocationEntity } from '../../database/entities/location.entity';
 import { SessionEntity } from '../../database/entities/session.entity';
+import { buildLocationVisitsExcel } from './location-visits-excel';
 import { CampusLocationResponseDto } from './dto/location-response.dto';
 import { LocationVisitFilterDto } from './dto/location-visit-filter.dto';
 import {
@@ -80,7 +82,7 @@ export class LocationsService {
    * Rows come from attendance_records (QR / Mark present), joined to the
    * session's campus zone for building / area name. Filters run in SQL.
    * Metrics and building options ignore the current filter so cards and
-   * dropdowns stay stable when Apply narrows the table.
+   * dropdowns stay stable when a filter narrows the table.
    */
   async findVisits(
     dto: LocationVisitFilterDto,
@@ -97,6 +99,19 @@ export class LocationsService {
     };
   }
 
+  /**
+   * Same filters and role scope as `findVisits`, returned as an .xlsx
+   * workbook (full scanned-at text, Unicode-safe).
+   */
+  async exportVisitsExcel(
+    dto: LocationVisitFilterDto,
+    actor: AuthenticatedUser,
+    now: Date = new Date(),
+  ): Promise<ExcelFile> {
+    const page = await this.findVisits(dto, actor);
+    return buildLocationVisitsExcel(page, dto, now);
+  }
+
   private async loadVisitRecords(
     actor: AuthenticatedUser,
     dto: LocationVisitFilterDto,
@@ -109,7 +124,10 @@ export class LocationsService {
         'location',
         'location.id = session.location_id',
       )
-      .orderBy('record.recorded_at', 'DESC');
+      .orderBy('record.recorded_at', 'DESC')
+      .andWhere('record.status != :absentStatus', {
+        absentStatus: ATTENDANCE_STATUS.absent,
+      });
 
     if (dto.search?.trim()) {
       const needle = `%${dto.search.trim()}%`;
