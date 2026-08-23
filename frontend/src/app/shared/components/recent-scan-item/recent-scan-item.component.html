@@ -8,7 +8,7 @@
     <span class="recent-scan__location">{{ scan().location }}</span>
   </div>
   <div class="recent-scan__meta">
-    <small>{{ scan().submittedAt }}</small>
+    <small>{{ recordedLabel() }}</small>
     @if (scan().distanceMeters !== null) {
       <small class="recent-scan__distance">{{ scan().distanceMeters }} m from zone</small>
     }

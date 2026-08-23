@@ -66,7 +66,7 @@ export class SessionService {
     );
   }
 
-  /** Update title, location, and due time via POST /sessions/:id/edit. */
+  /** Update title and campus location via POST /sessions/:id/edit. Due stays as created. */
   editSession(
     sessionId: string,
     body: EditSessionRequest,

@@ -223,58 +223,60 @@
         }
       </div>
 
-      <div
-        class="session-create-form__field"
-        [class.session-create-form__field--invalid]="
-          state.hasFieldError('dueDate') || state.hasFieldError('dueTime')
-        "
-      >
-        <span class="session-create-form__label" id="session-due-label">
-          Due
-          <abbr class="session-create-form__required" title="required">*</abbr>
-        </span>
-        <div class="session-create-form__due-row">
-          <label class="session-create-form__due-part">
-            <span class="session-create-form__due-caption">Date</span>
-            <input
-              type="date"
-              name="dueDate"
-              [(ngModel)]="state.dueDate"
-              (ngModelChange)="onFieldInput('dueDate')"
-              [class.is-invalid]="state.hasFieldError('dueDate')"
-              [attr.aria-invalid]="state.hasFieldError('dueDate')"
-              [attr.aria-labelledby]="'session-due-label'"
-              [attr.aria-describedby]="
-                state.hasFieldError('dueDate') || state.hasFieldError('dueTime')
-                  ? 'session-due-error'
-                  : 'session-due-hint'
-              "
-            />
-          </label>
-          <label class="session-create-form__due-part">
-            <span class="session-create-form__due-caption">Time</span>
-            <input
-              type="time"
-              name="dueTime"
-              [(ngModel)]="state.dueTime"
-              (ngModelChange)="onFieldInput('dueTime')"
-              [class.is-invalid]="state.hasFieldError('dueTime')"
-              [attr.aria-invalid]="state.hasFieldError('dueTime')"
-              [attr.aria-describedby]="
-                state.hasFieldError('dueDate') || state.hasFieldError('dueTime')
-                  ? 'session-due-error'
-                  : 'session-due-hint'
-              "
-            />
-          </label>
+      @if (!state.isEditDialog()) {
+        <div
+          class="session-create-form__field"
+          [class.session-create-form__field--invalid]="
+            state.hasFieldError('dueDate') || state.hasFieldError('dueTime')
+          "
+        >
+          <span class="session-create-form__label" id="session-due-label">
+            Due
+            <abbr class="session-create-form__required" title="required">*</abbr>
+          </span>
+          <div class="session-create-form__due-row">
+            <label class="session-create-form__due-part">
+              <span class="session-create-form__due-caption">Date</span>
+              <input
+                type="date"
+                name="dueDate"
+                [(ngModel)]="state.dueDate"
+                (ngModelChange)="onFieldInput('dueDate')"
+                [class.is-invalid]="state.hasFieldError('dueDate')"
+                [attr.aria-invalid]="state.hasFieldError('dueDate')"
+                [attr.aria-labelledby]="'session-due-label'"
+                [attr.aria-describedby]="
+                  state.hasFieldError('dueDate') || state.hasFieldError('dueTime')
+                    ? 'session-due-error'
+                    : 'session-due-hint'
+                "
+              />
+            </label>
+            <label class="session-create-form__due-part">
+              <span class="session-create-form__due-caption">Time</span>
+              <input
+                type="time"
+                name="dueTime"
+                [(ngModel)]="state.dueTime"
+                (ngModelChange)="onFieldInput('dueTime')"
+                [class.is-invalid]="state.hasFieldError('dueTime')"
+                [attr.aria-invalid]="state.hasFieldError('dueTime')"
+                [attr.aria-describedby]="
+                  state.hasFieldError('dueDate') || state.hasFieldError('dueTime')
+                    ? 'session-due-error'
+                    : 'session-due-hint'
+                "
+              />
+            </label>
+          </div>
+          <span id="session-due-hint" class="session-create-form__hint">
+            Students can mark present until this date and time. Pick tomorrow to set a next-day deadline.
+          </span>
+          @if (state.fieldError('dueDate') || state.fieldError('dueTime'); as dueErr) {
+            <span id="session-due-error" class="session-create-form__field-error">{{ dueErr }}</span>
+          }
         </div>
-        <span id="session-due-hint" class="session-create-form__hint">
-          Students can mark present until this date and time. Pick tomorrow to set a next-day deadline.
-        </span>
-        @if (state.fieldError('dueDate') || state.fieldError('dueTime'); as dueErr) {
-          <span id="session-due-error" class="session-create-form__field-error">{{ dueErr }}</span>
-        }
-      </div>
+      }
 
       <footer class="session-create-form__actions">
         <button

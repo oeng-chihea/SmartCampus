@@ -17,7 +17,7 @@ smart-campus-system/
 | Feature folder | Page(s) | Route(s) | Service | Mock data |
 |----------------|---------|----------|---------|-----------|
 | `features/auth` | login | `/auth/login` | `AuthService` | none (live API; no demo chips) |
-| `features/dashboard` | dashboard | `/dashboard` | `DashboardService` | `dashboard-attendance.json` |
+| `features/dashboard` | dashboard | `/dashboard` | `DashboardService` | **Live API** (`GET /api/dashboard` — cards, 12-month rate, recent scans) |
 | `features/students` | students | `/students` | `StudentService` | **live API** (`GET/POST /api/students`, `PATCH /:id/access`) |
 | `features/attendance` | admin-records, student-scan | `/attendance`, `/student/scan` | `AttendanceService` (+ auth for scan) | **Live API** (`POST /api/attendance/admin` Present + Absent; student submit / me) |
 | `features/locations` | locations | `/locations` | `LocationService` | **Live API** (`POST /api/locations/visits` — visit log with assigned zone + student GPS). Catalog `GET /api/locations` is for Sessions / geofence only. |
@@ -29,7 +29,6 @@ smart-campus-system/
 | Component | Used by |
 |-----------|---------|
 | `stat-card` | Dashboard, Students, Attendance, Locations, Sessions |
-| `quick-lookup` | Dashboard |
 | `attendance-chart` | Dashboard |
 | `recent-scan-list` / `recent-scan-item` | Dashboard |
 | `student-filter` / `student-table` | Students |
@@ -39,6 +38,7 @@ smart-campus-system/
 | `table` | Sessions log; student My attendance; locations/admin attendance |
 | `confirm-dialog` | Sessions delete; student due-time blocked mark/scan |
 | `modal-dialog` / `select-dropdown` | Sessions create / edit form; other dialogs |
+| `voice-assistant` | Admin layout (English Gemini Live mic; admin/teacher only) |
 
 ## Models
 
@@ -49,7 +49,9 @@ smart-campus-system/
 | `student.model.ts` | `Student` (+ `hasAccount`), `CreateStudentRequest` |
 | `attendance.model.ts` | `AttendanceRecord`, filter state, admin page shape |
 | `location.model.ts` | `CampusLocation`, `LocationVisit`, filters |
+| `dashboard.model.ts` | `AdminDashboard`, `MonthlyAttendancePoint`, `RecentScan` |
 | `session.model.ts` | `AttendanceSession`, `CreateSessionRequest`, `EditSessionRequest`, QR types |
+| `voice-live.model.ts` | Gemini Live token + campus voice tool args |
 | `api-response.model.ts` | generic API envelope (for future HTTP) |
 | `pagination.model.ts` | pagination shape (for future lists) |
 
@@ -65,11 +67,12 @@ smart-campus-system/
 | `auth` | Live login (`POST /api/auth/login`), HMAC-signed tokens, enforces `students.login_enabled` (403 for disabled) |
 | `users` | **Live** account provisioning: `POST /api/users` (admin); links student accounts to profiles |
 | `students` | **Live** directory: `GET /api/students`, `POST /api/students` (+ account), `PATCH /:id/access` |
-| `dashboard` | Registered module with frontend-aligned dashboard contract |
+| `dashboard` | **Live** `GET /api/dashboard` (admin/teacher): summary cards, 12-month check-in rate (`(Present + Outside Location) / (Present + Outside Location + Absent)` in `Asia/Phnom_Penh`), latest 10 scans (excludes Absent). Teachers: own sessions only |
 | `attendance` | **Live** student submit + `GET /me` (existing sessions only; purges orphans; **excludes Absent**); `POST /admin` lists scanners until `dueAt`, then materializes **Absent** for login-account students who never scanned (`absents_finalized`); submit runs the **geofence check** (FR-02, Haversine vs `radiusMeters`) when the client sends GPS coordinates. **Excel:** `POST /admin/excel` (same filter body, ExcelJS `.xlsx`) |
 | `locations` | **Live** zone catalog (`GET /api/locations`) for session create + geofence, and student visit log (`POST /api/locations/visits` with search/building/status). **Excel:** `POST /api/locations/visits/excel` (same filter body). Default pin is **KIT Phnom Penh Campus** (`LOC-001`, 11.5479313, 104.9405941, 80 m). Visit rows show the assigned zone plus the student’s scan GPS (`latitude` / `longitude` stored on `attendance_records`); zone `latitude/longitude/radiusMeters` are consumed by the attendance geofence check |
 | `sessions` | **Live** create / list / QR / **edit** (`POST /:id/edit`) / close / **delete** (delete cascades attendance by `session_id`) |
 | `reports` | Registered boundary; frontend page is still a placeholder |
+| `ai` | **Live** `POST /api/ai/live-token` (admin/teacher): mints a constrained Gemini Live ephemeral token (`gemini-3.1-flash-live-preview`). `GEMINI_API_KEY` stays on Nest. Angular admin mic widget streams English audio and runs page tools (navigate, search, QR, export). Student scan is not voice-controlled. |
 | TypeORM / migrations | Users/students/sessions/attendance persist via TypeORM (`synchronize: true` in dev) |
 
 All backend routes use the `/api` global prefix. Feature modules contain
@@ -80,7 +83,7 @@ or persistence.
 ## README vs code (known drift)
 
 Root `README.md` lists broader product areas (courses, requests, notifications, roles UI, settings).  
-**Current product nav is attendance-first** (`ADMIN_NAVIGATION`): Dashboard, Students, Attendance, Locations, Sessions, Reports. Prefer the nav constants and routes over the older README feature list when deciding scope.
+**Current product nav is attendance-first** (`ADMIN_NAVIGATION`): Dashboard, Students, Attendance, Locations, Sessions, Reports. Teachers do **not** see Students or Reports (`adminOnlyPaths`); they export Excel from Attendance and Locations. Prefer the nav constants and routes over the older README feature list when deciding scope.
 
 ## Data dependency example (Locations visit log)
 
@@ -158,11 +161,11 @@ Session log ⋮ menu:
 | Open | Show QR · Edit session · Close · Delete |
 | Closed | Edit session · Delete |
 
-- **Edit session** → `POST /api/sessions/:id/edit` (title, location, due time; separate from create; does not rotate QR or change status)
+- **Edit session** → `POST /api/sessions/:id/edit` (title, location; dueAt frozen at create; separate from create; does not rotate QR or change status)
 - **Close** → `POST /api/sessions/:id/close` (row stays Closed; student open card gone; history kept)  
 - **Delete** → `DELETE /api/sessions/:id` (session removed + **cascade** `attendance_records` for that `session_id`; student My attendance drops those rows)
 - Student `GET /api/attendance/me` only returns **scan** rows for sessions that still exist and deletes orphan rows (Absent rows are staff-only)
-- Admin/teacher `POST /api/attendance/admin` lists **only scanners** until `dueAt`. After due, it writes **Absent** for roster students (`students.user_id` set) who did not scan. Close before due does not write absents. `sessions.absents_finalized` prevents later backfill. `attendanceStatus` is Present (any scan, including Outside Location) or Absent. Changing `dueAt` on edit deletes Absent rows and clears the flag. Locations visits exclude Absent.
+- Admin/teacher `POST /api/attendance/admin` lists **only scanners** until `dueAt`. After due, it writes **Absent** for roster students (`students.user_id` set) who did not scan. Close before due does not write absents. `sessions.absents_finalized` prevents later backfill. `attendanceStatus` is Present (any scan, including Outside Location) or Absent. Edit cannot change `dueAt`. Locations visits exclude Absent.
 
 ## Security notes (demo stage)
 
@@ -170,4 +173,4 @@ Session log ⋮ menu:
   account** (no shared demo student logins).
 - Frontend session is localStorage JSON, not production JWT validation.
 - Role checks are enforced on the API for the live modules (auth, users,
-  students, sessions, attendance) via `AuthGuard` + `RolesGuard`.
+  students, sessions, attendance, dashboard) via `AuthGuard` + `RolesGuard`.

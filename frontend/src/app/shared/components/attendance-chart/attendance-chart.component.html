@@ -1,6 +1,6 @@
 <section class="chart" aria-labelledby="attendance-chart-heading">
   <header class="chart__header">
-    <div>
+    <div class="chart__title">
       <p class="chart__eyebrow">Attendance analysis</p>
       <h2 id="attendance-chart-heading">12-month attendance rate</h2>
     </div>
@@ -11,104 +11,141 @@
     </div>
   </header>
 
-  <div
-    class="chart__stage"
-    (mouseleave)="hideMonth()"
-    role="img"
-    [attr.aria-label]="'Monthly present rate from January to December ' + year() + '. Hover a month for details.'"
-  >
-    <svg class="chart__svg" [attr.viewBox]="viewBox" preserveAspectRatio="none" aria-hidden="true">
-      <defs>
-        <linearGradient id="chartAreaGradient" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#16a34a" stop-opacity="0.3" />
-          <stop offset="100%" stop-color="#16a34a" stop-opacity="0.02" />
-        </linearGradient>
-      </defs>
-
-      <!-- Grid -->
-      @for (tick of yTicks; track tick.rate) {
-        <line class="chart__grid" x1="40" x2="624" [attr.y1]="tick.y" [attr.y2]="tick.y" />
-        <text class="chart__tick" x="32" [attr.y]="tick.y + 4" text-anchor="end">{{ tick.rate }}</text>
-      }
-
-      <!-- Area + line (animated draw) -->
-      <path class="chart__area" [attr.d]="areaPath()" />
-      <path class="chart__line" pathLength="1" [attr.d]="linePath()" fill="none" />
-
-      <!-- Active vertical guide -->
-      @if (guideX(); as x) {
-        <line class="chart__guide" [attr.x1]="x" [attr.x2]="x" [attr.y1]="24" [attr.y2]="baselineY" />
-      }
-
-      <!-- Dots + large hit targets for hover -->
-      @for (point of points(); track point.month) {
-        <circle
-          class="chart__hit"
-          [attr.cx]="point.x"
-          [attr.cy]="point.y"
-          r="16"
-          (mouseenter)="showMonth(point.index)"
-          (focus)="showMonth(point.index)"
-        />
-        <circle
-          class="chart__dot"
-          [class.chart__dot--active]="isActive(point.index)"
-          [attr.cx]="point.x"
-          [attr.cy]="point.y"
-          [attr.r]="isActive(point.index) ? 6.5 : 4.5"
-          [style.--i]="point.index"
-        />
-      }
-    </svg>
-
-    <!-- Month labels (also hoverable) -->
-    <div class="chart__months">
-      @for (point of points(); track point.month) {
-        <button
-          type="button"
-          class="chart__month"
-          [class.chart__month--active]="isActive(point.index)"
-          (mouseenter)="showMonth(point.index)"
-          (focus)="showMonth(point.index)"
+  <div class="chart__viewport">
+    <div class="chart__frame" (mouseleave)="hideMonth()">
+      <div
+        #plot
+        class="chart__plot"
+        role="img"
+        [attr.aria-label]="'Monthly present rate from January to December ' + year() + '. Hover or tap a month for details.'"
+      >
+        <svg
+          class="chart__svg"
+          [attr.viewBox]="viewBox()"
+          preserveAspectRatio="none"
+          aria-hidden="true"
         >
-          {{ point.month }}
-        </button>
-      }
-    </div>
+          <defs>
+            <linearGradient id="chartAreaGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#16a34a" stop-opacity="0.28" />
+              <stop offset="100%" stop-color="#16a34a" stop-opacity="0.02" />
+            </linearGradient>
+          </defs>
 
-    <!-- Hover detail card -->
-    @if (activePoint(); as point) {
-      @if (tooltipStyle(); as style) {
-        <aside class="chart__tooltip" [style.left]="style.left" [style.top]="style.top" [style.transform]="style.transform">
-          <header>
-            <strong>{{ point.month }} {{ year() }}</strong>
-            <span>{{ point.presentRate }}%</span>
-          </header>
-          <dl>
-            <div>
-              <dt>Present</dt>
-              <dd>{{ point.present }}</dd>
-            </div>
-            <div>
-              <dt>Late</dt>
-              <dd>{{ point.late }}</dd>
-            </div>
-            <div>
-              <dt>Absent</dt>
-              <dd>{{ point.absent }}</dd>
-            </div>
-            <div>
-              <dt>Outside</dt>
-              <dd>{{ point.outsideLocation }}</dd>
-            </div>
-          </dl>
-        </aside>
-      }
-    }
+          @for (tick of yTicks(); track tick.rate) {
+            <line
+              class="chart__grid"
+              [attr.x1]="layout().padLeft"
+              [attr.x2]="layout().padLeft + layout().plotWidth"
+              [attr.y1]="tick.y"
+              [attr.y2]="tick.y"
+            />
+            <text
+              class="chart__tick"
+              [attr.x]="layout().padLeft - 8"
+              [attr.y]="tick.y + 4"
+              text-anchor="end"
+            >
+              {{ tick.rate }}
+            </text>
+          }
+
+          <line
+            class="chart__baseline"
+            [attr.x1]="layout().padLeft"
+            [attr.x2]="layout().padLeft + layout().plotWidth"
+            [attr.y1]="baselineY()"
+            [attr.y2]="baselineY()"
+          />
+
+          <path class="chart__area" [attr.d]="areaPath()" />
+          <path class="chart__line" pathLength="1" [attr.d]="linePath()" fill="none" />
+
+          @if (guideX(); as x) {
+            <line
+              class="chart__guide"
+              [attr.x1]="x"
+              [attr.x2]="x"
+              [attr.y1]="layout().padTop"
+              [attr.y2]="baselineY()"
+            />
+          }
+
+          @for (point of points(); track point.month) {
+            <circle
+              class="chart__hit"
+              [attr.cx]="point.x"
+              [attr.cy]="point.y"
+              r="18"
+              (mouseenter)="showMonth(point.index)"
+              (focus)="showMonth(point.index)"
+              (click)="showMonth(point.index)"
+            />
+            <circle
+              class="chart__dot"
+              [class.chart__dot--active]="isActive(point.index)"
+              [attr.cx]="point.x"
+              [attr.cy]="point.y"
+              [attr.r]="isActive(point.index) ? 6 : 4.5"
+              [style.--i]="point.index"
+            />
+          }
+        </svg>
+
+        @if (activePoint(); as point) {
+          @if (tooltipStyle(); as style) {
+            <aside
+              class="chart__tooltip"
+              [style.left]="style.left"
+              [style.top]="style.top"
+              [style.transform]="style.transform"
+            >
+              <header>
+                <strong>{{ point.month }} {{ year() }}</strong>
+                <span>{{ point.presentRate }}%</span>
+              </header>
+              <dl>
+                <div>
+                  <dt>Present</dt>
+                  <dd>{{ point.present }}</dd>
+                </div>
+                <div>
+                  <dt>Absent</dt>
+                  <dd>{{ point.absent }}</dd>
+                </div>
+                <div>
+                  <dt>Outside</dt>
+                  <dd>{{ point.outsideLocation }}</dd>
+                </div>
+              </dl>
+            </aside>
+          }
+        }
+      </div>
+
+      <div
+        class="chart__months"
+        [style.padding-left.px]="layout().padLeft"
+        [style.padding-right.px]="layout().padRight"
+      >
+        @for (point of points(); track point.month) {
+          <button
+            type="button"
+            class="chart__month"
+            [class.chart__month--active]="isActive(point.index)"
+            (mouseenter)="showMonth(point.index)"
+            (focus)="showMonth(point.index)"
+            (click)="showMonth(point.index)"
+          >
+            {{ point.month }}
+          </button>
+        }
+      </div>
+    </div>
   </div>
 
   <footer class="chart__footer">
-    <span class="chart__legend"><i></i> Present rate %</span>
-    <span>Hover a month for scan breakdown · Jan → Dec</span>
+    <span class="chart__legend"><i></i> Attendance rate %</span>
+    <span class="chart__hint">Hover or tap a month for the scan breakdown</span>
   </footer>
 </section>

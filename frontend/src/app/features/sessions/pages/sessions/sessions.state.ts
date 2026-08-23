@@ -1,9 +1,5 @@
 import { computed, Injectable, signal } from '@angular/core';
-import {
-  defaultDueLocal,
-  toLocalDateInput,
-  toLocalTimeInput,
-} from '../../../../core/utils/date.util';
+import { defaultDueLocal } from '../../../../core/utils/date.util';
 import { FieldErrors } from '../../../../models/alert.model';
 import { CampusLocation } from '../../../../models/location.model';
 import {
@@ -334,21 +330,10 @@ export class SessionsPageState {
   private fillFormFromSession(session: AttendanceSession): void {
     this.title = session.title;
     this.locationId = session.locationId;
+    this.dueDate = '';
+    this.dueTime = '';
     this.dialogError.set(null);
     this.fieldErrors.set({});
-
-    if (session.dueAt) {
-      const due = new Date(session.dueAt);
-      if (!Number.isNaN(due.getTime())) {
-        this.dueDate = toLocalDateInput(due);
-        this.dueTime = toLocalTimeInput(due);
-        return;
-      }
-    }
-
-    const fallback = defaultDueLocal(30);
-    this.dueDate = fallback.date;
-    this.dueTime = fallback.time;
   }
 
   stopQrRefresh(): void {

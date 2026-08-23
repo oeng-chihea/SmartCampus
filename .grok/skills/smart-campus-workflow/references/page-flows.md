@@ -10,12 +10,12 @@ Last reviewed against the Angular routes, Sessions live API, and role skills.
 | `/auth` | AuthLayout | children | `guestGuard` | Active |
 | `/auth/login` | AuthLayout | `LoginComponent` | (via parent) | Active — **live API login** |
 | `/auth` (empty) | — | redirect → `login` | — | Active |
-| `/dashboard` | AdminLayout | `DashboardComponent` | auth + admin\|teacher | Active (mock data) |
+| `/dashboard` | AdminLayout | `DashboardComponent` | auth + admin\|teacher | **Live API** cards + 12-month rate + recent scans |
 | `/students` | AdminLayout | `StudentsComponent` | auth + **admin only** | **Live API** directory + create account + login toggle |
 | `/attendance` | AdminLayout | `AdminRecordsComponent` | auth + admin\|teacher | **Live API** Present + Absent (teachers: own sessions) |
 | `/locations` | AdminLayout | `LocationsComponent` | auth + admin\|teacher | **Live API** student visit log + API filters (assigned zone + scan GPS) |
 | `/sessions` | AdminLayout | `SessionsComponent` | auth + admin\|teacher | **Live API** create / QR / **edit** / close / **delete** |
-| `/reports` | AdminLayout | `AdminPlaceholderPageComponent` | auth + admin\|teacher | Placeholder |
+| `/reports` | AdminLayout | `AdminPlaceholderPageComponent` | auth + **admin only** | Placeholder |
 | `/student/scan` | none (standalone page) | `StudentScanComponent` | auth + **student** | **Live** open session QR + Mark present |
 | Unknown under admin | AdminLayout | redirect → dashboard | — | Active |
 
@@ -36,9 +36,10 @@ Defined primarily in:
 | `/attendance` | ✓ | ✓ | ✗ → scan |
 | `/locations` | ✓ | ✓ | ✗ → scan |
 | `/sessions` create + QR + edit + close + delete | ✓ | ✓ (own sessions) | ✗ |
-| `/reports` placeholder | ✓ | ✓ | ✗ |
+| `/reports` placeholder | ✓ | ✗ → home | ✗ |
 | `/student/scan` | ✗ → dashboard | ✗ → dashboard | ✓ |
 | See Students in sidebar | ✓ | ✗ (filtered) | n/a |
+| See Reports in sidebar | ✓ | ✗ (filtered; use Export) | n/a |
 | See all teachers’ sessions | ✓ | ✗ own only | n/a |
 
 Teacher-focused detail: `.grok/skills/smart-campus-teacher/`.
@@ -62,6 +63,7 @@ Browser                Guards              AuthService           Pages
    |-------------------->| auth + role ok       |                   |
    |                     |                      |  AdminLayout +    |
    |                     |                      |  Dashboard        |
+   | GET /api/dashboard  |                      |  live cards/chart |
    | click Attendance    |                      |                   |
    | routerLink /attendance                     |                   |
    |-------------------->| ok                   |  AdminRecords     |
@@ -70,12 +72,13 @@ Browser                Guards              AuthService           Pages
    | navigate /auth/login                       | clear storage     |
 ```
 
-### B. Teacher tries Students
+### B. Teacher tries Students or Reports
 
 ```text
-Teacher session → sidebar does NOT show Students
-If teacher navigates to /students manually:
+Teacher session → sidebar does NOT show Students or Reports
+If teacher navigates to /students or /reports manually:
   roleGuard(['admin']) fails → homePathForRole('teacher') → /dashboard
+Excel export stays on /attendance and /locations
 ```
 
 ### C. Teacher sessions + QR (live)
@@ -91,7 +94,7 @@ Login teacher → /dashboard → sidebar Sessions → /sessions
   → ⋮ Actions on Open row:
        Show QR       → load QR panel
        Edit session  → POST /api/sessions/:id/edit
-                       { title, locationId, dueAt } (not POST /api/sessions)
+                       { title, locationId } (dueAt frozen; not POST /api/sessions)
        Close         → POST /api/sessions/:id/close
                        (row stays Closed; student open card gone; history kept)
        Delete        → DELETE /api/sessions/:id
@@ -183,7 +186,8 @@ Any /dashboard|/students|... request:
 - Left: `AdminSidebarComponent` (brand, nav, user label, collapse, logout).
 - Right: `<router-outlet>` for feature pages.
 - Sidebar collapse preference: `localStorage` key `smartcampus.admin.sidebarCollapsed`.
-- Teacher nav filter: hides paths in `adminOnlyPaths` (`/students`).
+- Teacher nav filter: hides paths in `adminOnlyPaths` (`/students`, `/reports`).
+- Floating English voice mic (`app-voice-assistant`) in the workspace. `POST /api/ai/live-token` mints a Gemini Live token; tools click the current page. Not shown on student scan.
 
 ### Student scan (no shared layout folder)
 
@@ -229,8 +233,8 @@ Detailed flow: `.grok/skills/smart-campus-student/references/student-account-flo
 |------|---------|----------------|
 | Student scan GPS / geofence | **Live, hard gate** — location permission is mandatory; deny/unsupported/timeout blocks the submit entirely (no record, "Try again" dialog); granted fix outside `radiusMeters` (Haversine) → Outside Location (still recorded) | Consider soft-fail / grace mode if GPS reliability becomes an issue |
 | Student history route | In-page “My scans” only | `/student/history` route |
-| Reports page | Placeholder | Export / analytics |
-| Dashboard UI | Mock JSON | Optional live API later |
+| Reports page | Admin-only placeholder | Teachers use Attendance / Locations Excel export |
+| Dashboard UI | **Live** `GET /api/dashboard` | — |
 | Teacher live feed of scans | **Live on `/attendance`** — Present + Absent for the teacher's sessions after due/close | Optional live list on Sessions |
 | Student account bulk import | Admin creates one-by-one | CSV/SIS import + first-login password reset |
 | Persistence | In-memory sessions/locations/scans | TypeORM / MySQL later |

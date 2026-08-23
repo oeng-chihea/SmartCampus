@@ -6,9 +6,11 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import appConfig from './config/app.config';
 import databaseConfig from './config/database.config';
+import geminiConfig from './config/gemini.config';
 import jwtConfig from './config/jwt.config';
 import { ALL_ENTITIES } from './database/entities';
 import { DatabaseModule } from './database/database.module';
+import { AiModule } from './modules/ai/ai.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
@@ -30,7 +32,7 @@ const envFilePath = [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath,
-      load: [appConfig, databaseConfig, jwtConfig],
+      load: [appConfig, databaseConfig, jwtConfig, geminiConfig],
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
@@ -48,6 +50,7 @@ const envFilePath = [
     }),
     DatabaseModule,
     AuthModule,
+    AiModule,
     UsersModule,
     StudentsModule,
     DashboardModule,

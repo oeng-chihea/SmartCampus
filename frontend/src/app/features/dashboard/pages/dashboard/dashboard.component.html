@@ -1,25 +1,38 @@
 <section class="dashboard" aria-labelledby="dashboard-title">
   <header class="dashboard-hero">
     <div class="dashboard-hero__copy">
-      <h1 id="dashboard-title">{{ dashboard.title }}</h1>
-      <p>{{ dashboard.subtitle }}</p>
+      <h1 id="dashboard-title">{{ state.title() }}</h1>
+      <p>{{ state.subtitle() }}</p>
     </div>
-
-    <app-quick-lookup [quickFilter]="dashboard.quickFilter" />
   </header>
 
+  @if (state.error(); as message) {
+    <p class="dashboard__alert dashboard__alert--error" role="alert">{{ message }}</p>
+  } @else if (state.loading()) {
+    <p class="dashboard__alert" role="status">Loading dashboard from API…</p>
+  }
+
   <section class="dashboard__stats" aria-label="Attendance summary">
-    @for (card of dashboard.summaryCards; track card.label; let index = $index) {
+    @for (card of state.summaryCards(); track card.label; let index = $index) {
       <app-stat-card [card]="card" [animationDelay]="index * 80" />
     }
   </section>
 
   <section class="dashboard__insights" aria-label="Attendance chart and records">
     <div class="dashboard__chart-panel">
-      <app-attendance-chart [monthlyTrend]="dashboard.monthlyTrend" [year]="dashboard.trendYear" />
+      <app-attendance-chart
+        [monthlyTrend]="state.monthlyTrend()"
+        [year]="state.trendYear()"
+      />
     </div>
     <div class="dashboard__records-panel">
-      <app-recent-scan-list [scans]="dashboard.recentScans" />
+      <app-recent-scan-list
+        [scans]="state.recentScans()"
+        [loading]="state.loading()"
+        [reviewAllHref]="attendancePath"
+        emptyTitle="No student scans yet"
+        emptyMessage="When a student marks present, the latest scans will appear here."
+      />
     </div>
   </section>
 </section>

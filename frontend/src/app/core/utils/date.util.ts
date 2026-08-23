@@ -47,6 +47,36 @@ export function formatAttendanceDateTimeLabel(value: string | Date): string {
   return parts.subtitle ? `${parts.title} · ${parts.subtitle}` : parts.title;
 }
 
+/** Dashboard recent-scan stamp: `Today, 11:30 PM` or `Aug 20, 8:12 PM`. */
+export function formatRecentScanTime(
+  value: string | Date,
+  now: Date = new Date(),
+): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '—';
+  }
+  const clock = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  })
+    .format(date)
+    .replace(/\s/g, ' ');
+  const sameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+  if (sameDay) {
+    return `Today, ${clock}`;
+  }
+  const day = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
+  return `${day}, ${clock}`;
+}
+
 /**
  * Session due for tables / QR panel / student cards: same stamp as Opened.
  * Empty / invalid values render as an em dash.

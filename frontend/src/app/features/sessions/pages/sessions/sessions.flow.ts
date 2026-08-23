@@ -115,10 +115,10 @@ export class SessionsPageFlow {
       return;
     }
 
-    const validation = this.validateCreateForm();
+    const validation = this.validateEditForm();
     this.state.setFieldErrors(validation.fieldErrors);
 
-    if (!validation.valid || !validation.dueAt) {
+    if (!validation.valid) {
       this.state.setDialogError(validation.summary || 'Please fix the highlighted fields.');
       return;
     }
@@ -130,7 +130,6 @@ export class SessionsPageFlow {
       const session = await this.sessionService.editSession(target.id, {
         title: form.title,
         locationId: form.locationId,
-        dueAt: validation.dueAt,
       });
       this.state.editSucceeded(session.title);
       await this.reload();
@@ -251,11 +250,9 @@ export class SessionsPageFlow {
     this.state.stopQrRefresh();
   }
 
-  private validateCreateForm(): {
-    valid: boolean;
+  private validateTitleAndLocation(): {
     fieldErrors: FieldErrors;
-    summary: string;
-    dueAt: string | null;
+    firstError: string;
   } {
     const form = this.state.getForm();
     const fieldErrors: FieldErrors = {
@@ -264,7 +261,6 @@ export class SessionsPageFlow {
       dueDate: null,
       dueTime: null,
     };
-    let dueAt: string | null = null;
 
     if (this.alerts.isBlank(form.title)) {
       fieldErrors['title'] = this.alerts.requiredMessage('Session title');
@@ -279,6 +275,35 @@ export class SessionsPageFlow {
     ) {
       fieldErrors['locationId'] = 'Choose an active campus location.';
     }
+
+    const firstError = fieldErrors['title'] || fieldErrors['locationId'] || '';
+    return { fieldErrors, firstError };
+  }
+
+  /** Edit may change title and campus location only — due stays as created. */
+  private validateEditForm(): {
+    valid: boolean;
+    fieldErrors: FieldErrors;
+    summary: string;
+  } {
+    const { fieldErrors, firstError } = this.validateTitleAndLocation();
+    return {
+      valid: !firstError,
+      fieldErrors,
+      summary: firstError,
+    };
+  }
+
+  private validateCreateForm(): {
+    valid: boolean;
+    fieldErrors: FieldErrors;
+    summary: string;
+    dueAt: string | null;
+  } {
+    const { fieldErrors, firstError: titleLocationError } =
+      this.validateTitleAndLocation();
+    const form = this.state.getForm();
+    let dueAt: string | null = null;
 
     const missingDate = this.alerts.isBlank(form.dueDate);
     const missingTime = this.alerts.isBlank(form.dueTime);
@@ -297,10 +322,7 @@ export class SessionsPageFlow {
     }
 
     const firstError =
-      fieldErrors['title'] ||
-      fieldErrors['locationId'] ||
-      fieldErrors['dueDate'] ||
-      fieldErrors['dueTime'];
+      titleLocationError || fieldErrors['dueDate'] || fieldErrors['dueTime'];
 
     return {
       valid: !firstError && Boolean(dueAt),

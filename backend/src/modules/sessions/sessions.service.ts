@@ -14,7 +14,6 @@ import {
   type SessionStatus,
 } from '../../common/constants/session.constant';
 import { USER_ROLES } from '../../common/constants/roles.constant';
-import { ATTENDANCE_STATUS } from '../../common/constants/status.constant';
 import { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { toIsoDate } from '../../common/utils/date.util';
 import { AttendanceRecordEntity } from '../../database/entities/attendance-record.entity';
@@ -182,7 +181,8 @@ export class SessionsService {
   }
 
   /**
-   * Update title, campus location, and due time on an existing session.
+   * Update title and campus location on an existing session.
+   * dueAt is frozen at create so later edits cannot move student attendance to another day.
    * Owner or admin only. Does not rotate QR, change status, or reopen a closed session.
    * Open sessions that move to another Active location transfer the usage counter.
    */
@@ -195,23 +195,13 @@ export class SessionsService {
     this.assertCanManage(session, actor);
 
     const location = await this.locationsService.findActiveById(dto.locationId);
-    const dueAt = this.parseDueAt(dto.dueAt);
     const previousLocationId = session.locationId;
     const locationChanged = previousLocationId !== location.id;
-    const dueChanged = (session.dueAt?.getTime() ?? null) !== dueAt.getTime();
 
     session.title = dto.title.trim();
     session.locationId = location.id;
     session.locationName = location.name;
-    session.dueAt = dueAt;
-    if (dueChanged) {
-      session.absentsFinalized = false;
-    }
     await this.sessions.save(session);
-
-    if (dueChanged) {
-      await this.deleteAbsentRecords(session.id);
-    }
 
     if (locationChanged && session.status === SESSION_STATUS.open) {
       await this.locationsService.decrementSessionsUsing(previousLocationId);
@@ -467,17 +457,6 @@ export class SessionsService {
       .delete()
       .from(AttendanceRecordEntity)
       .where('session_id = :sessionId', { sessionId })
-      .execute();
-  }
-
-  /** Drop synthetic Absent rows so a later due time can accept scans again. */
-  private async deleteAbsentRecords(sessionId: string): Promise<void> {
-    await this.attendanceRecords
-      .createQueryBuilder()
-      .delete()
-      .from(AttendanceRecordEntity)
-      .where('session_id = :sessionId', { sessionId })
-      .andWhere('status = :status', { status: ATTENDANCE_STATUS.absent })
       .execute();
   }
 

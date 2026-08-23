@@ -5,6 +5,7 @@ export const API_ENDPOINTS = {
   students: '/students',
   studentAccess: (studentId: string) =>
     `/students/${encodeURIComponent(studentId)}/access`,
+  dashboard: '/dashboard',
   attendance: '/attendance',
   attendancePreview: '/attendance/preview',
   attendanceSubmit: '/attendance/submit',
@@ -24,4 +25,5 @@ export const API_ENDPOINTS = {
   sessionDelete: (id: string) => `/sessions/${id}`,
   reports: '/reports',
   scanOrigin: '/runtime/scan-origin',
+  aiLiveToken: '/ai/live-token',
 } as const;

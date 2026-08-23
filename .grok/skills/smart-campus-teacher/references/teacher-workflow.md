@@ -26,7 +26,7 @@ Both **frontend** and **backend** must run for Sessions and Locations.
     ├─► /attendance ───────────────────── live Present + Absent (own sessions)
     ├─► /locations ────────────────────── live student visit log (zone + scan GPS)
     ├─► /sessions  ────────────────────── LIVE create / QR / edit / close / delete  ★ primary
-    ├─► /reports   ────────────────────── placeholder title only
+    ├─► /reports   ────────────────────── BLOCKED (admin placeholder; use Export)
     └─► /students  ────────────────────── BLOCKED (guard → /dashboard)
 ```
 
@@ -63,8 +63,9 @@ POST /api/sessions { title, locationId, dueAt }
 Table ⋮ Actions on an Open row:
   - "Show QR"       → load / refresh Live QR panel
   - "Edit session"  → POST /api/sessions/:id/edit
-                      { title, locationId, dueAt }
-                      → dialog prefilled; does not use POST /api/sessions
+                      { title, locationId }
+                      → dialog prefilled with title + location; Due is hidden
+                      → dueAt stays as created (does not use POST /api/sessions)
                       → QR token and Open/Closed status unchanged
   - "Close"         → POST /api/sessions/:id/close
                       → status Closed, QR cleared; row stays in log
@@ -84,7 +85,7 @@ DELETE permanently removes the session + its attendance history
 
 | Timer / action | Who sets it | Student effect |
 |----------------|-------------|----------------|
-| **Due time** (`dueAt`) | Teacher at create (any date + clock time) | After due: cannot mark/scan (dialog); card **stays** until Close |
+| **Due time** (`dueAt`) | Teacher at **create** only (any date + clock time) | After due: cannot mark/scan (dialog); card **stays** until Close. Edit cannot move due. |
 | **Close session** | Teacher ⋮ Close | Session leaves `GET /api/sessions/open` → gone from student UI |
 | **QR token TTL** (~300s) | System auto-rotate | Old QR payload fails; new live token still works while Open and before due |
 
@@ -152,8 +153,9 @@ own sessions.
 
 ```text
 /sessions → ⋮ on a row → Edit session
-  → dialog prefilled with title, location, due date + time
-  → Save changes → POST /api/sessions/:id/edit { title, locationId, dueAt }
+  → dialog prefilled with title and campus location (Due is hidden)
+  → Save changes → POST /api/sessions/:id/edit { title, locationId }
+  → dueAt is create-only and stays on the original day
   → does not call POST /api/sessions (create)
   → QR token, openedAt, teacher, and Open/Closed status stay the same
   → Open sessions that change location transfer the location usage counter
@@ -188,8 +190,8 @@ Sidebar footer "Sign out" → AuthService.logout() → /auth/login
 
 | Action | Result |
 |--------|--------|
-| Open `/dashboard`, `/attendance`, `/locations`, `/sessions`, `/reports` | Allowed |
-| Open `/students` | Redirect to `/dashboard` |
+| Open `/dashboard`, `/attendance`, `/locations`, `/sessions` | Allowed |
+| Open `/students` or `/reports` | Redirect to `/dashboard` |
 | Open `/student/scan` | Redirect to `/dashboard` (not student) |
 | Visit `/auth/login` while logged in | Redirect to `/dashboard` |
 | Call sessions APIs without token | 401 |
@@ -240,25 +242,26 @@ Sidebar footer "Sign out" → AuthService.logout() → /auth/login
 | `POST` | `/api/sessions` | Create open session (`title`, `locationId`, `dueAt` ISO) |
 | `GET` | `/api/sessions` | List (own for teacher) |
 | `GET` | `/api/sessions/:id/qr` | Current short-lived QR |
-| `POST` | `/api/sessions/:id/edit` | Edit title, location, due time (does not rotate QR) |
+| `POST` | `/api/sessions/:id/edit` | Edit title and location (dueAt frozen; does not rotate QR) |
 | `POST` | `/api/sessions/:id/close` | Close (keep row) |
 | `DELETE` | `/api/sessions/:id` | Permanently remove session |
 
-## 9. Sequence: teacher blocked from Students
+## 9. Sequence: teacher blocked from Students and Reports
 
 ```text
 Teacher session
-  → sidebar omits Students
-  → manual URL /students
+  → sidebar omits Students and Reports
+  → manual URL /students or /reports
   → roleGuard(['admin']) fails
   → homePathForRole('teacher') → /dashboard
+  → Excel export stays on /attendance and /locations
 ```
 
 ## 10. Checklist: “Is teacher ready for Review 0 demo?”
 
 - [x] Login as teacher via API  
 - [x] Create session with location + **due time** (dropdown `Building A-Room 201`)  
-- [x] Edit session via `POST /api/sessions/:id/edit` (title, location, due time)  
+- [x] Edit session via `POST /api/sessions/:id/edit` (title, location; due frozen)  
 - [x] Display short-lived QR + Due on QR panel / table  
 - [x] Close session / stop QR (also drops from student open list; history kept)  
 - [x] Delete session (row + cascade attendance records for that sessionId)  

@@ -1,5 +1,6 @@
 import { Component, computed, input } from '@angular/core';
-import { RecentScan } from '../../../services/dashboard.service';
+import { formatRecentScanTime } from '../../../core/utils/date.util';
+import { RecentScan } from '../../../models/dashboard.model';
 
 @Component({
   selector: 'app-recent-scan-item',
@@ -14,4 +15,6 @@ export class RecentScanItemComponent {
       .status.toLowerCase()
       .replace(/\s+/g, '-'),
   );
+
+  readonly recordedLabel = computed(() => formatRecentScanTime(this.scan().recordedAt));
 }

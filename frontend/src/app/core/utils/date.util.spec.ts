@@ -5,6 +5,7 @@ import {
   defaultDueLocal,
   formatAttendanceDateTime,
   formatAttendanceDateTimeLabel,
+  formatRecentScanTime,
   formatSessionDue,
   formatSessionOpened,
   isSessionPastDue,
@@ -50,6 +51,22 @@ describe('formatAttendanceDateTimeLabel', () => {
   it('joins the date and clock for the detail dialog', () => {
     const label = formatAttendanceDateTimeLabel(new Date(2026, 7, 16, 23, 5, 0));
     expect(label.replace(/\s/g, ' ')).toBe('Aug 16, 2026 · 11:05 PM');
+  });
+});
+
+describe('formatRecentScanTime', () => {
+  it('labels the same local day as Today', () => {
+    const now = new Date(2026, 7, 20, 23, 45, 0);
+    expect(formatRecentScanTime(new Date(2026, 7, 20, 23, 30, 0), now).replace(/\s/g, ' ')).toBe(
+      'Today, 11:30 PM',
+    );
+  });
+
+  it('uses a short date for a different day', () => {
+    const now = new Date(2026, 7, 21, 9, 0, 0);
+    expect(formatRecentScanTime(new Date(2026, 7, 20, 20, 12, 0), now).replace(/\s/g, ' ')).toBe(
+      'Aug 20, 8:12 PM',
+    );
   });
 });
 

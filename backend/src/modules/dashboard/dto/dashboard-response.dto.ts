@@ -12,7 +12,6 @@ export interface MonthlyAttendancePointDto {
   month: string;
   presentRate: number;
   present: number;
-  late: number;
   absent: number;
   outsideLocation: number;
 }
@@ -36,8 +35,4 @@ export interface AdminDashboardResponseDto {
   monthlyTrend: MonthlyAttendancePointDto[];
   trendYear: number;
   recentScans: RecentScanDto[];
-  quickFilter: {
-    studentIdPlaceholder: string;
-    statusOptions: AttendanceStatus[];
-  };
 }
