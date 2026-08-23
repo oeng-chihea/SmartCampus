@@ -63,4 +63,17 @@ export class LocationFilterComponent implements OnDestroy {
       status: this.status(),
     });
   }
+
+  applyFromVoice(patch: Partial<LocationFilterState>): void {
+    if (patch.search !== undefined) {
+      this.search.set(patch.search);
+    }
+    if (patch.building) {
+      this.building.set(patch.building);
+    }
+    if (patch.status) {
+      this.status.set(patch.status);
+    }
+    this.submit();
+  }
 }

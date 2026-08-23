@@ -99,7 +99,7 @@ frontend/src/app/
 
 Shared components to reuse first:
 
-- `stat-card`, `student-table`, `student-filter`, `attendance-filter`, `session-picker-dialog` (paginated session modal, limit 10), `table` (shared data table for locations / attendance / sessions), `attendance-chart`, `recent-scan-list`, `location-filter`, `modal-dialog`, `confirm-dialog`, `select-dropdown`, `quick-lookup`
+- `stat-card`, `student-table`, `student-filter`, `attendance-filter`, `session-picker-dialog` (paginated session modal, limit 10), `table` (shared data table for locations / attendance / sessions), `attendance-chart`, `recent-scan-list`, `location-filter`, `modal-dialog`, `confirm-dialog`, `select-dropdown`
 
 ### Generic modal dialog (`app-modal-dialog`)
 
@@ -123,11 +123,12 @@ backend/src/
     auth/            # implemented: POST /api/auth/login (+ login_enabled check)
     users/           # implemented: POST /api/users (admin account provisioning)
     students/        # implemented: GET/POST /api/students, PATCH /:id/access
-    dashboard/
+    dashboard/         # live GET /dashboard (cards, 12-month rate, recent scans)
     attendance/
     locations/
     sessions/
-    reports/
+    reports/           # admin-only placeholder; teachers use Excel export
+    ai/                # POST /api/ai/live-token (Gemini Live English voice)
 ```
 
 When implementing API modules:
@@ -145,6 +146,7 @@ When implementing API modules:
    - Session log via shared `app-table`; ⋮ actions: **Show QR**, **Edit session**, **Close**, **Delete**
    - Create form: title, location, **due date + time** (any calendar day) → `dueAt` ISO
      (no “must be 1 minute ahead” check; replaces removed **Late after**)
+   - Edit form: title + location only — Due is hidden; `dueAt` stays as created
    - Display helpers: `formatSessionOpened` / `formatSessionDue` → `8-16-26-11:04Pm`;
      `isSessionPastDue` for student gate;
      `formatCampusLocationLabel` → `Building A-Room 201` (table + create dialog)
@@ -164,7 +166,7 @@ When implementing API modules:
    `app-confirm-dialog`. `POST /api/attendance/admin` lists **only scanners** until
    `dueAt`. After due, it materializes **Absent** rows for login-account students
    who did not scan (`absents_finalized` snapshot). Close before due does **not**
-   write absents. Edit due time deletes Absent rows. Locations visits also exclude
+   write absents. Edit cannot change dueAt. Locations visits also exclude
    Absent. Admin/teacher table column **Attendance status** is Present (scanned
    on time) or Absent.
    My attendance UI: shared `app-table` (Session · Location · Scanned at place name · Recorded · Status);
@@ -214,6 +216,6 @@ When implementing API modules:
 **Don’t**
 
 - Nest admin feature pages outside `AdminLayoutComponent`.
-- Add teacher access to Students without product decision.
+- Add teacher access to Students or Reports without product decision.
 - Hardcode route strings across many files—use constants.
 - Commit secrets; demo passwords are intentionally public for FR demos only.

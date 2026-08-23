@@ -1,4 +1,5 @@
 import { AppModule } from './app.module';
+import { AiModule } from './modules/ai/ai.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
@@ -20,6 +21,7 @@ describe('AppModule', () => {
 
     const featureModules = [
       AuthModule,
+      AiModule,
       UsersModule,
       StudentsModule,
       DashboardModule,

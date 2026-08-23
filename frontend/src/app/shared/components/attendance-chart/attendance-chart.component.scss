@@ -1,7 +1,7 @@
 :host {
   display: block;
-  height: 100%;
   min-width: 0;
+  width: 100%;
 }
 
 .chart {
@@ -12,17 +12,23 @@
   box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
-  height: 100%;
+  gap: 12px;
   min-width: 0;
-  padding: 18px 20px 14px;
+  padding: clamp(14px, 1.6vw, 20px);
+  width: 100%;
 }
 
 .chart__header {
   align-items: flex-start;
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px 16px;
   justify-content: space-between;
+  min-width: 0;
+}
+
+.chart__title {
+  min-width: 0;
 }
 
 .chart__eyebrow {
@@ -36,7 +42,7 @@
 
 .chart__header h2 {
   color: var(--color-brand-deep);
-  font-size: 1.12rem;
+  font-size: clamp(1rem, 2vw, 1.12rem);
   font-weight: 700;
   margin: 4px 0 0;
 }
@@ -53,7 +59,9 @@
   color: var(--color-brand-strong);
   font-size: 0.72rem;
   font-weight: 700;
-  padding: 6px 10px;
+  line-height: 1;
+  padding: 7px 10px;
+  white-space: nowrap;
 }
 
 .chart__badge--solid {
@@ -61,15 +69,32 @@
   color: #ffffff;
 }
 
-.chart__stage {
-  margin-top: 14px;
+.chart__viewport {
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chart__frame {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 100%;
+}
+
+.chart__plot {
+  isolation: isolate;
+  min-height: clamp(168px, 22vw, 228px);
   min-width: 0;
   position: relative;
+  width: 100%;
 }
 
 .chart__svg {
   display: block;
-  height: clamp(190px, 28vw, 250px);
+  height: clamp(168px, 22vw, 228px);
   overflow: visible;
   width: 100%;
 }
@@ -78,6 +103,13 @@
   stroke: var(--border-subtle);
   stroke-dasharray: 4 5;
   stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.chart__baseline {
+  stroke: #c9ddd0;
+  stroke-width: 1.25;
+  vector-effect: non-scaling-stroke;
 }
 
 .chart__tick {
@@ -89,7 +121,6 @@
 .chart__area {
   animation: area-in 900ms ease 280ms both;
   fill: url(#chartAreaGradient);
-  transform-origin: center bottom;
 }
 
 .chart__line {
@@ -99,7 +130,8 @@
   stroke-dashoffset: 1;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 2.75;
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
 }
 
 .chart__guide {
@@ -107,6 +139,7 @@
   stroke: rgba(22, 163, 74, 0.35);
   stroke-dasharray: 3 4;
   stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
 }
 
 .chart__hit {
@@ -125,6 +158,7 @@
     r 160ms ease,
     fill 160ms ease,
     stroke-width 160ms ease;
+  vector-effect: non-scaling-stroke;
 }
 
 .chart__dot--active {
@@ -136,8 +170,7 @@
 .chart__months {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  margin-top: 6px;
-  padding: 0 2px 0 30px;
+  min-width: 0;
 }
 
 .chart__month {
@@ -147,11 +180,12 @@
   color: var(--color-muted);
   cursor: pointer;
   font: inherit;
-  font-size: clamp(0.62rem, 1.1vw, 0.72rem);
+  font-size: clamp(0.62rem, 0.9vw, 0.74rem);
   font-weight: 650;
   min-height: 28px;
   padding: 4px 0;
   text-align: center;
+  touch-action: manipulation;
   transition:
     color 140ms ease,
     background 140ms ease;
@@ -230,8 +264,7 @@
   display: flex;
   flex-wrap: wrap;
   font-size: 0.78rem;
-  gap: 14px;
-  margin-top: 12px;
+  gap: 10px 16px;
 }
 
 .chart__legend {
@@ -246,6 +279,10 @@
   display: inline-block;
   height: 8px;
   width: 8px;
+}
+
+.chart__hint {
+  min-width: 0;
 }
 
 @keyframes chart-enter {
@@ -313,36 +350,44 @@
 }
 
 @media (max-width: 900px) {
-  .chart {
-    padding: 16px;
+  .chart__plot,
+  .chart__svg {
+    min-height: clamp(170px, 34vw, 210px);
   }
 
   .chart__svg {
-    height: clamp(170px, 36vw, 220px);
+    height: clamp(170px, 34vw, 210px);
+  }
+}
+
+@media (max-width: 700px) {
+  .chart__frame {
+    min-width: 560px;
+  }
+
+  .chart__plot,
+  .chart__svg {
+    height: 196px;
+    min-height: 196px;
   }
 }
 
 @media (max-width: 640px) {
   .chart {
+    gap: 10px;
     padding: 14px;
   }
 
-  .chart__header h2 {
-    font-size: 1.02rem;
-  }
-
-  .chart__months {
-    overflow-x: auto;
-    padding-left: 20px;
+  .chart__header {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .chart__month {
-    font-size: 0.6rem;
+    font-size: 0.68rem;
     min-height: 32px;
-    min-width: 0;
   }
 
-  /* Keep tooltip on-screen for phones */
   .chart__tooltip {
     left: 50% !important;
     max-width: calc(100% - 20px);
@@ -352,21 +397,8 @@
     transform: translateX(-50%) !important;
   }
 
-  .chart__footer {
+  .chart__hint {
     font-size: 0.72rem;
-    gap: 10px;
-  }
-}
-
-@media (max-width: 420px) {
-  .chart__badge {
-    font-size: 0.68rem;
-    padding: 5px 8px;
-  }
-
-  .chart__months {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    row-gap: 4px;
   }
 }
 

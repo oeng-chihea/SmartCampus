@@ -1,0 +1,30 @@
+<div class="voice-assistant" [attr.data-status]="voice.status()">
+  <button
+    type="button"
+    class="voice-assistant__mic"
+    [attr.aria-pressed]="voice.active()"
+    [attr.aria-label]="buttonLabel()"
+    [title]="buttonLabel()"
+    (click)="voice.toggle()"
+  >
+    <span class="voice-assistant__pulse" aria-hidden="true"></span>
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0" />
+      <line x1="12" y1="18" x2="12" y2="21" />
+    </svg>
+  </button>
+
+  <div class="voice-assistant__panel">
+    <p class="voice-assistant__status">{{ statusLabel() }}</p>
+    @if (voice.userTranscript(); as heard) {
+      <p class="voice-assistant__heard">{{ heard }}</p>
+    }
+    @if (voice.assistantTranscript(); as reply) {
+      <p class="voice-assistant__reply">{{ reply }}</p>
+    }
+    @if (voice.error(); as message) {
+      <p class="voice-assistant__error" role="alert">{{ message }}</p>
+    }
+  </div>
+</div>

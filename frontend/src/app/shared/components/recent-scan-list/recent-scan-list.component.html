@@ -5,12 +5,21 @@
       <h2 id="recent-scans-heading">Recent student scans</h2>
       <span class="recent-scan-list__count">{{ scans().length }} records</span>
     </div>
-    <button type="button">Review all</button>
+    <a [routerLink]="reviewAllHref()">Review all</a>
   </div>
 
-  <div class="recent-scan-list__items" role="list">
-    @for (scan of scans(); track scan.id; let index = $index) {
-      <app-recent-scan-item [scan]="scan" [style.animation-delay.ms]="index * 60" role="listitem" />
-    }
-  </div>
+  @if (loading()) {
+    <p class="recent-scan-list__status" role="status">{{ loadingMessage() }}</p>
+  } @else if (scans().length === 0) {
+    <div class="recent-scan-list__status" role="status">
+      <strong>{{ emptyTitle() }}</strong>
+      <p>{{ emptyMessage() }}</p>
+    </div>
+  } @else {
+    <div class="recent-scan-list__items" role="list">
+      @for (scan of scans(); track scan.id; let index = $index) {
+        <app-recent-scan-item [scan]="scan" [style.animation-delay.ms]="index * 60" role="listitem" />
+      }
+    </div>
+  }
 </section>

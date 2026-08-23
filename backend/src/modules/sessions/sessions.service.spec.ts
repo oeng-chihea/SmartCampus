@@ -570,7 +570,7 @@ describe('SessionsService', () => {
     ).rejects.toThrow(ForbiddenException);
   });
 
-  it('edits title, location, and dueAt without rotating QR or changing status', async () => {
+  it('edits title and location without rotating QR, changing status, or moving dueAt', async () => {
     const originalDue = dueInMinutes(30);
     const created = await service.create(
       {
@@ -581,14 +581,12 @@ describe('SessionsService', () => {
       teacher,
     );
     const qrBefore = await service.getQr(created.id, teacher);
-    const nextDue = dueInMinutes(90);
 
     const edited = await service.edit(
       created.id,
       {
         title: 'Updated lecture',
         locationId: 'LOC-002',
-        dueAt: nextDue,
       },
       teacher,
     );
@@ -598,7 +596,7 @@ describe('SessionsService', () => {
     expect(edited.title).toBe('Updated lecture');
     expect(edited.locationId).toBe('LOC-002');
     expect(edited.locationName).toContain('Building B');
-    expect(edited.dueAt).toBe(new Date(nextDue).toISOString());
+    expect(edited.dueAt).toBe(created.dueAt);
     expect(edited.teacherId).toBe(teacher.userId);
     expect(edited.openedAt).toBe(created.openedAt);
 
@@ -627,7 +625,6 @@ describe('SessionsService', () => {
       {
         title: 'Same room renamed',
         locationId: 'LOC-001',
-        dueAt: dueInMinutes(45),
       },
       teacher,
     );
@@ -656,7 +653,6 @@ describe('SessionsService', () => {
       {
         title: 'Closed but corrected',
         locationId: 'LOC-002',
-        dueAt: dueInMinutes(60),
       },
       teacher,
     );
@@ -672,7 +668,7 @@ describe('SessionsService', () => {
     ).toBe(0);
   });
 
-  it('rejects edit on an inactive location, missing session, other teacher, or bad dueAt', async () => {
+  it('rejects edit on an inactive location, missing session, or other teacher', async () => {
     const created = await service.create(
       {
         title: 'Guard rails',
@@ -688,7 +684,6 @@ describe('SessionsService', () => {
         {
           title: 'Blocked location',
           locationId: 'LOC-005',
-          dueAt: dueInMinutes(40),
         },
         teacher,
       ),
@@ -700,7 +695,6 @@ describe('SessionsService', () => {
         {
           title: 'Ghost session',
           locationId: 'LOC-001',
-          dueAt: dueInMinutes(40),
         },
         teacher,
       ),
@@ -712,23 +706,10 @@ describe('SessionsService', () => {
         {
           title: 'Not my session',
           locationId: 'LOC-001',
-          dueAt: dueInMinutes(40),
         },
         otherTeacher,
       ),
     ).rejects.toThrow(ForbiddenException);
-
-    await expect(
-      service.edit(
-        created.id,
-        {
-          title: 'Bad due',
-          locationId: 'LOC-001',
-          dueAt: 'not-a-date',
-        },
-        teacher,
-      ),
-    ).rejects.toThrow(BadRequestException);
   });
 
   it('allows an admin to edit another teacher’s session', async () => {
@@ -746,7 +727,6 @@ describe('SessionsService', () => {
       {
         title: 'Admin correction',
         locationId: 'LOC-001',
-        dueAt: dueInMinutes(50),
       },
       admin,
     );
@@ -755,10 +735,10 @@ describe('SessionsService', () => {
     expect(edited.teacherId).toBe(teacher.userId);
   });
 
-  it('clears Absent rows and unfinalizes when dueAt changes', async () => {
+  it('keeps dueAt and Absent rows when title or location is edited', async () => {
     const created = await service.create(
       {
-        title: 'Due change',
+        title: 'Due locked',
         locationId: 'LOC-001',
         dueAt: dueInMinutes(-10),
       },
@@ -794,19 +774,22 @@ describe('SessionsService', () => {
       } as AttendanceRecordEntity,
     );
 
-    await service.edit(
+    const edited = await service.edit(
       created.id,
       {
-        title: 'Due change',
-        locationId: 'LOC-001',
-        dueAt: dueInMinutes(40),
+        title: 'Due still locked',
+        locationId: 'LOC-002',
       },
       teacher,
     );
 
-    expect(attendanceStore.map((entry) => entry.id)).toEqual(['att-present']);
+    expect(edited.dueAt).toBe(created.dueAt);
+    expect(attendanceStore.map((entry) => entry.id)).toEqual([
+      'att-present',
+      'att-absent',
+    ]);
     expect(
       sessionStore.find((entry) => entry.id === created.id)?.absentsFinalized,
-    ).toBe(false);
+    ).toBe(true);
   });
 });

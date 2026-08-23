@@ -96,4 +96,20 @@ export class AttendanceFilterComponent implements OnDestroy {
       date: this.date(),
     });
   }
+
+  applyFromVoice(patch: Partial<AttendanceFilterState>): void {
+    if (patch.search !== undefined) {
+      this.search.set(patch.search);
+    }
+    if (patch.status) {
+      this.status.set(patch.status);
+    }
+    if (patch.attendanceStatus) {
+      this.attendanceStatus.set(patch.attendanceStatus);
+    }
+    if (patch.date) {
+      this.date.set(patch.date);
+    }
+    this.submit();
+  }
 }

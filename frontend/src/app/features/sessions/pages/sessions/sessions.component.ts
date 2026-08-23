@@ -5,7 +5,19 @@ import {
   formatSessionOpened,
 } from '../../../../core/utils/date.util';
 import { formatCampusLocationLabel } from '../../../../core/utils/format.util';
+import {
+  describeMatches,
+  matchVisibleRows,
+} from '../../../../core/utils/voice-row-match.util';
 import { AttendanceSession } from '../../../../models/session.model';
+import {
+  VoiceActArgs,
+  VoiceConfirmArgs,
+  VoiceControlArgs,
+  VoiceSelectArgs,
+  VoiceToolResult,
+} from '../../../../models/voice-live.model';
+import { VoicePageRegistry } from '../../../../services/voice-page-registry.service';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ModalDialogComponent } from '../../../../shared/components/modal-dialog/modal-dialog.component';
 import { SelectDropdownComponent } from '../../../../shared/components/select-dropdown/select-dropdown.component';
@@ -48,6 +60,8 @@ export class SessionsComponent implements OnInit, OnDestroy {
   /** Template binds to `state.*` for all reactive UI. */
   readonly state = inject(SessionsPageState);
   private readonly flow = inject(SessionsPageFlow);
+  private readonly voicePages = inject(VoicePageRegistry);
+  private pendingCloseId: string | null = null;
 
   /** Campus location options for the shared animated dropdown. */
   readonly locationOptions = computed<SelectOption[]>(() =>
@@ -158,10 +172,19 @@ export class SessionsComponent implements OnInit, OnDestroy {
   });
 
   async ngOnInit(): Promise<void> {
+    this.voicePages.register({
+      page: 'sessions',
+      startContext: () => this.voiceStartContext(),
+      control: (args) => this.voiceControl(args),
+      select: (args) => this.voiceSelect(args),
+      act: (args) => this.voiceAct(args),
+      confirm: (args) => this.voiceConfirm(args),
+    });
     await this.flow.reload();
   }
 
   ngOnDestroy(): void {
+    this.voicePages.unregister('sessions');
     // Modal restores body scroll on destroy; belt-and-suspenders if open on leave.
     if (this.state.createDialogOpen()) {
       document.body.style.overflow = '';
@@ -240,5 +263,137 @@ export class SessionsComponent implements OnInit, OnDestroy {
     if (event.actionId === 'delete') {
       this.flow.askDelete(event.row);
     }
+  }
+
+  private voiceStartContext(): string {
+    const rows = this.state.sessions();
+    const open = rows.filter((row) => row.status === 'Open').length;
+    return `The staff is on Sessions. Open sessions: ${open}. Closed: ${rows.length - open}.`;
+  }
+
+  private async voiceControl(args: VoiceControlArgs): Promise<VoiceToolResult> {
+    if (args.action === 'refresh' || args.action === 'status') {
+      if (args.action === 'refresh') {
+        await this.flow.reload();
+      }
+      return {
+        ok: true,
+        message: this.voiceStartContext(),
+        item_summary: this.voiceStartContext(),
+      };
+    }
+    if (args.action === 'open_create') {
+      this.flow.openCreateDialog();
+      return { ok: true, message: 'Opened the create session form.' };
+    }
+    if (args.action === 'search' && args.query) {
+      return this.voiceSelect({ query: args.query });
+    }
+    return {
+      ok: false,
+      message: 'On Sessions I can refresh, open create, show QR, edit, close, or delete.',
+    };
+  }
+
+  private async voiceSelect(args: VoiceSelectArgs): Promise<VoiceToolResult> {
+    const match = matchVisibleRows({
+      rows: this.state.sessions(),
+      getId: (row) => row.id,
+      getLabels: (row) => [row.title, row.id, row.locationName, row.teacherName],
+      rowId: args.row_id,
+      query: args.query,
+      position: args.position,
+      lastPosition: args.last_position,
+    });
+    if (match.kind === 'none') {
+      return { ok: false, message: 'Session not found. Say the title or first open session.' };
+    }
+    if (match.kind === 'many') {
+      return {
+        ok: false,
+        message: `Several sessions match. ${describeMatches(match.rows, (row) => row.title)}`,
+        matches: match.rows.map((row) => ({ id: row.id, label: row.title })),
+      };
+    }
+    const session = match.rows[0];
+    return {
+      ok: true,
+      message: `Selected ${session.title}.`,
+      item_summary: session.title,
+      selected_id: session.id,
+    };
+  }
+
+  private async voiceAct(args: VoiceActArgs): Promise<VoiceToolResult> {
+    if (args.action === 'open_add_student' || args.action === 'toggle_login') {
+      return { ok: false, message: 'That action is for Students, not Sessions.' };
+    }
+    const selected = await this.voiceSelect(args);
+    if (!selected.ok || !selected.selected_id) {
+      return selected;
+    }
+    const session = this.state
+      .sessions()
+      .find((row) => row.id === selected.selected_id);
+    if (!session) {
+      return { ok: false, message: 'Session not found.' };
+    }
+    if (args.action === 'show_qr') {
+      await this.flow.showQr(session.id);
+      return {
+        ok: true,
+        message: `Showing QR for ${session.title}.`,
+        item_summary: session.title,
+      };
+    }
+    if (args.action === 'edit') {
+      this.flow.openEditDialog(session);
+      return {
+        ok: true,
+        message: `Opened edit for ${session.title}.`,
+        item_summary: session.title,
+      };
+    }
+    if (args.action === 'close') {
+      if (session.status !== 'Open') {
+        return { ok: false, message: `${session.title} is already closed.` };
+      }
+      this.pendingCloseId = session.id;
+      return {
+        ok: true,
+        confirmation_required: true,
+        message: `Close ${session.title}? Say yes or no.`,
+        item_summary: session.title,
+      };
+    }
+    if (args.action === 'delete') {
+      this.flow.askDelete(session);
+      return {
+        ok: true,
+        confirmation_required: true,
+        message: `Delete ${session.title}? Say yes or no.`,
+        item_summary: session.title,
+      };
+    }
+    return { ok: false, message: 'I can show QR, edit, close, or delete a session.' };
+  }
+
+  private async voiceConfirm(args: VoiceConfirmArgs): Promise<VoiceToolResult> {
+    if (!args.confirm) {
+      this.pendingCloseId = null;
+      this.flow.cancelDelete();
+      return { ok: true, message: 'Cancelled.' };
+    }
+    if (this.pendingCloseId) {
+      const id = this.pendingCloseId;
+      this.pendingCloseId = null;
+      await this.flow.closeSession(id);
+      return { ok: true, message: 'Session closed.' };
+    }
+    if (this.state.deleteTarget()) {
+      await this.flow.deleteConfirmedSession();
+      return { ok: true, message: 'Session deleted.' };
+    }
+    return { ok: false, message: 'Nothing is waiting for confirmation.' };
   }
 }

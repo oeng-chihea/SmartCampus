@@ -31,8 +31,8 @@ describe('SessionsPageState edit dialog', () => {
     expect(state.editTarget()?.id).toBe('sess-edit-1');
     expect(state.title).toBe('SE401 · Morning Lecture');
     expect(state.locationId).toBe('LOC-002');
-    expect(state.dueDate).toBe('2026-08-20');
-    expect(state.dueTime).toBe('14:30');
+    expect(state.dueDate).toBe('');
+    expect(state.dueTime).toBe('');
   });
 
   it('create dialog is not edit mode and resets the form', () => {

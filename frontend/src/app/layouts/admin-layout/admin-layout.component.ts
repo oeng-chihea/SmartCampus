@@ -2,13 +2,14 @@ import { Component, computed, signal } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { ADMIN_NAVIGATION, AdminNavItem } from '../../core/constants/admin-navigation';
 import { AuthService } from '../../services/auth.service';
+import { VoiceAssistantComponent } from '../../shared/components/voice-assistant/voice-assistant.component';
 import { AdminSidebarComponent } from './components/sidebar/sidebar.component';
 
 const SIDEBAR_COLLAPSED_KEY = 'smartcampus.admin.sidebarCollapsed';
 
 @Component({
   selector: 'app-admin-layout',
-  imports: [AdminSidebarComponent, RouterOutlet],
+  imports: [AdminSidebarComponent, RouterOutlet, VoiceAssistantComponent],
   templateUrl: './admin-layout.component.html',
   styleUrl: './admin-layout.component.scss',
   host: {
@@ -17,7 +18,7 @@ const SIDEBAR_COLLAPSED_KEY = 'smartcampus.admin.sidebarCollapsed';
 })
 export class AdminLayoutComponent {
   /** Admin-only pages hidden from teacher role */
-  private readonly adminOnlyPaths = new Set(['/students']);
+  private readonly adminOnlyPaths = new Set(['/students', '/reports']);
 
   readonly sidebarCollapsed = signal(this.readCollapsedPreference());
 

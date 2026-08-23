@@ -35,15 +35,16 @@ Login uses Nest `POST /api/auth/login` and stores Bearer token in
 | Sign in / sign out | `/auth/login`, sidebar | Live API login |
 | View dashboard summary | `/dashboard` | Mock JSON |
 | Review attendance records + filters | `/attendance` | **Live API** (own sessions; Present + Absent) |
+| Export attendance Excel | `/attendance` | **Live API** `POST /api/attendance/admin/excel` |
 | Review student location visits (assigned zone + scanned-at GPS) | `/locations` | **Live API** |
+| Export location visits Excel | `/locations` | **Live API** `POST /api/locations/visits/excel` |
 | **Create attendance session** (dialog) | `/sessions` | **Live API** |
 | **Show short-lived QR** (auto-refresh ~30s; encodes `https://<lan-ip>:4200`) | `/sessions` | **Live API** |
-| **Edit session** (title, location, due time) | `/sessions` ⋮ menu | **Live API** |
+| **Edit session** (title, location) | `/sessions` ⋮ menu | **Live API** |
 | **Close session** (invalidates QR) | `/sessions` | **Live API** |
 | **Delete session** (row + store + **cascade attendance**) | `/sessions` ⋮ menu | **Live API** |
 | List **own** sessions only | `GET /api/sessions` | Live API |
 | Read active locations for session form | `GET /api/locations` | Live API |
-| Open Reports placeholder | `/reports` | Placeholder UI |
 
 ### Teacher-owned secure attendance loop (core)
 
@@ -61,8 +62,8 @@ Login as teacher
        · After dueAt  → those scanners plus Absent for login-account students who never scanned
        · Attendance status Present = scanned on time; Absent = no scan by due time
   → Edit session (⋮ → Edit session) → POST /api/sessions/:id/edit
-       (title, location, due time; QR and status unchanged;
-       changing dueAt drops Absent rows so students can scan again if due is later)
+       (title and campus location only; dueAt stays as created;
+       QR and status unchanged)
   → Close session when class ends → session leaves student open list
        (attendance history kept until Delete; Absents still wait until dueAt)
   → Delete session → removes log row **and** all student attendance for that sessionId
@@ -74,7 +75,7 @@ Login as teacher
 
 | Concept | Meaning |
 |---------|---------|
-| **Due time** | Date + clock time set at create (`dueAt` ISO). Teacher may pick **any** calendar day and time (including already passed, or tomorrow). Students may mark present only **before** this instant. |
+| **Due time** | Date + clock time set at **create** (`dueAt` ISO). Teacher may pick **any** calendar day and time (including already passed, or tomorrow). Students may mark present only **before** this instant. **Edit cannot change due** — that would move already-recorded attendance onto another day. |
 | **After due** | Submit rejected (API 403). Session can stay **Open** until teacher **Close**. Students still see the card. |
 | **Close session** | Status Closed; QR stops; session **removed** from student open list. |
 | **QR TTL (300s)** | Short-lived QR **token** rotation only — not the same as due time. Do not show QR Expires on student UI. |
@@ -85,25 +86,27 @@ Login as teacher
 | Restricted | How enforced |
 |------------|----------------|
 | Students management (`/students`) | Sidebar hidden + `roleGuard(['admin'])` |
+| Reports page (`/reports`) | Sidebar hidden + `roleGuard(['admin'])` — use **Export** on Attendance and Locations |
 | Admin-only user admin | No UI |
 | Student scan page | `roleGuard(['admin','teacher'])` on admin shell; student routes require `student` |
 | See other teachers’ sessions | Backend filters list by `teacherId` (admin sees all) |
 | Issue QR for another teacher’s session | Backend `assertCanManage` |
 | Create session without Active location | Backend rejects Inactive zones |
+| Change session due after create | Edit dialog hides Due; `POST /api/sessions/:id/edit` accepts title + location only |
 
 ## Sidebar (teacher)
 
-Same admin nav as admin, **except Students is hidden**:
+Same admin nav as admin, **except Students and Reports are hidden**:
 
 1. Dashboard  
-2. ~~Students~~ (hidden)  
-3. Attendance  
-4. Locations  
+2. ~~Students~~ (hidden — admin only)  
+3. Attendance (includes Excel export)  
+4. Locations (includes Excel export)  
 5. Sessions ← **primary live workflow**  
-6. Reports (placeholder)
+6. ~~Reports~~ (hidden — admin placeholder; teachers already have Export)
 
 Defined in `admin-navigation.ts`; filtered in `AdminLayoutComponent` via
-`adminOnlyPaths = ['/students']`.
+`adminOnlyPaths = ['/students', '/reports']`.
 
 ## Backend permissions (teacher)
 
@@ -117,7 +120,7 @@ Defined in `admin-navigation.ts`; filtered in `AdminLayoutComponent` via
 | `GET /api/sessions` | Yes (own sessions) |
 | `GET /api/sessions/:id` | Yes (own / admin) |
 | `GET /api/sessions/:id/qr` | Yes (own / admin) |
-| `POST /api/sessions/:id/edit` | Yes (own / admin) — title, location, dueAt |
+| `POST /api/sessions/:id/edit` | Yes (own / admin) — title, location; dueAt frozen |
 | `POST /api/sessions/:id/close` | Yes (own / admin) |
 | `DELETE /api/sessions/:id` | Yes (own / admin) — removes record |
 | Student attendance submit | Yes (`POST /api/attendance/submit`, student role) |
@@ -130,6 +133,7 @@ Requires `Authorization: Bearer <accessToken>`.
 - **Left:** Live QR · Short-lived session code · **Scan link** (`https://<lan-ip>:4200` from `GET /api/runtime/scan-origin`) · **Due** date+time for selected session  
 - **Right:** Open attendance → **Create session** button → dialog form  
 - Create form fields: **title**, **location**, **due** (`type="date"` + `type="time"`, required, any calendar day — no “must be in the future” check)  
+- Edit form fields: **title**, **location** only — Due is hidden (create-only)  
 - Not an always-visible create form  
 - Session log table (`app-table`) columns: Session · Location · Teacher · Opened · **Due** · Status · Actions  
 - **Actions (⋮ menu):**  
@@ -161,8 +165,7 @@ Helpers: `formatSessionOpened`, `formatSessionDue` (`core/utils/date.util.ts`), 
 
 ## Planned later (not teacher-capable yet)
 
-- Live attendance feed on Sessions after student scan  
-- Reports export  
+- Live attendance feed on Sessions after student scan
 
 GPS / Outside Location on student submit is **live** (FR-02) — see
 `smart-campus-student/SKILL.md` and `smart-campus-dev/references/architecture.md`.
@@ -170,7 +173,7 @@ GPS / Outside Location on student submit is **live** (FR-02) — see
 ## When coding for teachers
 
 1. Keep teacher on **AdminLayout** children; do not invent a separate teacher layout.  
-2. Never grant `/students` without product decision.  
+2. Never grant `/students` or `/reports` without product decision. Teachers export from Attendance and Locations.  
 3. Session create / QR / **edit** / close / **delete** go through `SessionService` + Bearer token.  
 4. Prefer dialogs for create / edit forms (match Sessions).  
 5. Keep Sessions display formats via the shared helpers above (do not reintroduce locale `short` dates or `, Room ` labels on this page).  

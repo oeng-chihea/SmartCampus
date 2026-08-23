@@ -57,12 +57,10 @@ export interface CreateSessionRequest {
   dueAt: string;
 }
 
-/** Body for POST /sessions/:id/edit — same fields as create, separate endpoint. */
+/** Body for POST /sessions/:id/edit — title and location only; dueAt is create-only. */
 export interface EditSessionRequest {
   title: string;
   locationId: string;
-  /** Absolute due instant (ISO) built from the teacher’s local date + time. */
-  dueAt: string;
 }
 
 export interface SessionQrResponse {
@@ -95,7 +93,7 @@ export interface OpenLiveSessionCard extends OpenLiveSession {
   qrDataUrl: string;
 }
 
-/** Writable form fields for the create/edit session dialog. */
+/** Writable form fields for the session dialog. Due is used on create only. */
 export interface SessionsFormState {
   title: string;
   locationId: string;

@@ -66,8 +66,8 @@ npm run backend:start
 
 | Role | After login | Main UI |
 |------|-------------|---------|
-| `admin` | `/dashboard` | Admin layout + full sidebar (includes Students) |
-| `teacher` | `/dashboard` | Admin layout; **no** Students; **Sessions** is primary live work |
+| `admin` | `/dashboard` | Admin layout + full sidebar (includes Students and Reports) |
+| `teacher` | `/dashboard` | Admin layout; **no** Students or Reports; **Sessions** is primary live work |
 | `student` | `/student/scan` | Student scan page only |
 
 ### Seeded login accounts
@@ -103,10 +103,10 @@ Every other student account is created by an admin from **Students → Add stude
      │  /attendance   │  └─────────────────┘
      │  /locations    │
      │  /sessions ★   │  ★ live create + due time + QR + close + delete
-     │  /reports †    │
+     │  /reports † *  │
      │ Sign out → login
      └────────────────┘
-     * admin only
+     * admin only (Students + Reports)
      † placeholder
 
 Student scan due rules:

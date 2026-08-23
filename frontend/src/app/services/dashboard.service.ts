@@ -1,95 +1,56 @@
-import { StatCard } from '../shared/components/stat-card/stat-card.model';
-import dashboardAttendanceMock from '../../assets/mock-data/dashboard-attendance.json';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
+import { API_ENDPOINTS } from '../core/constants/api-endpoints';
+import { AdminDashboard } from '../models/dashboard.model';
+import { AuthService } from './auth.service';
 
-/** Monthly attendance analysis point (Jan → Dec) */
-export interface MonthlyAttendancePoint {
-  month: string;
-  presentRate: number;
-  present: number;
-  late: number;
-  absent: number;
-  outsideLocation: number;
-}
-
-/** Recent scan row for admin / teacher review (FR-07) */
-export interface RecentScan {
-  id: string;
-  student: string;
-  studentId: string;
-  session: string;
-  location: string;
-  submittedAt: string;
-  recordedAt: string;
-  status: 'Present' | 'Late' | 'Absent' | 'Outside Location';
-  distanceMeters: number | null;
-}
-
-export interface QuickFilter {
-  studentIdPlaceholder: string;
-  statusOptions: string[];
-}
-
-export interface AdminDashboard {
-  title: string;
-  subtitle: string;
-  summaryCards: StatCard[];
-  monthlyTrend: MonthlyAttendancePoint[];
-  trendYear: number;
-  recentScans: RecentScan[];
-  quickFilter: QuickFilter;
-}
-
-interface DashboardAttendanceMock {
-  year: number;
-  monthlyTrend: MonthlyAttendancePoint[];
-  recentScans: RecentScan[];
-}
-
-const mock = dashboardAttendanceMock as DashboardAttendanceMock;
-
+/**
+ * Live Nest dashboard for admin/teacher home.
+ * Summary cards, monthly trend, and recent scans come from GET /dashboard.
+ */
+@Injectable({ providedIn: 'root' })
 export class DashboardService {
-  getAdminDashboard(): AdminDashboard {
-    return {
-      title: 'SmartCampus Attendance System',
-      subtitle:
-        'Live view of identity-verified scans, time stamps, location checks, and attendance status.',
-      summaryCards: [
-        {
-          label: 'Registered students',
-          value: '1,284',
-          helper: 'Authorised student accounts',
-          icon: 'students',
-          tone: 'blue',
-        },
-        {
-          label: 'Present today',
-          value: '1,087',
-          helper: 'Valid scans inside approved areas',
-          icon: 'present',
-          tone: 'green',
-        },
-        {
-          label: 'Attendance rate',
-          value: '87%',
-          helper: '161 late · 36 outside location',
-          icon: 'attendance',
-          tone: 'amber',
-        },
-        {
-          label: 'Open sessions',
-          value: '12',
-          helper: 'Active scan codes for classes',
-          icon: 'sessions',
-          tone: 'violet',
-        },
-      ],
-      trendYear: mock.year,
-      monthlyTrend: mock.monthlyTrend,
-      recentScans: mock.recentScans,
-      quickFilter: {
-        studentIdPlaceholder: 'Search by student ID',
-        statusOptions: ['Present', 'Late', 'Absent', 'Outside Location'],
-      },
-    };
+  private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
+
+  fetchAdminDashboard(): Promise<AdminDashboard> {
+    return firstValueFrom(
+      this.http.get<AdminDashboard>(this.url(API_ENDPOINTS.dashboard), {
+        headers: this.authHeaders(),
+      }),
+    );
+  }
+
+  mapError(error: unknown, fallback: string): string {
+    if (error instanceof HttpErrorResponse) {
+      if (error.status === 0) {
+        return 'Cannot reach the API. Start the Nest backend (port 3000) and use the Angular dev server so /api is proxied.';
+      }
+      if (error.status === 401) {
+        return 'Session expired. Sign out and sign in again.';
+      }
+      const body = error.error as { message?: string | string[] } | null;
+      if (typeof body?.message === 'string') {
+        return body.message;
+      }
+      if (Array.isArray(body?.message)) {
+        return body.message.join(', ');
+      }
+    }
+    return fallback;
+  }
+
+  private url(path: string): string {
+    return `${environment.apiBaseUrl}${path}`;
+  }
+
+  private authHeaders(): HttpHeaders {
+    const token = this.auth.getAccessToken();
+    if (!token) {
+      return new HttpHeaders();
+    }
+    return new HttpHeaders({ Authorization: `Bearer ${token}` });
   }
 }

@@ -62,6 +62,7 @@ export const routes: Routes = [
       },
       {
         path: 'reports',
+        canActivate: [roleGuard(['admin'])],
         ...adminPlaceholder('Attendance reports'),
       },
       {

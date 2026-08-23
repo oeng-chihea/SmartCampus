@@ -1,4 +1,7 @@
 import ExcelJS from 'exceljs';
+import { CAMPUS_TIME_ZONE, campusDateParts } from './date.util';
+
+export { CAMPUS_TIME_ZONE };
 
 export const EXCEL_MIME =
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -27,9 +30,6 @@ const HEADER_FILL: ExcelJS.Fill = {
   fgColor: { argb: 'FF15803D' },
 };
 
-/** Wall-clock used for Excel date cells (matches the admin UI in Cambodia). */
-export const CAMPUS_TIME_ZONE = 'Asia/Phnom_Penh';
-
 /**
  * ExcelJS writes JS Date values as UTC serials; Excel then prints that UTC
  * clock with no timezone. Shift so the UTC components equal campus local time
@@ -47,30 +47,15 @@ export function excelDateFromIso(
     return '';
   }
 
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat('en-US', {
-      timeZone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hourCycle: 'h23',
-    })
-      .formatToParts(date)
-      .filter((part) => part.type !== 'literal')
-      .map((part) => [part.type, part.value]),
-  );
-
+  const parts = campusDateParts(date, timeZone);
   return new Date(
     Date.UTC(
-      Number(parts.year),
-      Number(parts.month) - 1,
-      Number(parts.day),
-      Number(parts.hour),
-      Number(parts.minute),
-      Number(parts.second),
+      parts.year,
+      parts.month - 1,
+      parts.day,
+      parts.hour,
+      parts.minute,
+      parts.second,
     ),
   );
 }

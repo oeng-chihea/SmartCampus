@@ -1,6 +1,5 @@
 :host {
   display: block;
-  height: 100%;
   min-width: 0;
   width: 100%;
 }
@@ -13,7 +12,6 @@
   box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
-  height: 100%;
   min-height: 0;
   min-width: 0;
   padding: clamp(14px, 1.6vw, 20px);
@@ -60,17 +58,21 @@
   margin-top: 6px;
 }
 
-.recent-scan-list button {
+.recent-scan-list a {
+  align-items: center;
   background: var(--color-brand);
   border: 0;
   border-radius: var(--radius-sm);
   color: #ffffff;
   cursor: pointer;
+  display: inline-flex;
   flex: 0 0 auto;
   font: inherit;
   font-weight: 700;
+  justify-content: center;
   min-height: 40px;
   padding: 0 12px;
+  text-decoration: none;
   transition:
     background 160ms ease,
     box-shadow 160ms ease,
@@ -78,14 +80,35 @@
   white-space: nowrap;
 }
 
-.recent-scan-list button:hover {
+.recent-scan-list a:hover {
   background: var(--color-brand-strong);
   box-shadow: 0 8px 18px rgba(22, 163, 74, 0.22);
   transform: translateY(-1px);
 }
 
-.recent-scan-list button:active {
+.recent-scan-list a:active {
   transform: translateY(0);
+}
+
+.recent-scan-list__status {
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-slate);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-top: 14px;
+  padding: 16px;
+}
+
+.recent-scan-list__status strong {
+  color: var(--color-brand-deep);
+  display: block;
+  font-size: 0.95rem;
+}
+
+.recent-scan-list__status p {
+  margin: 6px 0 0;
 }
 
 .recent-scan-list__items {
@@ -147,7 +170,7 @@
     flex-direction: column;
   }
 
-  .recent-scan-list button {
+  .recent-scan-list a {
     width: 100%;
   }
 

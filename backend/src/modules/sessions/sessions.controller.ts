@@ -84,7 +84,8 @@ export class SessionsController {
   }
 
   /**
-   * Update title, location, and due time on an existing session.
+   * Update title and campus location on an existing session.
+   * dueAt is create-only and is never changed here.
    * Separate from POST /sessions (create) — does not rotate QR or change status.
    */
   @Post(':id/edit')
