@@ -1,4 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
+
+export function unreachableApiMessage(): string {
+  if (environment.production) {
+    return 'Cannot reach the API. Wait about a minute if the server is waking up, then try again.';
+  }
+  return 'Cannot reach the API. Start the Nest backend (port 3000) and use the Angular dev server so /api is proxied.';
+}
 
 function firstMessage(
   message: string | string[] | undefined,
@@ -32,7 +40,7 @@ export async function messageFromHttpError(
     return fallback;
   }
   if (error.status === 0) {
-    return 'Cannot reach the API. Start the Nest backend (port 3000) and use the Angular dev server so /api is proxied.';
+    return unreachableApiMessage();
   }
   if (error.status === 401) {
     return 'Session expired. Sign out and sign in again.';

@@ -9,6 +9,7 @@ import {
   speechLevelFromTimeDomain,
   voiceCaptureWorkletSource,
 } from '../core/utils/voice-audio.util';
+import { unreachableApiMessage } from '../core/utils/http-error.util';
 import { VoiceLiveStatus, VoiceLiveToken } from '../models/voice-live.model';
 import { AuthService } from './auth.service';
 import { VoicePageRegistry } from './voice-page-registry.service';
@@ -569,7 +570,7 @@ export class VoiceLiveService {
   private mapError(error: unknown): string {
     if (error instanceof HttpErrorResponse) {
       if (error.status === 0) {
-        return 'Cannot reach the API. Start the Nest backend and try again.';
+        return unreachableApiMessage();
       }
       if (error.status === 401) {
         return 'Session expired. Sign out and sign in again.';

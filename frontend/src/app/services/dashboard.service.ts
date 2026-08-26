@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { API_ENDPOINTS } from '../core/constants/api-endpoints';
+import { unreachableApiMessage } from '../core/utils/http-error.util';
 import { AdminDashboard } from '../models/dashboard.model';
 import { AuthService } from './auth.service';
 
@@ -26,7 +27,7 @@ export class DashboardService {
   mapError(error: unknown, fallback: string): string {
     if (error instanceof HttpErrorResponse) {
       if (error.status === 0) {
-        return 'Cannot reach the API. Start the Nest backend (port 3000) and use the Angular dev server so /api is proxied.';
+        return unreachableApiMessage();
       }
       if (error.status === 401) {
         return 'Session expired. Sign out and sign in again.';

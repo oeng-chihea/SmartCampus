@@ -1,5 +1,6 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { isAllowedCorsOrigin } from './common/utils/cors-origin.util';
 
 /**
  * Private LAN / loopback origins used by phones and laptops on campus Wi‑Fi.
@@ -40,6 +41,7 @@ export function configureApp(app: INestApplication): void {
   const config = app.get(ConfigService);
   const corsOrigins = config.get<string[]>('app.corsOrigins') ?? [];
   const isDev = (config.get<string>('app.nodeEnv') ?? 'development') !== 'production';
+  new Logger('CORS').log(`Allowed origins: ${corsOrigins.join(', ') || '(none)'}`);
 
   app.setGlobalPrefix('api');
   app.enableCors({
@@ -49,7 +51,7 @@ export function configureApp(app: INestApplication): void {
         callback(null, true);
         return;
       }
-      if (corsOrigins.includes(origin)) {
+      if (isAllowedCorsOrigin(origin, corsOrigins)) {
         callback(null, true);
         return;
       }
@@ -60,6 +62,8 @@ export function configureApp(app: INestApplication): void {
       callback(null, false);
     },
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     exposedHeaders: ['Content-Disposition'],
   });
   app.useGlobalPipes(
