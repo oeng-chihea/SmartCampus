@@ -1,28 +1,42 @@
-<form class="student-filter" aria-label="Student filters">
+<form class="student-filter" aria-label="Student filters" (ngSubmit)="submit()">
   <div class="student-filter__controls">
     <label class="student-filter__search">
       <span>Find student</span>
-      <input type="search" [placeholder]="filters().searchPlaceholder" />
+      <input
+        type="search"
+        name="search"
+        [placeholder]="filters().searchPlaceholder"
+        [ngModel]="search()"
+        (ngModelChange)="onSearchChange($event)"
+      />
     </label>
 
     <label>
       <span>Class</span>
-      <select aria-label="Class">
-        @for (course of filters().courseOptions; track course) {
-          <option>{{ course }}</option>
-        }
-      </select>
+      <app-select-dropdown
+        name="course"
+        inputId="student-class-filter"
+        [options]="filters().courseOptions"
+        [ngModel]="course()"
+        (ngModelChange)="onCourseChange($event)"
+        [compact]="true"
+        placeholder="All classes"
+      />
     </label>
 
     <label>
       <span>Status</span>
-      <select aria-label="Status">
-        @for (status of filters().statusOptions; track status) {
-          <option>{{ status }}</option>
-        }
-      </select>
+      <app-select-dropdown
+        name="status"
+        inputId="student-status-filter"
+        [options]="filters().statusOptions"
+        [ngModel]="status()"
+        (ngModelChange)="onStatusChange($event)"
+        [compact]="true"
+        placeholder="All statuses"
+      />
     </label>
 
-    <button type="button">Apply</button>
+    <button type="submit">Apply</button>
   </div>
 </form>

@@ -1,6 +1,5 @@
 /** Application roles (role-based access) */
 export const USER_ROLES = {
-  admin: 'admin',
   teacher: 'teacher',
   student: 'student',
 } as const;

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { float32ToPcm16Base64, resampleFloat32 } from './voice-audio.util';
+import {
+  float32ToPcm16Base64,
+  resampleFloat32,
+  speechLevelFromTimeDomain,
+} from './voice-audio.util';
 
 describe('voice audio utils', () => {
   it('keeps samples unchanged when rates match', () => {
@@ -11,5 +15,14 @@ describe('voice audio utils', () => {
     const encoded = float32ToPcm16Base64(new Float32Array([0, 1, -1]), 16000, 16000);
     expect(encoded.length).toBeGreaterThan(0);
     expect(() => atob(encoded)).not.toThrow();
+  });
+
+  it('maps silence to a closed mouth and louder samples to a more open mouth', () => {
+    const silent = Uint8Array.from({ length: 8 }, () => 128);
+    const loud = Uint8Array.from({ length: 8 }, (_, index) =>
+      index % 2 === 0 ? 30 : 226,
+    );
+    expect(speechLevelFromTimeDomain(silent)).toBe(0);
+    expect(speechLevelFromTimeDomain(loud)).toBeGreaterThan(0.5);
   });
 });

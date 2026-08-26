@@ -20,23 +20,23 @@ import { StudentsService } from './students.service';
 export class StudentsController {
   constructor(private readonly studentsService: StudentsService) {}
 
-  /** Student directory (admin manages accounts; teachers can view). */
+  /** Student directory (teachers manage accounts). */
   @Get()
-  @Roles(USER_ROLES.admin, USER_ROLES.teacher)
+  @Roles(USER_ROLES.teacher)
   findAll() {
     return this.studentsService.findAll();
   }
 
-  /** Create a student (optionally with a login account). Admin only. */
+  /** Create a student (optionally with a login account). */
   @Post()
-  @Roles(USER_ROLES.admin)
+  @Roles(USER_ROLES.teacher)
   create(@Body() dto: CreateStudentDto) {
     return this.studentsService.create(dto);
   }
 
-  /** Toggle login access for a student. Admin only. */
+  /** Toggle login access for a student. */
   @Patch(':studentId/access')
-  @Roles(USER_ROLES.admin)
+  @Roles(USER_ROLES.teacher)
   updateAccess(
     @Param('studentId') studentId: string,
     @Body() dto: UpdateStudentAccessDto,

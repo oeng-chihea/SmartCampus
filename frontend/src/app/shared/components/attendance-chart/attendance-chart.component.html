@@ -2,7 +2,7 @@
   <header class="chart__header">
     <div class="chart__title">
       <p class="chart__eyebrow">Attendance analysis</p>
-      <h2 id="attendance-chart-heading">12-month attendance rate</h2>
+      <h2 id="attendance-chart-heading">12-month attendance status</h2>
     </div>
     <div class="chart__badges">
       <span class="chart__badge chart__badge--solid">{{ year() }}</span>
@@ -17,7 +17,7 @@
         #plot
         class="chart__plot"
         role="img"
-        [attr.aria-label]="'Monthly present rate from January to December ' + year() + '. Hover or tap a month for details.'"
+        [attr.aria-label]="'Monthly present and absent counts from January to December ' + year() + '. Hover or tap a month for Present and Absent.'"
       >
         <svg
           class="chart__svg"
@@ -27,8 +27,8 @@
         >
           <defs>
             <linearGradient id="chartAreaGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#16a34a" stop-opacity="0.28" />
-              <stop offset="100%" stop-color="#16a34a" stop-opacity="0.02" />
+              <stop class="chart__area-stop" offset="0%" stop-opacity="0.18" />
+              <stop class="chart__area-stop" offset="100%" stop-opacity="0.01" />
             </linearGradient>
           </defs>
 
@@ -58,8 +58,14 @@
             [attr.y2]="baselineY()"
           />
 
-          <path class="chart__area" [attr.d]="areaPath()" />
-          <path class="chart__line" pathLength="1" [attr.d]="linePath()" fill="none" />
+          <path class="chart__area" [attr.d]="presentAreaPath()" />
+          <path class="chart__line" pathLength="1" [attr.d]="presentLinePath()" fill="none" />
+          <path
+            class="chart__line chart__line--absent"
+            pathLength="1"
+            [attr.d]="absentLinePath()"
+            fill="none"
+          />
 
           @if (guideX(); as x) {
             <line
@@ -75,8 +81,17 @@
             <circle
               class="chart__hit"
               [attr.cx]="point.x"
-              [attr.cy]="point.y"
-              r="18"
+              [attr.cy]="point.presentY"
+              r="16"
+              (mouseenter)="showMonth(point.index)"
+              (focus)="showMonth(point.index)"
+              (click)="showMonth(point.index)"
+            />
+            <circle
+              class="chart__hit"
+              [attr.cx]="point.x"
+              [attr.cy]="point.absentY"
+              r="16"
               (mouseenter)="showMonth(point.index)"
               (focus)="showMonth(point.index)"
               (click)="showMonth(point.index)"
@@ -85,7 +100,15 @@
               class="chart__dot"
               [class.chart__dot--active]="isActive(point.index)"
               [attr.cx]="point.x"
-              [attr.cy]="point.y"
+              [attr.cy]="point.presentY"
+              [attr.r]="isActive(point.index) ? 6 : 4.5"
+              [style.--i]="point.index"
+            />
+            <circle
+              class="chart__dot chart__dot--absent"
+              [class.chart__dot--active]="isActive(point.index)"
+              [attr.cx]="point.x"
+              [attr.cy]="point.absentY"
               [attr.r]="isActive(point.index) ? 6 : 4.5"
               [style.--i]="point.index"
             />
@@ -96,6 +119,7 @@
           @if (tooltipStyle(); as style) {
             <aside
               class="chart__tooltip"
+              [class.chart__tooltip--below]="style.below"
               [style.left]="style.left"
               [style.top]="style.top"
               [style.transform]="style.transform"
@@ -112,10 +136,6 @@
                 <div>
                   <dt>Absent</dt>
                   <dd>{{ point.absent }}</dd>
-                </div>
-                <div>
-                  <dt>Outside</dt>
-                  <dd>{{ point.outsideLocation }}</dd>
                 </div>
               </dl>
             </aside>
@@ -145,7 +165,8 @@
   </div>
 
   <footer class="chart__footer">
-    <span class="chart__legend"><i></i> Attendance rate %</span>
-    <span class="chart__hint">Hover or tap a month for the scan breakdown</span>
+    <span class="chart__legend"><i></i> Present</span>
+    <span class="chart__legend chart__legend--absent"><i></i> Absent</span>
+    <span class="chart__hint">Hover or tap a month for Present and Absent</span>
   </footer>
 </section>

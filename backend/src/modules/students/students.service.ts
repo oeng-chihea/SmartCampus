@@ -28,6 +28,14 @@ export class StudentsService {
     return this.students.findOne({ where: { studentId } });
   }
 
+  async findByUserId(userId: string): Promise<StudentEntity | null> {
+    const id = userId.trim();
+    if (!id) {
+      return null;
+    }
+    return this.students.findOne({ where: { userId: id } });
+  }
+
   /**
    * Create a student profile. When a password is provided, a login account
    * (role = student) is created and linked to this profile in the same call.

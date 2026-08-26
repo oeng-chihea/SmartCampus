@@ -14,6 +14,7 @@
   flex-direction: column;
   gap: 12px;
   min-width: 0;
+  overflow: visible;
   padding: clamp(14px, 1.6vw, 20px);
   width: 100%;
 }
@@ -32,7 +33,7 @@
 }
 
 .chart__eyebrow {
-  color: var(--color-brand);
+  color: var(--color-primary);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -43,7 +44,7 @@
 .chart__header h2 {
   color: var(--color-brand-deep);
   font-size: clamp(1rem, 2vw, 1.12rem);
-  font-weight: 700;
+  font-weight: 600;
   margin: 4px 0 0;
 }
 
@@ -58,23 +59,20 @@
   border-radius: var(--radius-pill);
   color: var(--color-brand-strong);
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
   padding: 7px 10px;
   white-space: nowrap;
 }
 
 .chart__badge--solid {
-  background: var(--color-brand);
+  background: var(--color-primary);
   color: #ffffff;
 }
 
 .chart__viewport {
   min-width: 0;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible;
 }
 
 .chart__frame {
@@ -82,12 +80,14 @@
   flex-direction: column;
   gap: 4px;
   min-width: 100%;
+  overflow: visible;
 }
 
 .chart__plot {
   isolation: isolate;
   min-height: clamp(168px, 22vw, 228px);
   min-width: 0;
+  overflow: visible;
   position: relative;
   width: 100%;
 }
@@ -106,6 +106,10 @@
   vector-effect: non-scaling-stroke;
 }
 
+.chart__area-stop {
+  stop-color: var(--color-primary);
+}
+
 .chart__baseline {
   stroke: #c9ddd0;
   stroke-width: 1.25;
@@ -121,17 +125,24 @@
 .chart__area {
   animation: area-in 900ms ease 280ms both;
   fill: url(#chartAreaGradient);
+  shape-rendering: geometricPrecision;
 }
 
 .chart__line {
   animation: line-draw 1100ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  stroke: var(--color-brand);
+  shape-rendering: geometricPrecision;
+  stroke: var(--color-primary);
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 2.5;
+  stroke-width: 2.75;
   vector-effect: non-scaling-stroke;
+}
+
+.chart__line--absent {
+  stroke: var(--color-primary);
+  stroke-width: 2.25;
 }
 
 .chart__guide {
@@ -152,7 +163,7 @@
   animation-delay: calc(320ms + var(--i, 0) * 55ms);
   fill: #ffffff;
   pointer-events: none;
-  stroke: var(--color-brand);
+  stroke: var(--color-primary);
   stroke-width: 2.25;
   transition:
     r 160ms ease,
@@ -162,9 +173,18 @@
 }
 
 .chart__dot--active {
-  fill: var(--color-brand);
+  fill: var(--color-primary);
   stroke: var(--color-brand-deep);
   stroke-width: 2.5;
+}
+
+.chart__dot--absent {
+  stroke: var(--color-primary);
+}
+
+.chart__dot--absent.chart__dot--active {
+  fill: var(--color-primary);
+  stroke: var(--color-brand-deep);
 }
 
 .chart__months {
@@ -205,10 +225,11 @@
   color: #ffffff;
   max-width: min(220px, calc(100% - 16px));
   min-width: min(168px, calc(100% - 16px));
+  overflow: visible;
   padding: 12px 12px 10px;
   pointer-events: none;
   position: absolute;
-  z-index: 4;
+  z-index: 6;
 }
 
 .chart__tooltip header {
@@ -274,11 +295,15 @@
 }
 
 .chart__legend i {
-  background: var(--color-brand);
+  background: var(--color-primary);
   border-radius: var(--radius-pill);
   display: inline-block;
   height: 8px;
   width: 8px;
+}
+
+.chart__legend--absent i {
+  background: var(--color-primary);
 }
 
 .chart__hint {
@@ -361,6 +386,13 @@
 }
 
 @media (max-width: 700px) {
+  .chart__viewport {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .chart__frame {
     min-width: 560px;
   }

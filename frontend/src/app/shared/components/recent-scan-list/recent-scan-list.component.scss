@@ -14,7 +14,7 @@
   flex-direction: column;
   min-height: 0;
   min-width: 0;
-  padding: clamp(14px, 1.6vw, 20px);
+  padding: clamp(14px, 1.4vw, 18px);
   width: 100%;
 }
 
@@ -38,7 +38,7 @@
 .recent-scan-list__header p {
   color: var(--color-brand);
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -68,7 +68,7 @@
   display: inline-flex;
   flex: 0 0 auto;
   font: inherit;
-  font-weight: 700;
+  font-weight: 600;
   justify-content: center;
   min-height: 40px;
   padding: 0 12px;

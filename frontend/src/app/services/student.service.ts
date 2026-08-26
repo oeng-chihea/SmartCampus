@@ -12,10 +12,11 @@ import { AuthService } from './auth.service';
 export {
   buildStudentFilters,
   buildStudentMetrics,
+  filterStudents,
 } from '../core/utils/student-stats.util';
 
 /**
- * Live Nest APIs for the admin Students page:
+ * Live Nest APIs for the teacher Students page:
  * list the directory, create a student (+ login account), toggle login access.
  */
 @Injectable({ providedIn: 'root' })
@@ -58,7 +59,7 @@ export class StudentService {
         return 'Session expired. Sign out and sign in again.';
       }
       if (error.status === 403) {
-        return 'You need admin access for this action.';
+        return 'You need a teacher account for this action.';
       }
       const body = error.error as { message?: string | string[] } | null;
       if (typeof body?.message === 'string') {

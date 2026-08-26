@@ -20,7 +20,7 @@ export class UserEntity {
   @Column({ name: 'password_hash', type: 'varchar', length: 255 })
   passwordHash!: string;
 
-  /** admin | teacher | student */
+  /** teacher | student */
   @Column({ type: 'varchar', length: 20 })
   role!: string;
 

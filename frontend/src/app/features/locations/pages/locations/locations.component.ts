@@ -12,6 +12,10 @@ import {
   LocationVisit,
 } from '../../../../models/location.model';
 import {
+  formatLocationVoiceSummary,
+  VOICE_RECORD_DETAIL_HINT,
+} from '../../../../core/utils/voice-record-summary.util';
+import {
   describeMatches,
   matchVisibleRows,
 } from '../../../../core/utils/voice-row-match.util';
@@ -125,7 +129,7 @@ export class LocationsComponent implements OnInit, OnDestroy {
     this.voicePages.register({
       page: 'locations',
       startContext: () =>
-        `The staff is on Locations. ${this.state.visits().length} visits visible.`,
+        `The staff is on Locations. ${this.voiceStatusMessage()} ${VOICE_RECORD_DETAIL_HINT}`,
       control: (args) => this.voiceControl(args),
       select: (args) => this.voiceSelect(args),
       act: () =>
@@ -149,15 +153,25 @@ export class LocationsComponent implements OnInit, OnDestroy {
       if (args.action === 'refresh') {
         await this.flow.load();
       }
-      return { ok: true, message: `${this.state.visits().length} location visits visible.` };
+      return { ok: true, message: this.voiceStatusMessage() };
     }
     if (args.action === 'export') {
       await this.flow.exportExcel();
       return { ok: true, message: 'Exported location visits to Excel.' };
     }
-    if (args.action === 'clear_search') {
-      toolbar?.applyFromVoice({ search: '' });
-      return { ok: true, message: 'Cleared location search.' };
+    if (args.action === 'clear_search' || args.action === 'clear_filters') {
+      toolbar?.applyFromVoice({
+        search: '',
+        building: 'All buildings',
+        status: 'All statuses',
+      });
+      return {
+        ok: true,
+        message:
+          args.action === 'clear_filters'
+            ? 'Cleared location filters. Showing every visit.'
+            : 'Cleared location search.',
+      };
     }
     if (args.action === 'search' && args.query) {
       toolbar?.applyFromVoice({ search: args.query });
@@ -172,6 +186,10 @@ export class LocationsComponent implements OnInit, OnDestroy {
       return { ok: true, message: 'Applied location filters.' };
     }
     return { ok: false, message: 'On Locations I can search, filter, refresh, or export.' };
+  }
+
+  private voiceStatusMessage(): string {
+    return formatLocationVoiceSummary(this.state.visits());
   }
 
   private async voiceSelect(args: VoiceSelectArgs): Promise<VoiceToolResult> {

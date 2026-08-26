@@ -2,7 +2,7 @@
 
 This workspace contains two application projects:
 
-- `frontend/` - Angular application for admin and student user interfaces.
+- `frontend/` - Angular application for teacher (administration) and student user interfaces.
 - `backend/` - NestJS API application for authentication, management modules, and reporting.
 
 ## Project Structure

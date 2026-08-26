@@ -13,7 +13,6 @@ import {
   SESSION_STATUS,
   type SessionStatus,
 } from '../../common/constants/session.constant';
-import { USER_ROLES } from '../../common/constants/roles.constant';
 import { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { toIsoDate } from '../../common/utils/date.util';
 import { AttendanceRecordEntity } from '../../database/entities/attendance-record.entity';
@@ -85,10 +84,7 @@ export class SessionsService {
       order: { openedAt: 'DESC' },
     });
 
-    const visible =
-      actor.role === USER_ROLES.admin
-        ? rows
-        : rows.filter((session) => session.teacherId === actor.userId);
+    const visible = rows.filter((session) => session.teacherId === actor.userId);
 
     return visible.map((session) => this.toResponse(session, actor, false));
   }
@@ -109,11 +105,9 @@ export class SessionsService {
       .createQueryBuilder('session')
       .orderBy('session.openedAt', 'DESC');
 
-    if (actor.role !== USER_ROLES.admin) {
-      qb.andWhere('session.teacherId = :teacherId', {
-        teacherId: actor.userId,
-      });
-    }
+    qb.andWhere('session.teacherId = :teacherId', {
+      teacherId: actor.userId,
+    });
 
     if (q) {
       qb.andWhere(
@@ -183,7 +177,7 @@ export class SessionsService {
   /**
    * Update title and campus location on an existing session.
    * dueAt is frozen at create so later edits cannot move student attendance to another day.
-   * Owner or admin only. Does not rotate QR, change status, or reopen a closed session.
+   * Session owner only. Does not rotate QR, change status, or reopen a closed session.
    * Open sessions that move to another Active location transfer the usage counter.
    */
   async edit(
@@ -314,7 +308,7 @@ export class SessionsService {
     session: SessionEntity,
     actor: AuthenticatedUser,
   ): void {
-    if (actor.role === USER_ROLES.admin || session.teacherId === actor.userId) {
+    if (session.teacherId === actor.userId) {
       return;
     }
     throw new ForbiddenException('You cannot access this session');
@@ -324,7 +318,7 @@ export class SessionsService {
     session: SessionEntity,
     actor: AuthenticatedUser,
   ): void {
-    if (actor.role === USER_ROLES.admin || session.teacherId === actor.userId) {
+    if (session.teacherId === actor.userId) {
       return;
     }
     throw new ForbiddenException('You cannot manage this session');
@@ -398,7 +392,7 @@ export class SessionsService {
     const canSeeQr =
       includeQr &&
       session.status === SESSION_STATUS.open &&
-      (actor.role === USER_ROLES.admin || session.teacherId === actor.userId);
+      session.teacherId === actor.userId;
 
     let currentQr: SessionQrSnapshot | null | undefined;
     if (

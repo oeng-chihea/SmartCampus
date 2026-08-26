@@ -27,7 +27,6 @@ describe('AttendanceService', () => {
   let studentStore: StudentEntity[];
 
   const teacher = { userId: 'u-teacher-1', role: 'teacher' as const };
-  const admin = { userId: 'u-admin-1', role: 'admin' as const };
   const student = { userId: 'u-student-1', role: 'student' as const };
   const otherStudent = { userId: 'u-student-2', role: 'student' as const };
 
@@ -98,14 +97,6 @@ describe('AttendanceService', () => {
             name: 'Teacher Kim',
             email: 'teacher@smartcampus.edu',
             role: 'teacher' as const,
-          };
-        }
-        if (id === 'u-admin-1') {
-          return {
-            id: 'u-admin-1',
-            name: 'System Admin',
-            email: 'admin@smartcampus.edu',
-            role: 'admin' as const,
           };
         }
         if (id === 'u-student-1') {
@@ -582,7 +573,7 @@ describe('AttendanceService', () => {
   it('does not write Absent rows while the session is still before due', async () => {
     await openSessionWithPayload(45);
 
-    const page = await attendance.findAdminRecords({}, admin);
+    const page = await attendance.findAdminRecords({}, teacher);
 
     expect(page.records).toEqual([]);
     expect(page.metrics).toEqual({
@@ -610,7 +601,7 @@ describe('AttendanceService', () => {
       student,
     );
 
-    const page = await attendance.findAdminRecords({}, admin);
+    const page = await attendance.findAdminRecords({}, teacher);
 
     expect(page.records).toHaveLength(1);
     expect(page.records[0]).toMatchObject({
@@ -634,7 +625,7 @@ describe('AttendanceService', () => {
     );
 
     const afterDue = new Date(Date.now() + 50 * 60 * 1000);
-    const page = await attendance.findAdminRecords({}, admin, afterDue);
+    const page = await attendance.findAdminRecords({}, teacher, afterDue);
 
     expect(page.records).toHaveLength(2);
     const scanner = page.records.find((row) => row.studentId === 'SC-1024');
@@ -660,7 +651,7 @@ describe('AttendanceService', () => {
   it('does not backfill a student created after absents were finalized', async () => {
     await openSessionWithPayload(45);
     const afterDue = new Date(Date.now() + 50 * 60 * 1000);
-    await attendance.findAdminRecords({}, admin, afterDue);
+    await attendance.findAdminRecords({}, teacher, afterDue);
 
     studentStore.push({
       studentId: 'SC-3000',
@@ -674,7 +665,7 @@ describe('AttendanceService', () => {
       userId: 'u-student-3',
     });
 
-    const page = await attendance.findAdminRecords({}, admin, afterDue);
+    const page = await attendance.findAdminRecords({}, teacher, afterDue);
     expect(page.records.some((row) => row.studentId === 'SC-3000')).toBe(false);
   });
 
@@ -692,7 +683,7 @@ describe('AttendanceService', () => {
     const created = sessionStore[0];
     await sessions.close(created.id, teacher);
 
-    const page = await attendance.findAdminRecords({}, admin);
+    const page = await attendance.findAdminRecords({}, teacher);
     expect(page.records).toHaveLength(1);
     expect(page.records[0].studentId).toBe('SC-1024');
     expect(page.records[0].attendanceStatus).toBe('Present');
@@ -720,7 +711,7 @@ describe('AttendanceService', () => {
       accuracyMeters: null,
     } as AttendanceRecordEntity);
 
-    const page = await attendance.findAdminRecords({}, admin);
+    const page = await attendance.findAdminRecords({}, teacher);
     expect(page.records).toEqual([]);
     expect(sessionStore.find((row) => row.id === sessionId)?.absentsFinalized).toBe(
       false,
@@ -752,11 +743,6 @@ describe('AttendanceService', () => {
     expect(
       teacherPage.records.every((row) => row.sessionId !== 'sess-other-teacher'),
     ).toBe(true);
-
-    const adminPage = await attendance.findAdminRecords({}, admin, afterDue);
-    expect(
-      adminPage.records.some((row) => row.sessionId === 'sess-other-teacher'),
-    ).toBe(true);
   });
 
   it('hides Absent rows from student My attendance', async () => {
@@ -771,7 +757,7 @@ describe('AttendanceService', () => {
       student,
     );
     const afterDue = new Date(Date.now() + 50 * 60 * 1000);
-    await attendance.findAdminRecords({}, admin, afterDue);
+    await attendance.findAdminRecords({}, teacher, afterDue);
 
     const mine = await attendance.findMine(student);
     expect(mine).toHaveLength(1);
@@ -794,11 +780,11 @@ describe('AttendanceService', () => {
       student,
     );
     const afterDue = new Date(Date.now() + 50 * 60 * 1000);
-    await attendance.findAdminRecords({}, admin, afterDue);
+    await attendance.findAdminRecords({}, teacher, afterDue);
 
     const inside = await attendance.findAdminRecords(
       { status: 'inside' },
-      admin,
+      teacher,
       afterDue,
     );
     expect(inside.records).toHaveLength(1);
@@ -806,14 +792,14 @@ describe('AttendanceService', () => {
 
     const outside = await attendance.findAdminRecords(
       { status: 'outside' },
-      admin,
+      teacher,
       afterDue,
     );
     expect(outside.records).toEqual([]);
 
     const present = await attendance.findAdminRecords(
       { attendanceStatus: 'Present' },
-      admin,
+      teacher,
       afterDue,
     );
     expect(present.records.every((row) => row.attendanceStatus === 'Present')).toBe(
@@ -823,7 +809,7 @@ describe('AttendanceService', () => {
 
     const absents = await attendance.findAdminRecords(
       { attendanceStatus: 'Absent' },
-      admin,
+      teacher,
       afterDue,
     );
     expect(absents.records.every((row) => row.attendanceStatus === 'Absent')).toBe(
@@ -845,7 +831,7 @@ describe('AttendanceService', () => {
     );
 
     const now = new Date(2026, 7, 20, 12, 0, 0);
-    const file = await attendance.exportAdminExcel({}, admin, now);
+    const file = await attendance.exportAdminExcel({}, teacher, now);
 
     expect(file.filename).toBe('attendance-records-2026-08-20.xlsx');
     expect(file.buffer.subarray(0, 2).toString()).toBe('PK');

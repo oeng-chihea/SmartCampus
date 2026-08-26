@@ -11,10 +11,10 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   display: flex;
-  gap: clamp(10px, 1.4vw, 14px);
+  gap: clamp(10px, 1.2vw, 14px);
   min-height: 0;
   min-width: 0;
-  padding: clamp(14px, 1.4vw, 20px);
+  padding: clamp(14px, 1.3vw, 18px);
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease,
@@ -33,22 +33,22 @@
   border-radius: var(--radius-sm);
   color: var(--color-brand);
   flex: 0 0 auto;
-  height: 40px;
+  height: 36px;
   position: relative;
-  width: 40px;
+  width: 36px;
 }
 
 .stat-card__icon::before {
   background: currentColor;
   content: '';
-  height: 18px;
-  left: 11px;
+  height: 16px;
+  left: 10px;
   mask-position: center;
   mask-repeat: no-repeat;
   mask-size: contain;
   position: absolute;
-  top: 11px;
-  width: 18px;
+  top: 10px;
+  width: 16px;
 }
 
 .stat-card__content {
@@ -63,7 +63,7 @@
 .stat-card p {
   color: var(--color-muted);
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -71,19 +71,19 @@
 .stat-card strong {
   color: var(--color-brand-deep);
   display: block;
-  font-size: clamp(1.55rem, 3.2vw, 2.4rem);
-  font-weight: 750;
+  font-size: clamp(1.7rem, 2.7vw, 2.2rem);
+  font-weight: 600;
   letter-spacing: -0.04em;
   line-height: 1;
-  margin-top: 8px;
+  margin-top: 7px;
 }
 
 .stat-card span {
   color: var(--color-muted);
   display: block;
-  font-size: clamp(0.8rem, 1.4vw, 0.88rem);
+  font-size: clamp(0.76rem, 1.15vw, 0.84rem);
   line-height: 1.45;
-  margin-top: 8px;
+  margin-top: 7px;
   overflow-wrap: anywhere;
 }
 

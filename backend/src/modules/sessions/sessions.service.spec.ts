@@ -23,7 +23,6 @@ describe('SessionsService', () => {
   let attendanceDelete: jest.Mock;
 
   const teacher = { userId: 'u-teacher-1', role: 'teacher' as const };
-  const admin = { userId: 'u-admin-1', role: 'admin' as const };
   const otherTeacher = {
     userId: 'u-teacher-missing',
     role: 'teacher' as const,
@@ -80,14 +79,6 @@ describe('SessionsService', () => {
             name: 'Teacher Kim',
             email: 'teacher@smartcampus.edu',
             role: 'teacher' as const,
-          };
-        }
-        if (id === 'u-admin-1') {
-          return {
-            id: 'u-admin-1',
-            name: 'System Admin',
-            email: 'admin@smartcampus.edu',
-            role: 'admin' as const,
           };
         }
         return null;
@@ -434,7 +425,7 @@ describe('SessionsService', () => {
       teacher,
     );
     expect(await service.findAll(otherTeacher)).toHaveLength(0);
-    expect((await service.findAll(admin)).length).toBeGreaterThan(0);
+    expect((await service.findAll(teacher)).length).toBeGreaterThan(0);
   });
 
   it('paginates sessions with a default page size of 10 and optional search', async () => {
@@ -710,29 +701,6 @@ describe('SessionsService', () => {
         otherTeacher,
       ),
     ).rejects.toThrow(ForbiddenException);
-  });
-
-  it('allows an admin to edit another teacher’s session', async () => {
-    const created = await service.create(
-      {
-        title: 'Teacher owned',
-        locationId: 'LOC-001',
-        dueAt: dueInMinutes(30),
-      },
-      teacher,
-    );
-
-    const edited = await service.edit(
-      created.id,
-      {
-        title: 'Admin correction',
-        locationId: 'LOC-001',
-      },
-      admin,
-    );
-
-    expect(edited.title).toBe('Admin correction');
-    expect(edited.teacherId).toBe(teacher.userId);
   });
 
   it('keeps dueAt and Absent rows when title or location is edited', async () => {

@@ -1,7 +1,6 @@
 export const APP_ROUTES = {
   auth: 'auth',
   /** Role-specific sign-in only (no shared chooser). */
-  authAdmin: 'auth/admin',
   authTeacher: 'auth/teacher',
   authStudent: 'auth/student',
   dashboard: 'dashboard',
@@ -14,7 +13,7 @@ export const APP_ROUTES = {
   studentHistory: 'student/history',
 } as const;
 
-export type AuthLoginRole = 'admin' | 'teacher' | 'student';
+export type AuthLoginRole = 'teacher' | 'student';
 
 /**
  * Absolute sign-in path for a role.

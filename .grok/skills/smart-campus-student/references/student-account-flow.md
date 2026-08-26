@@ -6,8 +6,8 @@ Last reviewed against the implemented account-provisioning flow (backend + front
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────┐
-│ PROVISION (admin, one-time per student)                             │
-│  Admin → /students → “Add student account”                          │
+│ PROVISION (teacher, one-time per student)                           │
+│  Teacher → /students → “Add student account”                        │
 │    POST /api/students  { studentId, name, email, course, year,      │
 │                           password }                                │
 │    → creates `students` row (login_enabled = true, userId linked)   │
@@ -60,9 +60,9 @@ Last reviewed against the implemented account-provisioning flow (backend + front
 
 | Path | Endpoint | Notes |
 |------|----------|-------|
-| Admin Students page | `POST /api/students` (admin) | Body includes optional `password`; when present → profile **and** account created atomically |
-| Generic account API | `POST /api/users` (admin) | Any role; for `student` role, `studentId` is required and the student **profile must already exist** (else 400) |
-| Seeder | `demo.seeder.ts` | Seeds only admin, teacher, and Chihea (`u-chihea` / `SC-1001`) on boot; idempotent |
+| Teacher Students page | `POST /api/students` (teacher) | Body includes optional `password`; when present → profile **and** account created atomically |
+| Generic account API | `POST /api/users` (teacher) | Teacher or student; for `student` role, `studentId` is required and the student **profile must already exist** (else 400) |
+| Seeder | `demo.seeder.ts` | Seeds only teacher and Chihea (`u-chihea` / `SC-1001`) on boot; idempotent |
 
 ### What the admin form does (frontend)
 
@@ -73,7 +73,7 @@ Last reviewed against the implemented account-provisioning flow (backend + front
 
 ### Login toggle semantics
 
-- `PATCH /api/students/:studentId/access` `{ loginEnabled: boolean }` (admin)
+- `PATCH /api/students/:studentId/access` `{ loginEnabled: boolean }` (teacher)
 - Enabling login for a student **without** an account → 400 (UI disables the
   toggle and shows “No account” instead).
 - Disabling login: student row stays, account stays — next login attempt gets 403.
@@ -120,7 +120,6 @@ if (user.role === USER_ROLES.student) {
 
 | id | name | email | password | role | student_id |
 |----|------|-------|----------|------|------------|
-| `u-admin-1` | System Admin | `admin@smartcampus.edu` | `admin123` | admin | — |
 | `u-teacher-1` | Teacher Kim | `teacher@smartcampus.edu` | `teacher123` | teacher | — |
 | `u-chihea` | Chihea | `chihea@smartcampus.edu` | `chihea123` | student | `SC-1001` |
 
@@ -136,7 +135,9 @@ databases converge to the new state.
 | `services/auth.service.ts` | Login, session, `homePathForRole` (student → `/student/scan`) |
 | `services/student.service.ts` | `listStudents`, `createStudent`, `setLoginEnabled`, `mapError` |
 | `services/student-attendance.service.ts` | Open sessions, submit, my records |
-| `features/attendance/pages/student-scan/*` | Scan UI; due dialog; **location-blocked dialog** (`state.locationBlocked` + "Try again"); history `app-table`; geofence submit (`buildSubmitRequest`) |
+| `features/attendance/pages/student-scan/*` | Scan UI; due dialog; **location-blocked dialog** (`state.locationBlocked` + "Try again"); history `app-table`; geofence submit (`buildSubmitRequest`); **Campus Voice** in page workspace (auto-start + recorded vs not-recorded live classes) |
+| `shared/components/voice-assistant/*` | SVG talking person; student `[autoStart]="true"` |
+| `services/voice-live.service.ts` | Gemini Live session; student greeting turn after connect |
 | `core/utils/geolocation.util.ts` | `getCurrentCoordinates()` — browser GPS, resolves `null` on deny/unsupported/timeout (flow treats `null` as a hard block, not a fallback) |
 | `shared/components/table/*` | My attendance columns (Session · Location · Scanned at · Recorded · Status) |
 | `shared/components/confirm-dialog/*` | Due blocked / delete confirm shell |
@@ -159,28 +160,33 @@ databases converge to the new state.
 | `modules/students/students.controller.ts` | `GET /students`, `POST /students`, `PATCH /students/:id/access` |
 | `modules/students/dto/*` | `create-student.dto.ts`, `update-student-access.dto.ts`, `student-response.dto.ts` |
 | `modules/users/users.service.ts` | `createUser` (any role; links student profiles, sets `loginEnabled=true`) |
-| `modules/users/users.controller.ts` | `POST /users` (admin) |
+| `modules/users/users.controller.ts` | `POST /users` (teacher) |
 | `modules/users/dto/create-user.dto.ts` | name, email, password (min 6), role, optional studentId |
 | `database/seeders/demo.seeder.ts` | Chihea seed + legacy demo cleanup |
 | `modules/attendance/attendance.service.ts` | `requireCoordinates` (400 if lat/lng missing — hard gate) + `evaluateGeofence` — Haversine distance vs the session's location `radiusMeters` |
+| `modules/ai/campus-voice.instruction.ts` | Student greeting (morning/afternoon/evening) + full scan/GPS/stop instruction |
+| `modules/ai/campus-voice.snapshot.service.ts` | Student snapshot: open live classes + `findMine` only |
+| `common/utils/date.util.ts` | `campusGreetingPeriod` |
 | `modules/attendance/dto/submit-attendance.dto.ts` | `latitude`/`longitude` (`@IsLatitude`/`@IsLongitude`); optional at DTO/format level, **required** by the service's business rule |
 | `common/utils/geo.util.ts` | `haversineDistanceMeters` / `isWithinRadius` (pure, unit-tested) |
 
 ## 8. Manual test script (happy path)
 
 1. Start backend + frontend (repo root): `npm run backend:start` / `npm run frontend:start:local`
-2. Login as admin (`admin@smartcampus.edu` / `admin123`) → `/dashboard` → **Students**
+2. Login as teacher (`teacher@smartcampus.edu` / `teacher123`) → `/dashboard` → **Students**
 3. Click **Add student account** → fill name/ID/email/class/year/password → Create
 4. Table shows the new row, toggle **Active**
 5. Open `/auth/student` in another browser/incognito → sign in as the new student
-6. Redirects to `/student/scan` → open sessions show teacher's live QR → Mark present (before due)
+6. Redirects to `/student/scan` → Campus Voice auto-starts in the scan workspace with one short Good morning/afternoon/evening greeting (no button tutorial). Ask which classes are already recorded vs still to mark. Say **mark all** to check in every still-open unrecorded class. Open sessions show teacher's live QR → Mark present (before due) only for classes not yet recorded
+   - Allow mic if the browser asks (needed for the greeting). Say **stop** or tap X to end voice.
    - Browser will prompt for location permission on first tap; **Allow** → within campus test
      coordinates records **Present** with a `distanceMeters` value
    - **Block/deny** (or if the browser has no geolocation support) → **no record is created** —
      a "Cannot mark present" dialog opens with **Try again** (re-prompts permission) / **Cancel**
-     (closes, card stays untouched, nothing submitted)
+     (closes, card stays untouched, nothing submitted). Voice explains that location is required
+     or the class becomes Absent after due time.
 7. After due time: session card remains; Mark present / QR opens due confirm dialog
 8. Teacher closes session → card disappears; My attendance table still shows that scan
 9. Teacher deletes session → that scan disappears from My attendance (cascade + me purge)
-10. Back in admin → toggle the student's **Login access off** → student's next login → 403 message
-11. Sign out from admin → try old demo students (`student@smartcampus.edu`/`student123`) → 401 (no such account)
+10. Back in teacher Students → toggle the student's **Login access off** → student's next login → 403 message
+11. Sign out from teacher → try old demo students (`student@smartcampus.edu`/`student123`) → 401 (no such account)

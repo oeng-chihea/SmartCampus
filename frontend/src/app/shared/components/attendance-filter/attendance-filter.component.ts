@@ -101,6 +101,12 @@ export class AttendanceFilterComponent implements OnDestroy {
     if (patch.search !== undefined) {
       this.search.set(patch.search);
     }
+    if (patch.sessionId) {
+      this.sessionId.set(patch.sessionId);
+      if (patch.sessionId === 'all') {
+        this.sessionLabel.set(ALL_SESSIONS_LABEL);
+      }
+    }
     if (patch.status) {
       this.status.set(patch.status);
     }

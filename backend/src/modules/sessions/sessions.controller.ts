@@ -27,7 +27,7 @@ export class SessionsController {
   constructor(private readonly sessionsService: SessionsService) {}
 
   @Post()
-  @Roles(USER_ROLES.admin, USER_ROLES.teacher)
+  @Roles(USER_ROLES.teacher)
   create(
     @Body() body: CreateSessionDto,
     @CurrentUser() user: AuthenticatedUser,
@@ -40,7 +40,7 @@ export class SessionsController {
    * Paginated envelope when `page` or `limit` is set (session picker).
    */
   @Get()
-  @Roles(USER_ROLES.admin, USER_ROLES.teacher)
+  @Roles(USER_ROLES.teacher)
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListSessionsQueryDto,
@@ -60,25 +60,25 @@ export class SessionsController {
    * Must stay above :id routes.
    */
   @Get('open')
-  @Roles(USER_ROLES.admin, USER_ROLES.teacher, USER_ROLES.student)
+  @Roles(USER_ROLES.teacher, USER_ROLES.student)
   listOpenLive() {
     return this.sessionsService.listOpenLive();
   }
 
   @Get(':id')
-  @Roles(USER_ROLES.admin, USER_ROLES.teacher)
+  @Roles(USER_ROLES.teacher)
   findOne(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.sessionsService.findOne(id, user);
   }
 
   @Get(':id/qr')
-  @Roles(USER_ROLES.admin, USER_ROLES.teacher)
+  @Roles(USER_ROLES.teacher)
   getQr(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.sessionsService.getQr(id, user);
   }
 
   @Post(':id/close')
-  @Roles(USER_ROLES.admin, USER_ROLES.teacher)
+  @Roles(USER_ROLES.teacher)
   close(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.sessionsService.close(id, user);
   }
@@ -90,7 +90,7 @@ export class SessionsController {
    */
   @Post(':id/edit')
   @HttpCode(HttpStatus.OK)
-  @Roles(USER_ROLES.admin, USER_ROLES.teacher)
+  @Roles(USER_ROLES.teacher)
   edit(
     @Param('id') id: string,
     @Body() body: EditSessionDto,
@@ -101,7 +101,7 @@ export class SessionsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(USER_ROLES.admin, USER_ROLES.teacher)
+  @Roles(USER_ROLES.teacher)
   remove(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.sessionsService.remove(id, user);
   }

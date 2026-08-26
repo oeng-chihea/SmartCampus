@@ -30,13 +30,6 @@ describe('AuthService', () => {
     findByStudentId: jest.Mock;
   };
 
-  const admin = makeUser({
-    id: 'u-admin-1',
-    name: 'System Admin',
-    email: 'admin@smartcampus.edu',
-    role: 'admin',
-    passwordHash: hashPassword('admin123'),
-  });
   const teacher = makeUser({
     id: 'u-teacher-1',
     name: 'Teacher Kim',
@@ -54,12 +47,10 @@ describe('AuthService', () => {
   });
 
   const byEmail: Record<string, UserEntity> = {
-    [admin.email]: admin,
     [teacher.email]: teacher,
     [student.email]: student,
   };
   const byId: Record<string, UserEntity> = {
-    [admin.id]: admin,
     [teacher.id]: teacher,
     [student.id]: student,
   };
@@ -110,15 +101,15 @@ describe('AuthService', () => {
 
   it('normalizes email before matching a user', async () => {
     const session = await service.login({
-      email: '  ADMIN@SMARTCAMPUS.EDU ',
-      password: 'admin123',
+      email: '  TEACHER@SMARTCAMPUS.EDU ',
+      password: 'teacher123',
     });
 
     expect(session.user).toEqual({
-      id: 'u-admin-1',
-      name: 'System Admin',
-      email: 'admin@smartcampus.edu',
-      role: 'admin',
+      id: 'u-teacher-1',
+      name: 'Teacher Kim',
+      email: 'teacher@smartcampus.edu',
+      role: 'teacher',
     });
     expect(session.accessToken).toEqual(expect.any(String));
   });
@@ -136,7 +127,7 @@ describe('AuthService', () => {
   it('rejects invalid credentials', async () => {
     await expect(
       service.login({
-        email: 'admin@smartcampus.edu',
+        email: 'teacher@smartcampus.edu',
         password: 'wrong-password',
       }),
     ).rejects.toThrow(UnauthorizedException);

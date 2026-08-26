@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { CreateStudentRequest } from '../../../models/student.model';
 
 /**
- * Admin form that creates a student profile AND a login account.
+ * Teacher form that creates a student profile AND a login account.
  * Emits `create` with the account payload; the page owns the API call.
  */
 @Component({

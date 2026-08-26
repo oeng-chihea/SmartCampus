@@ -35,8 +35,13 @@ const MONTH_LABELS = [
 ] as const;
 
 interface StatusTally {
+  /** Attendance status Present (scanned on time, including outside-location scans). */
   present: number;
+  /** Attendance status Absent (no scan by due time). */
   absent: number;
+  /** Location status: scanned inside the geofence. */
+  insidePresent: number;
+  /** Location status: scanned outside the geofence. */
   outsideLocation: number;
 }
 
@@ -58,7 +63,7 @@ export class DashboardService {
     const records = page.records;
     const trendYear = campusDateParts(now).year;
     const today = tally(records.filter((row) => isToday(row.recordedAt, now)));
-    const todayRate = attendanceRate(today);
+    const todayRate = checkInRate(today);
     const studentCount = await this.students.count();
     const openSessionCount = await this.sessions.count({
       where:
@@ -81,7 +86,7 @@ export class DashboardService {
         },
         {
           label: 'Present today',
-          value: formatCount(today.present),
+          value: formatCount(today.insidePresent),
           helper: 'Valid scans inside approved areas',
           icon: 'present',
           tone: 'green',
@@ -129,7 +134,7 @@ export function buildMonthlyTrend(
     const counts = tally(buckets[index]);
     return {
       month,
-      presentRate: attendanceRate(counts),
+      presentRate: checkInRate(counts),
       present: counts.present,
       absent: counts.absent,
       outsideLocation: counts.outsideLocation,
@@ -162,12 +167,21 @@ function toRecentScan(row: AttendanceRecordResponseDto): RecentScanDto {
 }
 
 function tally(rows: AttendanceRecordResponseDto[]): StatusTally {
-  const counts: StatusTally = { present: 0, absent: 0, outsideLocation: 0 };
+  const counts: StatusTally = {
+    present: 0,
+    absent: 0,
+    insidePresent: 0,
+    outsideLocation: 0,
+  };
   for (const row of rows) {
-    if (row.status === ATTENDANCE_STATUS.present) {
-      counts.present += 1;
-    } else if (row.status === ATTENDANCE_STATUS.absent) {
+    if (row.attendanceStatus === ATTENDANCE_STATUS.absent) {
       counts.absent += 1;
+    } else if (row.attendanceStatus === ATTENDANCE_STATUS.present) {
+      counts.present += 1;
+    }
+
+    if (row.status === ATTENDANCE_STATUS.present) {
+      counts.insidePresent += 1;
     } else if (row.status === ATTENDANCE_STATUS.outsideLocation) {
       counts.outsideLocation += 1;
     }
@@ -175,14 +189,13 @@ function tally(rows: AttendanceRecordResponseDto[]): StatusTally {
   return counts;
 }
 
-function attendanceRate(counts: StatusTally): number {
-  const expected = counts.present + counts.outsideLocation + counts.absent;
+/** Present / (Present + Absent). Outside / inside location is not part of this rate. */
+function checkInRate(counts: Pick<StatusTally, 'present' | 'absent'>): number {
+  const expected = counts.present + counts.absent;
   if (expected === 0) {
     return 0;
   }
-  return Math.round(
-    (100 * (counts.present + counts.outsideLocation)) / expected,
-  );
+  return Math.round((100 * counts.present) / expected);
 }
 
 function isToday(iso: string, now: Date): boolean {

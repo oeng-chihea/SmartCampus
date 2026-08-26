@@ -14,14 +14,32 @@ import {
   formatScanCoordinates,
   formatScannedAtCell,
 } from '../../../../core/utils/format.util';
+import {
+  isMarkAllVoiceRequest,
+  speakMarkAllResult,
+} from '../../../../core/utils/voice-mark-all.util';
+import {
+  describeMatches,
+  matchVisibleRows,
+} from '../../../../core/utils/voice-row-match.util';
 import { AttendanceRecord } from '../../../../models/attendance.model';
 import { OpenLiveSessionCard } from '../../../../models/session.model';
+import {
+  VoiceActArgs,
+  VoiceConfirmArgs,
+  VoiceControlArgs,
+  VoiceSelectArgs,
+  VoiceToolResult,
+} from '../../../../models/voice-live.model';
 import { AuthService } from '../../../../services/auth.service';
+import { VoiceLiveService } from '../../../../services/voice-live.service';
+import { VoicePageRegistry } from '../../../../services/voice-page-registry.service';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ModalDialogComponent } from '../../../../shared/components/modal-dialog/modal-dialog.component';
 import { ScanMapComponent } from '../../../../shared/components/scan-map/scan-map.component';
 import { TableComponent } from '../../../../shared/components/table/table.component';
 import { TableColumn } from '../../../../shared/components/table/table.model';
+import { VoiceAssistantComponent } from '../../../../shared/components/voice-assistant/voice-assistant.component';
 import {
   StudentScanPageFlow,
   dueBlockedDetail,
@@ -38,7 +56,13 @@ import { StudentScanPageState } from './student-scan.state';
  */
 @Component({
   selector: 'app-student-scan',
-  imports: [ConfirmDialogComponent, ModalDialogComponent, ScanMapComponent, TableComponent],
+  imports: [
+    ConfirmDialogComponent,
+    ModalDialogComponent,
+    ScanMapComponent,
+    TableComponent,
+    VoiceAssistantComponent,
+  ],
   templateUrl: './student-scan.component.html',
   styleUrl: './student-scan.component.scss',
   providers: [StudentScanPageState, StudentScanPageFlow],
@@ -47,8 +71,19 @@ export class StudentScanComponent implements OnInit, OnDestroy {
   readonly state = inject(StudentScanPageState);
   private readonly flow = inject(StudentScanPageFlow);
   private readonly auth = inject(AuthService);
+  private readonly voice = inject(VoiceLiveService);
+  private readonly voicePages = inject(VoicePageRegistry);
+  private selectedSessionId: string | null = null;
 
   readonly user = computed(() => this.auth.user());
+
+  readonly recordedLiveCount = computed(
+    () => this.state.openSessions().filter((row) => this.state.hasSubmittedFor(row.id)).length,
+  );
+
+  readonly notRecordedLiveCount = computed(
+    () => this.state.openSessions().filter((row) => !this.state.hasSubmittedFor(row.id)).length,
+  );
 
   /** Row opened in the shared detail dialog. */
   readonly selectedRecord = signal<AttendanceRecord | null>(null);
@@ -101,11 +136,21 @@ export class StudentScanComponent implements OnInit, OnDestroy {
   ];
 
   async ngOnInit(): Promise<void> {
+    this.voicePages.register({
+      page: 'scan',
+      startContext: () => this.voiceStatusMessage(),
+      control: (args) => this.voiceControl(args),
+      select: (args) => this.voiceSelect(args),
+      act: (args) => this.voiceAct(args),
+      confirm: (args) => this.voiceConfirm(args),
+    });
     await this.flow.init();
   }
 
   ngOnDestroy(): void {
+    this.voicePages.unregister('scan');
     this.flow.destroy();
+    void this.voice.stop();
   }
 
   refresh(): Promise<void> {
@@ -193,6 +238,249 @@ export class StudentScanComponent implements OnInit, OnDestroy {
   }
 
   logout(): void {
+    void this.voice.stop();
     this.flow.logout();
+  }
+
+  private voiceStatusMessage(): string {
+    const sessions = this.state.openSessions();
+    const recordedLive = sessions.filter((row) => this.alreadyDone(row.id));
+    const notRecorded = sessions.filter((row) => !this.alreadyDone(row.id));
+    const stillOpen = notRecorded.filter((row) => !isSessionPastDue(row.dueAt));
+    const duePassed = notRecorded.filter((row) => isSessionPastDue(row.dueAt));
+    const gps = this.state.deviceFix()
+      ? 'Location is on.'
+      : this.state.deviceFixReason() === 'denied'
+        ? 'Location is blocked. Allow it or the check-in cannot be sent.'
+        : 'Waiting for location.';
+    if (!sessions.length) {
+      return `The student is on Mark attendance. No live class is open yet. ${this.state.myRecords().length} recorded scans in history. ${gps}`;
+    }
+    const recordedNames = recordedLive.map((row) => row.title).join(', ') || 'none';
+    const openNames = stillOpen.map((row) => row.title).join(', ') || 'none';
+    const dueNames = duePassed.map((row) => row.title).join(', ') || 'none';
+    return `The student is on Mark attendance. Already recorded live classes: ${recordedLive.length} (${recordedNames}). Not yet recorded: ${notRecorded.length}. Still open to mark: ${stillOpen.length} (${openNames}). Due passed and not recorded: ${duePassed.length} (${dueNames}). ${gps}`;
+  }
+
+  private async voiceControl(args: VoiceControlArgs): Promise<VoiceToolResult> {
+    if (args.action === 'refresh' || args.action === 'status') {
+      if (args.action === 'refresh') {
+        await this.flow.reload(true);
+      }
+      return { ok: true, message: this.voiceStatusMessage() };
+    }
+    return {
+      ok: false,
+      message: 'On Mark attendance I can refresh, tell you the live classes, or mark you present.',
+    };
+  }
+
+  private async voiceSelect(args: VoiceSelectArgs): Promise<VoiceToolResult> {
+    const match = matchVisibleRows({
+      rows: this.state.openSessions(),
+      getId: (row) => row.id,
+      getLabels: (row) => [row.title, row.id, row.locationName, row.teacherName],
+      rowId: args.row_id,
+      query: args.query,
+      position: args.position,
+      lastPosition: args.last_position,
+    });
+    if (match.kind === 'none') {
+      return { ok: false, message: 'I could not find that live class. Say the class name again.' };
+    }
+    if (match.kind === 'many') {
+      return {
+        ok: false,
+        message: `Several live classes match. ${describeMatches(match.rows, (row) => row.title)}`,
+        matches: match.rows.map((row) => ({ id: row.id, label: row.title })),
+      };
+    }
+    const session = match.rows[0];
+    this.selectedSessionId = session.id;
+    const recorded = this.alreadyDone(session.id);
+    const due = isSessionPastDue(session.dueAt);
+    const state = recorded
+      ? 'already recorded'
+      : due
+        ? 'not yet recorded, due passed, cannot mark present'
+        : 'not yet recorded';
+    return {
+      ok: true,
+      message: `Selected ${session.title}, ${state}.`,
+      selected_id: session.id,
+    };
+  }
+
+  private async voiceAct(args: VoiceActArgs): Promise<VoiceToolResult> {
+    if (args.action !== 'mark_present') {
+      return { ok: false, message: 'On Mark attendance I can mark you present for a live class.' };
+    }
+
+    if (isMarkAllVoiceRequest(args)) {
+      return this.voiceMarkAll();
+    }
+
+    const hasTarget = Boolean(
+      args.row_id || args.query || args.position || args.last_position || this.selectedSessionId,
+    );
+    if (hasTarget) {
+      const selected = await this.voiceSelect({
+        ...args,
+        row_id: args.row_id || this.selectedSessionId || undefined,
+      });
+      if (!selected.ok) {
+        return selected;
+      }
+    }
+
+    let session = this.resolveMarkSession(args);
+    if (!session) {
+      const eligible = this.eligibleSessions();
+      if (eligible.length === 1) {
+        session = eligible[0];
+        this.selectedSessionId = session.id;
+      } else if (!eligible.length) {
+        return {
+          ok: false,
+          message: this.state.openSessions().length
+            ? 'There is no live class left to mark present. Due time may have passed, or you already recorded it.'
+            : 'No live class is open yet. Ask your teacher to create a session.',
+        };
+      } else {
+        return {
+          ok: false,
+          message: `Which class should I mark present, or say mark all for every live class still open? ${describeMatches(eligible, (row) => row.title)}`,
+          matches: eligible.map((row) => ({ id: row.id, label: row.title })),
+        };
+      }
+    }
+
+    if (this.alreadyDone(session.id)) {
+      return {
+        ok: true,
+        message: `You already recorded ${session.title}. It is in My attendance.`,
+      };
+    }
+
+    await this.flow.markPresent(session);
+    if (this.state.locationBlocked()) {
+      return {
+        ok: false,
+        confirmation_required: true,
+        message:
+          'Location is blocked. Allow location on this phone, then say try again. Without location the check-in cannot be sent and you will be absent after due time.',
+      };
+    }
+    if (this.state.dueBlocked()) {
+      return {
+        ok: false,
+        message: `Due time has passed for ${session.title}. You cannot mark present for this class.`,
+      };
+    }
+    if (this.state.error()) {
+      return { ok: false, message: this.state.error() ?? 'Could not mark present.' };
+    }
+    return {
+      ok: true,
+      message: this.state.success() || this.state.info() || `Marked present for ${session.title}.`,
+    };
+  }
+
+  private async voiceMarkAll(): Promise<VoiceToolResult> {
+    const sessions = this.state.openSessions();
+    const skippedRecordedTitles = sessions
+      .filter((row) => this.alreadyDone(row.id))
+      .map((row) => row.title);
+    const skippedDueTitles = sessions
+      .filter((row) => !this.alreadyDone(row.id) && isSessionPastDue(row.dueAt))
+      .map((row) => row.title);
+    const targets = sessions.filter(
+      (row) => !this.alreadyDone(row.id) && !isSessionPastDue(row.dueAt),
+    );
+    const markedTitles: string[] = [];
+
+    for (const session of targets) {
+      await this.flow.markPresent(session, { reload: false });
+      if (this.state.locationBlocked()) {
+        await this.flow.reload(false);
+        return {
+          ok: false,
+          confirmation_required: true,
+          message: speakMarkAllResult({
+            markedTitles,
+            skippedRecordedTitles,
+            skippedDueTitles,
+            locationBlocked: true,
+            error: null,
+          }),
+        };
+      }
+      if (this.state.dueBlocked()) {
+        skippedDueTitles.push(session.title);
+        this.flow.dismissDueBlocked();
+        continue;
+      }
+      if (this.state.error()) {
+        await this.flow.reload(false);
+        return {
+          ok: false,
+          message: speakMarkAllResult({
+            markedTitles,
+            skippedRecordedTitles,
+            skippedDueTitles,
+            locationBlocked: false,
+            error: this.state.error(),
+          }),
+        };
+      }
+      if (this.alreadyDone(session.id)) {
+        markedTitles.push(session.title);
+      }
+    }
+
+    await this.flow.reload(false);
+    return {
+      ok:
+        markedTitles.length > 0 ||
+        skippedRecordedTitles.length > 0 ||
+        skippedDueTitles.length > 0,
+      message: speakMarkAllResult({
+        markedTitles,
+        skippedRecordedTitles,
+        skippedDueTitles,
+        locationBlocked: false,
+        error: null,
+      }),
+    };
+  }
+
+  private resolveMarkSession(args: VoiceActArgs): OpenLiveSessionCard | null {
+    const id = String(args.row_id ?? this.selectedSessionId ?? '').trim();
+    if (!id) {
+      return null;
+    }
+    return this.state.openSessions().find((row) => row.id === id) ?? null;
+  }
+
+  private eligibleSessions(): OpenLiveSessionCard[] {
+    return this.state
+      .openSessions()
+      .filter((row) => !this.alreadyDone(row.id) && !isSessionPastDue(row.dueAt));
+  }
+
+  private async voiceConfirm(args: VoiceConfirmArgs): Promise<VoiceToolResult> {
+    if (this.state.locationBlocked()) {
+      if (args.confirm) {
+        await this.flow.retryAfterLocationBlocked();
+        return { ok: true, message: this.state.success() || 'Trying location again.' };
+      }
+      this.flow.dismissLocationBlocked();
+      return { ok: true, message: 'Cancelled. Location is still required to mark present.' };
+    }
+    if (this.state.dueBlocked()) {
+      this.flow.dismissDueBlocked();
+      return { ok: true, message: 'Closed the due time notice.' };
+    }
+    return { ok: false, message: 'There is nothing to confirm right now.' };
   }
 }

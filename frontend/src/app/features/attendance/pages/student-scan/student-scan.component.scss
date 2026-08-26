@@ -9,8 +9,10 @@
     radial-gradient(circle at 18% 0%, rgba(34, 197, 94, 0.16), transparent 42%),
     radial-gradient(circle at 100% 12%, rgba(21, 128, 61, 0.08), transparent 38%),
     var(--page-bg);
+  display: flex;
+  flex-direction: column;
   min-height: 100dvh;
-  padding: clamp(14px, 2vw, 24px) clamp(14px, 2.5vw, 28px) 48px;
+  padding: clamp(14px, 2vw, 24px) clamp(14px, 2.5vw, 28px) clamp(168px, 24vh, 240px);
 }
 
 /* ── Full-width header / account ─────────────────────────────── */
@@ -140,6 +142,18 @@
   display: block;
   height: 16px;
   width: 16px;
+}
+
+/* ── Voice workspace (same floating person as teacher, with room for cards) ─ */
+
+.student-scan__workspace {
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+}
+
+.student-scan__voice {
+  pointer-events: none;
 }
 
 /* ── Content column ──────────────────────────────────────────── */
@@ -302,6 +316,24 @@
   padding: 4px 10px;
 }
 
+.student-scan__counts {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.student-scan__count--recorded {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.student-scan__count--pending {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
 /* ── Session list: horizontal row of cards on the page ───────── */
 
 .student-scan__session-list {
@@ -336,6 +368,15 @@
 .student-scan__card--session {
   grid-template-rows: auto auto auto 1fr;
   height: 100%;
+}
+
+.student-scan__card--recorded {
+  background: #f8fffb;
+  border-color: #a7f3d0;
+}
+
+.student-scan__card--pending {
+  border-color: rgba(21, 128, 61, 0.28);
 }
 
 .student-scan__card--empty {
@@ -596,7 +637,7 @@
 /* Phones (portrait) */
 @media (max-width: 639px) {
   .student-scan {
-    padding: 12px 12px 36px;
+    padding: 12px 12px clamp(168px, 28vh, 220px);
   }
 
   .student-scan__content {

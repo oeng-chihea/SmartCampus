@@ -1,7 +1,7 @@
 ---
 name: smart-campus-workflow
 description: >
-  Explains Smart Campus page-to-page user workflow by role (admin, teacher, student),
+  Explains Smart Campus page-to-page user workflow by role (teacher, student),
   route guards, layouts, and navigation. Use when the user asks how the app works,
   page flow, navigation, login redirect, roles, routes map, "from one page to another",
   or runs /smart-campus-workflow.
@@ -16,7 +16,7 @@ Read `references/page-flows.md` for the full route table and file map.
 
 **Smart Campus Management System** is an **attendance-first** app:
 
-- Staff (admin / teacher) monitor attendance, students, and campus locations.
+- Staff (teachers) administer students, attendance, and campus locations.
 - Students submit attendance via a scan/session-code flow **plus a live GPS
   geofence check** (FR-02) that is a **hard gate**: location permission is
   mandatory — deny/unsupported/timeout blocks the submit entirely (no record
@@ -38,7 +38,7 @@ Read `references/page-flows.md` for the full route table and file map.
 **Role home paths** (`AuthService.homePathForRole`):
 
 - `student` → `/student/scan`
-- `admin` | `teacher` → `/dashboard`
+- `teacher` → `/dashboard`
 
 ## Page graph (how one page leads to the next)
 
@@ -47,13 +47,13 @@ Read `references/page-flows.md` for the full route table and file map.
 ```text
 /auth  (AuthLayoutComponent + guestGuard)
   └── /auth/login  → LoginComponent
-        ├── success (admin/teacher) → /dashboard  (AdminLayout)
+        ├── success (teacher)       → /dashboard  (AdminLayout)
         ├── success (student)       → /student/scan
         └── failure                 → stay on login (error message)
 ```
 
 - No demo chips on the login form — every student signs in with their **own
-  account** (created by an admin; only Chihea is pre-seeded). See
+  account** (created by a teacher; only Chihea is pre-seeded). See
   `smart-campus-student/SKILL.md`.
 - Session stored in `localStorage` key `smartcampus_auth_session`.
 
@@ -61,31 +61,31 @@ Read `references/page-flows.md` for the full route table and file map.
 
 ```text
 '' path with AdminLayoutComponent
-  canActivate: authGuard + roleGuard(['admin', 'teacher'])
+  canActivate: authGuard + roleGuard(['teacher'])
   children:
     /dashboard   → DashboardComponent      (summary, chart, recent scans)
-    /students    → StudentsComponent       (admin only — extra roleGuard)
+    /students    → StudentsComponent       (create email + password accounts)
     /attendance  → AdminRecordsComponent   (records + filters)
     /locations   → LocationsComponent      (student visit log table)
     /sessions    → SessionsComponent       (create session, live QR, edit, close, delete)
-    /reports     → AdminPlaceholderPage    (admin only — extra roleGuard)
+    /reports     → AdminPlaceholderPage    (placeholder; Excel export is on Attendance / Locations)
     **           → redirect to dashboard
 ```
 
 **Navigation between admin pages** is **sidebar links only** (no deep page-to-page wizards yet):
 
 1. User is inside `AdminLayoutComponent` (sidebar + `router-outlet`).
-2. Sidebar reads `ADMIN_NAVIGATION` (filtered for teachers: hide `/students` and `/reports`).
+2. Sidebar reads `ADMIN_NAVIGATION` (full staff nav, including Students and Reports).
 3. Clicking a nav item `routerLink`s to that path; active state via `routerLinkActive`.
 4. Content page loads inside the workspace; layout and session stay the same.
 5. **Sign out** in sidebar footer → logout → `/auth/login`.
-6. **English voice** (admin/teacher): floating mic in the admin shell starts Gemini Live. Speak English to navigate, search, filter, show QR, or export. Close session, delete session, and disable login still need confirmation. Students never see the mic.
+6. **Campus Voice** (teacher): SVG talking-person widget in the staff shell starts Gemini Live. Mouth and listen motion follow the live audio (no photo, video, or transcript bubble). It knows the teacher workflow (Dashboard → Students → Sessions QR → Attendance / Locations) and reads **every live field** on Dashboard, Students, Attendance, Locations, and Sessions: names, student IDs, buildings, rooms, distances, scanned-at places, due times, login access, dashboard cards, and the campus zone catalog. Speak English to ask who/where/how far, navigate, search, **filter the table only when asked**, show QR, export, or add a student account. Close session, delete session, and disable login still need confirmation. Wait until the teacher talks — no auto greeting.
 
 | From | User action | To |
 |------|-------------|-----|
 | Any admin page | Sidebar → Dashboard | `/dashboard` |
 | Dashboard | Review all | `/attendance` |
-| Any admin page | Sidebar → Students | `/students` (admin only; teacher blocked by guard → home) |
+| Any teacher page | Sidebar → Students | `/students` (create email + password, toggle login) |
 | Any admin page | Sidebar → Attendance | `/attendance` |
 | Any admin page | Sidebar → Locations | `/locations` |
 | Any admin page | Sidebar → Sessions | `/sessions` (live: create + due time / QR / edit / close / delete) |
@@ -93,7 +93,7 @@ Read `references/page-flows.md` for the full route table and file map.
 | Sessions | ⋮ → Edit session | Same page; `POST /api/sessions/:id/edit`; title / location only (due frozen) |
 | Sessions | ⋮ → Close | Same page; Closed; students lose open card; history kept |
 | Sessions | ⋮ → Delete | Same page; session removed; **attendance for that sessionId cascaded** |
-| Any admin page | Sidebar → Reports | `/reports` (admin only; placeholder). Teachers use Export on Attendance / Locations |
+| Any teacher page | Sidebar → Reports | `/reports` (placeholder). Excel export also lives on Attendance and Locations |
 | Locations | Change filters | Same page; `POST /api/locations/visits` (search, building, status). Building and status dropdowns apply immediately (no Apply button). |
 | Locations | Export | Same page; `POST /api/locations/visits/excel` (same filters) → `.xlsx` download |
 | Attendance | Export | Same page; `POST /api/attendance/admin/excel` (same filters) → `.xlsx` download |
@@ -125,6 +125,7 @@ Read `references/page-flows.md` for the full route table and file map.
   recorded — not rejected). The backend independently rejects (400) any
   submit with no coordinates, so the rule holds even for direct API calls.
 - No other student routes are registered yet (`student/history` constant exists but is unused).
+- **Campus Voice** (student): the same SVG talking-person widget sits in the `/student/scan` workspace (like the staff shell) and auto-starts. It greets with one short Good morning / Good afternoon / Good evening line (Asia/Phnom_Penh) and does not tutorial the scan steps on that first turn. It knows the full campus loop and which live classes this student has **already recorded** vs **not yet recorded**. The student can say stop (or tap X / Stop voice) to end it.
 
 | From | User action | To |
 |------|-------------|-----|
@@ -146,9 +147,8 @@ Read `references/page-flows.md` for the full route table and file map.
 
 Special cases:
 
-- **Students** cannot use admin routes → sent to `/student/scan`.
-- **Teachers** cannot open `/students` or `/reports` (route + nav filter).
-- **Admins** see full sidebar including Students and Reports.
+- **Students** cannot use teacher routes → sent to `/student/scan`.
+- **Teachers** see the full staff sidebar including Students and Reports, and can create student email + password accounts.
 
 ## Data flow on each page (current)
 
@@ -158,11 +158,12 @@ Live pages: **state** (signals) + **flow** (API) + thin component.
 |------|---------|----------------|
 | Login | `AuthService` | Nest `POST /api/auth/login` + `localStorage` token |
 | Dashboard | `DashboardService` | **Nest live** `GET /api/dashboard` (cards + 12-month check-in rate + recent 10 scans) |
-| Students | `StudentService` | **Nest live** `GET/POST /api/students`, `PATCH /api/students/:id/access` (admin) |
+| Students | `StudentService` | **Nest live** `GET/POST /api/students`, `PATCH /api/students/:id/access` (teacher) |
 | Attendance | `AttendanceService` | **Nest live** `POST /api/attendance/admin` (Present + Absent; teachers: own sessions). Export: `POST /api/attendance/admin/excel` |
 | Locations | `LocationService` | **Nest live** `POST /api/locations/visits` (visit log + API filters; includes student GPS). Export: `POST /api/locations/visits/excel`. Zone catalog `GET /api/locations` is for Sessions only. |
 | Sessions | `SessionService` | Nest `/api/sessions` + `/api/locations` (Bearer token) |
-| English voice (admin/teacher) | `VoiceLiveService` | Nest `POST /api/ai/live-token` → Gemini Live WebSocket. Page tools click existing flows. |
+| Campus Voice (teacher) | `VoiceLiveService` | Nest `POST /api/ai/live-token` → Gemini Live WebSocket. `POST /api/ai/campus-records` reads Dashboard, Students, Attendance, Locations (visits + zones), and Sessions in detail (names, buildings, distances, dues, login). Filter the table only when asked. SVG talking person in the staff shell; mouth follows live audio; no transcript bubble. Waits for the teacher to speak. |
+| Campus Voice (student) | `VoiceLiveService` | Same live-token API (student role allowed). Auto-starts in the `/student/scan` workspace with one short time-of-day greeting (no button tutorial). Snapshot is **this student only** and labels each live class **already recorded** vs **not yet recorded**. Say **mark all** to mark every eligible live class in one call. Knows the full campus loop; stop/terminate on request. |
 | Student scan | `StudentAttendanceService` | Nest open sessions + submit + me |
 
 Backend today: auth login, dashboard, locations, sessions/QR, student attendance
@@ -171,13 +172,12 @@ Reports is still a placeholder.
 
 ## How to explain the product to someone new
 
-1. Start at **login** — admin/teacher use the seeded accounts; students use the
-   personal account their admin created (only Chihea is pre-seeded).
-2. **Admin** lands on **Dashboard** → sidebar includes Students, Attendance, Locations, Sessions, Reports.
-3. **Teacher** lands on **Dashboard** → same shell **without Students or Reports**; primary live work is **Sessions** (QR). Export lives on Attendance and Locations.
-4. **Student** lands on **Scan** → sees same live QR as teacher → **Mark me present**
+1. Start at **login** — teachers use the seeded Teacher Kim account; students use the
+   personal account their teacher created (only Chihea is pre-seeded).
+2. **Teacher** lands on **Dashboard** → sidebar includes Students, Attendance, Locations, Sessions, Reports. Primary live work is **Sessions** (QR); **Students** is where they create email + password accounts. Export lives on Attendance and Locations.
+3. **Student** lands on **Scan** → sees same live QR as teacher → **Mark me present**
    (before due); after due, dialog blocks mark/scan until teacher closes the session.
-5. Everything protected by **auth + role**; wrong role never stays on the wrong shell.
+4. Everything protected by **auth + role**; wrong role never stays on the wrong shell.
 
 ## When implementing new navigation
 
@@ -197,7 +197,7 @@ Reports is still a placeholder.
 
 ## Teacher role (short)
 
-Teachers share the admin shell but **cannot** open `/students` or `/reports`. Their primary
+Teachers use the staff shell and **can** open `/students` (create email + password) and `/reports`. Their primary
 live workflow is **`/sessions`**: create session dialog (**title, location, due date + time**)
 → short-lived QR → **Edit session** (`POST /api/sessions/:id/edit`, title + location; due stays as created) → **Close**
 (end class; drops student open list; history kept) and/or

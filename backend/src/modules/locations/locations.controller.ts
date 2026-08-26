@@ -20,7 +20,7 @@ import { LocationsService } from './locations.service';
 
 @Controller('locations')
 @UseGuards(AuthGuard, RolesGuard)
-@Roles(USER_ROLES.admin, USER_ROLES.teacher, USER_ROLES.student)
+@Roles(USER_ROLES.teacher, USER_ROLES.student)
 export class LocationsController {
   constructor(private readonly locationsService: LocationsService) {}
 
@@ -36,7 +36,7 @@ export class LocationsController {
    * session create + geofence.
    */
   @Post('visits')
-  @Roles(USER_ROLES.admin, USER_ROLES.teacher)
+  @Roles(USER_ROLES.teacher)
   findVisits(
     @Body() body: LocationVisitFilterDto,
     @CurrentUser() user: AuthenticatedUser,
@@ -49,7 +49,7 @@ export class LocationsController {
    * Body is the same filter payload as POST /locations/visits.
    */
   @Post('visits/excel')
-  @Roles(USER_ROLES.admin, USER_ROLES.teacher)
+  @Roles(USER_ROLES.teacher)
   async exportVisitsExcel(
     @Body() body: LocationVisitFilterDto,
     @CurrentUser() user: AuthenticatedUser,

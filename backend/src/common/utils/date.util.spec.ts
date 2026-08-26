@@ -1,4 +1,8 @@
-import { campusDateParts, isSameCampusDay } from './date.util';
+import {
+  campusDateParts,
+  campusGreetingPeriod,
+  isSameCampusDay,
+} from './date.util';
 
 describe('campusDateParts', () => {
   it('converts a UTC instant to Asia/Phnom_Penh wall-clock', () => {
@@ -32,5 +36,26 @@ describe('isSameCampusDay', () => {
         new Date('2026-08-19T17:00:00.000Z'),
       ),
     ).toBe(false);
+  });
+});
+
+describe('campusGreetingPeriod', () => {
+  it('uses morning, afternoon, and evening from Phnom Penh wall-clock', () => {
+    // 02:00 UTC = 09:00 Cambodia.
+    expect(campusGreetingPeriod(new Date('2026-08-20T02:00:00.000Z'))).toBe(
+      'morning',
+    );
+    // 07:00 UTC = 14:00 Cambodia.
+    expect(campusGreetingPeriod(new Date('2026-08-20T07:00:00.000Z'))).toBe(
+      'afternoon',
+    );
+    // 12:00 UTC = 19:00 Cambodia.
+    expect(campusGreetingPeriod(new Date('2026-08-20T12:00:00.000Z'))).toBe(
+      'evening',
+    );
+    // 20:00 UTC = 03:00 next day Cambodia.
+    expect(campusGreetingPeriod(new Date('2026-08-20T20:00:00.000Z'))).toBe(
+      'evening',
+    );
   });
 });

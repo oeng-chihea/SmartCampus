@@ -2,18 +2,22 @@ import { Routes } from '@angular/router';
 
 /**
  * Role-specific sign-in only (no shared chooser page):
- * - /auth/admin
- * - /auth/teacher
+ * - /auth/teacher  (campus administration)
  * - /auth/student
  *
- * Open the correct URL manually. Legacy /auth/login/<role> redirects to /auth/<role>.
- * Bare /auth/login is not a chooser (invalid portal message, no role links).
+ * Open the correct URL manually. Legacy /auth/login/<role> and /auth/admin
+ * redirect to the teacher portal. Bare /auth/login is not a chooser.
  */
 export const authRoutes: Routes = [
   {
+    path: 'admin',
+    pathMatch: 'full',
+    redirectTo: '/auth/teacher',
+  },
+  {
     path: 'login/admin',
     pathMatch: 'full',
-    redirectTo: '/auth/admin',
+    redirectTo: '/auth/teacher',
   },
   {
     path: 'login/teacher',

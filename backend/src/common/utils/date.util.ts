@@ -50,3 +50,23 @@ export function isSameCampusDay(left: Date, right: Date): boolean {
   const b = campusDateParts(right);
   return a.year === b.year && a.month === b.month && a.day === b.day;
 }
+
+export type CampusGreetingPeriod = 'morning' | 'afternoon' | 'evening';
+
+/**
+ * Time-of-day greeting for Campus Voice, using Asia/Phnom_Penh wall-clock.
+ * Morning 5:00–11:59, afternoon 12:00–16:59, evening otherwise.
+ */
+export function campusGreetingPeriod(
+  date: Date = new Date(),
+  timeZone = CAMPUS_TIME_ZONE,
+): CampusGreetingPeriod {
+  const hour = campusDateParts(date, timeZone).hour;
+  if (hour >= 5 && hour < 12) {
+    return 'morning';
+  }
+  if (hour >= 12 && hour < 17) {
+    return 'afternoon';
+  }
+  return 'evening';
+}

@@ -32,7 +32,7 @@ export const routes: Routes = [
   {
     path: '',
     component: AdminLayoutComponent,
-    canActivate: [authGuard, roleGuard(['admin', 'teacher'])],
+    canActivate: [authGuard, roleGuard(['teacher'])],
     children: [
       {
         path: 'dashboard',
@@ -41,7 +41,6 @@ export const routes: Routes = [
       },
       {
         path: 'students',
-        canActivate: [roleGuard(['admin'])],
         loadChildren: () =>
           import('./routes/students.routes').then((module) => module.studentsRoutes),
       },
@@ -62,7 +61,6 @@ export const routes: Routes = [
       },
       {
         path: 'reports',
-        canActivate: [roleGuard(['admin'])],
         ...adminPlaceholder('Attendance reports'),
       },
       {

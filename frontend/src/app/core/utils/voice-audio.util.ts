@@ -107,6 +107,20 @@ export function pcm16Base64ToAudioBuffer(
   return buffer;
 }
 
+/** 0–1 mouth openness from a Web Audio time-domain byte snapshot. */
+export function speechLevelFromTimeDomain(samples: Uint8Array): number {
+  if (!samples.length) {
+    return 0;
+  }
+  let sum = 0;
+  for (let index = 0; index < samples.length; index += 1) {
+    const centered = (samples[index] - 128) / 128;
+    sum += centered * centered;
+  }
+  const rms = Math.sqrt(sum / samples.length);
+  return Math.min(1, Math.max(0, (rms - 0.018) / 0.22));
+}
+
 export function voiceCaptureWorkletSource(): string {
   return `
 class VoiceCaptureProcessor extends AudioWorkletProcessor {

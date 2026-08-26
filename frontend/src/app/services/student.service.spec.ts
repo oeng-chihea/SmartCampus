@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildStudentFilters,
   buildStudentMetrics,
+  filterStudents,
 } from '../core/utils/student-stats.util';
 import { Student } from '../models/student.model';
 
@@ -44,12 +45,39 @@ describe('student-stats util', () => {
   it('derives filters with unique courses plus status options', () => {
     const filters = buildStudentFilters(sample);
 
-    expect(filters.statusOptions).toContain('Active');
-    expect(filters.courseOptions).toEqual(['All classes', 'SE401', 'SE302']);
+    expect(filters.statusOptions.map((option) => option.value)).toEqual([
+      'all',
+      'Active',
+      'Review',
+      'Inactive',
+    ]);
+    expect(filters.courseOptions).toEqual([
+      { value: 'all', label: 'All classes' },
+      { value: 'SE401', label: 'SE401' },
+      { value: 'SE302', label: 'SE302' },
+    ]);
   });
 
   it('returns only the "All classes" option when there are no students', () => {
     const filters = buildStudentFilters([]);
-    expect(filters.courseOptions).toEqual(['All classes']);
+    expect(filters.courseOptions).toEqual([{ value: 'all', label: 'All classes' }]);
+  });
+
+  it('filters the directory by class, status, and search', () => {
+    expect(
+      filterStudents(sample, { search: '', course: 'SE401', status: 'all' }).map(
+        (row) => row.studentId,
+      ),
+    ).toEqual(['SC-1001']);
+    expect(
+      filterStudents(sample, { search: 'another', course: 'all', status: 'all' }).map(
+        (row) => row.studentId,
+      ),
+    ).toEqual(['SC-1002']);
+    expect(
+      filterStudents(sample, { search: '', course: 'all', status: 'Review' }).map(
+        (row) => row.studentId,
+      ),
+    ).toEqual(['SC-1002']);
   });
 });

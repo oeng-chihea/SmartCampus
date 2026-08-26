@@ -18,6 +18,11 @@ import {
   matchVisibleRows,
 } from '../../../../core/utils/voice-row-match.util';
 import {
+  formatAttendanceVoiceSummary,
+  summarizeAttendanceRecords,
+  VOICE_RECORD_DETAIL_HINT,
+} from '../../../../core/utils/voice-record-summary.util';
+import {
   VoiceControlArgs,
   VoiceSelectArgs,
   VoiceToolResult,
@@ -132,7 +137,7 @@ export class AdminRecordsComponent implements OnInit, OnDestroy {
     this.voicePages.register({
       page: 'attendance',
       startContext: () =>
-        `The staff is on Attendance. ${this.state.records().length} records visible.`,
+        `The staff is on Attendance. ${this.voiceStatusMessage()} ${VOICE_RECORD_DETAIL_HINT}`,
       control: (args) => this.voiceControl(args),
       select: (args) => this.voiceSelect(args),
       act: () =>
@@ -158,16 +163,29 @@ export class AdminRecordsComponent implements OnInit, OnDestroy {
       }
       return {
         ok: true,
-        message: `${this.state.records().length} attendance records visible.`,
+        message: this.voiceStatusMessage(),
+        attendance: summarizeAttendanceRecords(this.state.records()),
       };
     }
     if (args.action === 'export') {
       await this.flow.exportExcel();
       return { ok: true, message: 'Exported attendance to Excel.' };
     }
-    if (args.action === 'clear_search') {
-      toolbar?.applyFromVoice({ search: '' });
-      return { ok: true, message: 'Cleared attendance search.' };
+    if (args.action === 'clear_search' || args.action === 'clear_filters') {
+      toolbar?.applyFromVoice({
+        search: '',
+        status: 'all',
+        attendanceStatus: 'all',
+        date: 'all',
+        sessionId: 'all',
+      });
+      return {
+        ok: true,
+        message:
+          args.action === 'clear_filters'
+            ? 'Cleared attendance filters. Showing every record.'
+            : 'Cleared attendance search.',
+      };
     }
     if (args.action === 'search' && args.query) {
       toolbar?.applyFromVoice({ search: args.query });
@@ -183,6 +201,12 @@ export class AdminRecordsComponent implements OnInit, OnDestroy {
       return { ok: true, message: 'Applied attendance filters.' };
     }
     return { ok: false, message: 'On Attendance I can search, filter, refresh, or export.' };
+  }
+
+  private voiceStatusMessage(): string {
+    return formatAttendanceVoiceSummary(
+      summarizeAttendanceRecords(this.state.records()),
+    );
   }
 
   private async voiceSelect(args: VoiceSelectArgs): Promise<VoiceToolResult> {

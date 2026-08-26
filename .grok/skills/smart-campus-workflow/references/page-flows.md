@@ -10,12 +10,12 @@ Last reviewed against the Angular routes, Sessions live API, and role skills.
 | `/auth` | AuthLayout | children | `guestGuard` | Active |
 | `/auth/login` | AuthLayout | `LoginComponent` | (via parent) | Active — **live API login** |
 | `/auth` (empty) | — | redirect → `login` | — | Active |
-| `/dashboard` | AdminLayout | `DashboardComponent` | auth + admin\|teacher | **Live API** cards + 12-month rate + recent scans |
-| `/students` | AdminLayout | `StudentsComponent` | auth + **admin only** | **Live API** directory + create account + login toggle |
-| `/attendance` | AdminLayout | `AdminRecordsComponent` | auth + admin\|teacher | **Live API** Present + Absent (teachers: own sessions) |
-| `/locations` | AdminLayout | `LocationsComponent` | auth + admin\|teacher | **Live API** student visit log + API filters (assigned zone + scan GPS) |
-| `/sessions` | AdminLayout | `SessionsComponent` | auth + admin\|teacher | **Live API** create / QR / **edit** / close / **delete** |
-| `/reports` | AdminLayout | `AdminPlaceholderPageComponent` | auth + **admin only** | Placeholder |
+| `/dashboard` | AdminLayout | `DashboardComponent` | auth + teacher | **Live API** cards + 12-month rate + recent scans |
+| `/students` | AdminLayout | `StudentsComponent` | auth + teacher | **Live API** directory + create email/password + login toggle |
+| `/attendance` | AdminLayout | `AdminRecordsComponent` | auth + teacher | **Live API** Present + Absent (own sessions) |
+| `/locations` | AdminLayout | `LocationsComponent` | auth + teacher | **Live API** student visit log + API filters (assigned zone + scan GPS) |
+| `/sessions` | AdminLayout | `SessionsComponent` | auth + teacher | **Live API** create / QR / **edit** / close / **delete** |
+| `/reports` | AdminLayout | `AdminPlaceholderPageComponent` | auth + teacher | Placeholder |
 | `/student/scan` | none (standalone page) | `StudentScanComponent` | auth + **student** | **Live** open session QR + Mark present |
 | Unknown under admin | AdminLayout | redirect → dashboard | — | Active |
 
@@ -28,19 +28,19 @@ Defined primarily in:
 
 ## Role matrix
 
-| Capability | Admin | Teacher | Student |
-|------------|:-----:|:-------:|:-------:|
-| Login (API) | ✓ | ✓ | ✓ |
-| `/dashboard` | ✓ | ✓ | ✗ → scan |
-| `/students` | ✓ | ✗ → home | ✗ → scan |
-| `/attendance` | ✓ | ✓ | ✗ → scan |
-| `/locations` | ✓ | ✓ | ✗ → scan |
-| `/sessions` create + QR + edit + close + delete | ✓ | ✓ (own sessions) | ✗ |
-| `/reports` placeholder | ✓ | ✗ → home | ✗ |
-| `/student/scan` | ✗ → dashboard | ✗ → dashboard | ✓ |
-| See Students in sidebar | ✓ | ✗ (filtered) | n/a |
-| See Reports in sidebar | ✓ | ✗ (filtered; use Export) | n/a |
-| See all teachers’ sessions | ✓ | ✗ own only | n/a |
+| Capability | Teacher | Student |
+|------------|:-------:|:-------:|
+| Login (API) | ✓ | ✓ |
+| `/dashboard` | ✓ | ✗ → scan |
+| `/students` (create email + password) | ✓ | ✗ → scan |
+| `/attendance` | ✓ | ✗ → scan |
+| `/locations` | ✓ | ✗ → scan |
+| `/sessions` create + QR + edit + close + delete | ✓ (own sessions) | ✗ |
+| `/reports` placeholder | ✓ | ✗ |
+| `/student/scan` | ✗ → dashboard | ✓ |
+| See Students in sidebar | ✓ | n/a |
+| See Reports in sidebar | ✓ | n/a |
+| See other teachers’ sessions | ✗ own only | n/a |
 
 Teacher-focused detail: `.grok/skills/smart-campus-teacher/`.
 
@@ -72,12 +72,13 @@ Browser                Guards              AuthService           Pages
    | navigate /auth/login                       | clear storage     |
 ```
 
-### B. Teacher tries Students or Reports
+### B. Teacher creates a student account
 
 ```text
-Teacher session → sidebar does NOT show Students or Reports
-If teacher navigates to /students or /reports manually:
-  roleGuard(['admin']) fails → homePathForRole('teacher') → /dashboard
+Teacher session → sidebar shows Students
+  → /students → Add student account (email + password)
+  → POST /api/students
+  → student can sign in at /auth/student
 Excel export stays on /attendance and /locations
 ```
 
@@ -186,8 +187,8 @@ Any /dashboard|/students|... request:
 - Left: `AdminSidebarComponent` (brand, nav, user label, collapse, logout).
 - Right: `<router-outlet>` for feature pages.
 - Sidebar collapse preference: `localStorage` key `smartcampus.admin.sidebarCollapsed`.
-- Teacher nav filter: hides paths in `adminOnlyPaths` (`/students`, `/reports`).
-- Floating English voice mic (`app-voice-assistant`) in the workspace. `POST /api/ai/live-token` mints a Gemini Live token; tools click the current page. Not shown on student scan.
+- Teacher nav shows the full staff list including Students and Reports.
+- Floating **Campus Voice** SVG talking-person widget (`app-voice-assistant`) in the workspace. Mouth follows live Gemini audio (no photo, video, or transcript bubble). `POST /api/ai/live-token` mints a Gemini Live token without preloading campus records. `POST /api/ai/campus-records` reads Dashboard, Students, Attendance, Locations (visits + zone catalog), and Sessions in detail (names, buildings, rooms, distances, dues, login) when the teacher asks a data question. Tools also click the current page. Does not greet until the teacher speaks.
 
 ### Student scan (no shared layout folder)
 
@@ -202,16 +203,22 @@ Any /dashboard|/students|... request:
   permission is mandatory to submit; deny/unsupported/timeout blocks the
   submit with a "Try again" dialog instead of recording anything. See
   sequence D above and `.grok/skills/smart-campus-dev/references/architecture.md`.
+- **Campus Voice:** `app-voice-assistant` sits in `student-scan__workspace` (same floating person as the staff shell) and auto-starts. Extra page padding keeps live cards clear of the widget. Greeting is one
+  short Good morning / Good afternoon / Good evening line (Phnom Penh time) —
+  no button tutorial on first turn. The assistant already knows the campus loop
+  (scan → GPS → Present / Outside Location / due / close / delete) and which live
+  classes this student has **already recorded** vs **not yet recorded**. Say
+  **mark all** to check in for every still-open unrecorded class in one go
+  (GPS still required). The student can say stop or tap X to terminate.
 
 ## Seeded accounts
 
 | Email | Password | Role | studentId |
 |-------|----------|------|-----------|
-| `admin@smartcampus.edu` | `admin123` | admin | — |
 | `teacher@smartcampus.edu` | `teacher123` | teacher | — |
 | `chihea@smartcampus.edu` | `chihea123` | student | `SC-1001` |
 
-All other student accounts are **created by an admin** (Students → Add student
+All other student accounts are **created by a teacher** (Students → Add student
 account → `POST /api/students`). Login access is enforced via
 `students.login_enabled` — disabled students get 403 at login.
 

@@ -12,10 +12,6 @@ import {
   pickRecentScans,
 } from './dashboard.service';
 
-const admin: AuthenticatedUser = {
-  userId: 'u-admin-1',
-  role: USER_ROLES.admin,
-};
 const teacher: AuthenticatedUser = {
   userId: 'u-teacher-1',
   role: USER_ROLES.teacher,
@@ -70,10 +66,29 @@ describe('buildMonthlyTrend', () => {
     expect(trend[7]).toEqual({
       month: 'Aug',
       presentRate: 100,
-      present: 0,
+      present: 2,
       absent: 0,
       outsideLocation: 2,
     });
+  });
+
+  it('counts Outside Location scans as Present on the attendance-status series', () => {
+    const trend = buildMonthlyTrend(
+      [
+        scan({ id: 'out', status: 'Outside Location', attendanceStatus: 'Present' }),
+        scan({
+          id: 'abs',
+          status: 'Absent',
+          attendanceStatus: 'Absent',
+          distanceMeters: null,
+        }),
+      ],
+      2026,
+    );
+    expect(trend[7].present).toBe(1);
+    expect(trend[7].absent).toBe(1);
+    expect(trend[7].presentRate).toBe(50);
+    expect(trend[7].outsideLocation).toBe(1);
   });
 
   it('uses scanned / expected so absents pull the monthly rate down', () => {
@@ -144,9 +159,9 @@ describe('DashboardService', () => {
 
   it('builds live cards, a 12-month series, and scan-only recents', async () => {
     const now = new Date('2026-08-20T16:45:00.000Z');
-    const page = await service.getAdminDashboard(admin, now);
+    const page = await service.getAdminDashboard(teacher, now);
 
-    expect(findAdminRecords).toHaveBeenCalledWith({}, admin, now);
+    expect(findAdminRecords).toHaveBeenCalledWith({}, teacher, now);
     expect(page.trendYear).toBe(2026);
     expect(page.summaryCards[0].value).toBe('3');
     expect(page.summaryCards[1].label).toBe('Present today');

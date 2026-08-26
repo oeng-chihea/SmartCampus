@@ -8,10 +8,30 @@ const template = readFileSync(
 );
 
 describe('Voice assistant template', () => {
-  it('exposes start/stop mic control and live transcripts', () => {
+  it('exposes a code-drawn talking person driven by live speech, with no media or transcripts', () => {
     expect(template).toContain('voice.toggle()');
-    expect(template).toContain('voice.userTranscript()');
-    expect(template).toContain('voice.assistantTranscript()');
+    expect(template).toContain('voice-assistant__human');
+    expect(template).toContain('voice-assistant__head');
+    expect(template).toContain('voice-assistant__talk');
+    expect(template).toContain('voice-assistant__lips');
+    expect(template).toContain('voice.speechLevel()');
+    expect(template).toContain('onDragPointerDown');
+    expect(template).toContain('voice-assistant__backdrop');
+    expect(template).toContain('voice-assistant__close');
+    expect(template).toContain('Say stop or tap X to close');
+    expect(template).not.toContain('rx="16"');
+    expect(template).not.toContain('ry="13"');
     expect(template).toContain('role="alert"');
+    expect(template).toContain('statusLabel()');
+    expect(template).not.toContain('cv-bg');
+    expect(template).not.toContain('voice-assistant__ring');
+    expect(template).not.toContain('<img');
+    expect(template).not.toContain('<video');
+    expect(template).not.toContain('portrait');
+    expect(template).not.toContain('userTranscript');
+    expect(template).not.toContain('assistantTranscript');
+    expect(template).not.toContain('voice-assistant__panel');
+    expect(template).not.toContain('idleClip');
+    expect(template).not.toContain('speakClip');
   });
 });
