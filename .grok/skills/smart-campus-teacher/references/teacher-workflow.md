@@ -11,7 +11,7 @@ close / **delete**, **due time**, location + opened display formats).
 | Demo | Enter `teacher@smartcampus.edu` / `teacher123` (no demo chips) |
 | API | `POST http://localhost:3000/api/auth/login` |
 | Redirect | `/dashboard` (`homePathForRole('teacher')`) |
-| Shell | `AdminLayoutComponent` + filtered sidebar |
+| Shell | `AdminLayoutComponent` + full staff sidebar |
 
 Both **frontend** and **backend** must run for Sessions and Locations.
 
@@ -26,8 +26,8 @@ Both **frontend** and **backend** must run for Sessions and Locations.
     ├─► /attendance ───────────────────── live Present + Absent (own sessions)
     ├─► /locations ────────────────────── live student visit log (zone + scan GPS)
     ├─► /sessions  ────────────────────── LIVE create / QR / edit / close / delete  ★ primary
-    ├─► /reports   ────────────────────── BLOCKED (admin placeholder; use Export)
-    └─► /students  ────────────────────── BLOCKED (guard → /dashboard)
+    ├─► /reports   ────────────────────── placeholder (Excel export also on Attendance / Locations)
+    └─► /students  ────────────────────── create email + password, toggle login
 ```
 
 ## 3. Primary happy path: run a class session
@@ -180,6 +180,23 @@ Close vs Delete:
 | Close | `POST …/close` | Stays (Closed) | Gone | **Kept** |
 | Delete | `DELETE …/:id` | **Removed** | Gone | **Removed** (cascade by `sessionId`) |
 
+### Campus Voice
+
+```text
+Staff shell floating SVG talking-person widget (any teacher page)
+  → tap to start English Gemini Live
+  → mouth follows live playback audio (no photo, video, or transcript bubble)
+  → POST /api/ai/live-token (no campus-record preload; waits for speech)
+  → Ask how attendance works, dashboard cards, who is present, a named student,
+    building, room, distance, session due, or login access
+       → read_campus_records (names + buildings + distances + dues + login)
+       → speaks details without changing the table
+  → Ask "show only present" / "filter to outside"
+       → control_page_view filter (table changes)
+  → Ask "show all records"
+       → clear_filters
+```
+
 ### Sign out
 
 ```text
@@ -190,8 +207,8 @@ Sidebar footer "Sign out" → AuthService.logout() → /auth/login
 
 | Action | Result |
 |--------|--------|
-| Open `/dashboard`, `/attendance`, `/locations`, `/sessions` | Allowed |
-| Open `/students` or `/reports` | Redirect to `/dashboard` |
+| Open `/dashboard`, `/students`, `/attendance`, `/locations`, `/sessions`, `/reports` | Allowed |
+| Create student email + password on `/students` | Allowed |
 | Open `/student/scan` | Redirect to `/dashboard` (not student) |
 | Visit `/auth/login` while logged in | Redirect to `/dashboard` |
 | Call sessions APIs without token | 401 |
@@ -201,7 +218,7 @@ Sidebar footer "Sign out" → AuthService.logout() → /auth/login
 
 - Create: `teacherId` = authenticated user id; `teacherName` from user profile.  
 - List: teacher sees only sessions where `teacherId === actor.userId`.  
-- QR / **edit** / close / **delete**: only owner or admin.  
+- QR / **edit** / close / **delete**: owner only.  
 - Locations seed is shared; only **Active** locations host sessions.  
 - Delete of an **Open** session decrements that location’s `sessionsUsing` counter (same as close).  
 - Sessions persist via TypeORM; do not assume a Nest restart always wipes them.
@@ -238,6 +255,8 @@ Sidebar footer "Sign out" → AuthService.logout() → /auth/login
 | `GET` | `/api/locations` | Campus zone directory (session create) |
 | `POST` | `/api/locations/visits` | Student visit log + API filters (own sessions) |
 | `POST` | `/api/locations/visits/excel` | Visit log `.xlsx` (same filters, ExcelJS) |
+| `POST` | `/api/ai/live-token` | Mint Gemini Live English voice token |
+| `GET` / `POST` | `/api/ai/campus-records` | Dashboard, students, attendance, location visits + zones, sessions (names, buildings, distances, dues, login; filters only when asked) |
 | `POST` | `/api/attendance/admin/excel` | Attendance log `.xlsx` (same filters as `/admin`) |
 | `POST` | `/api/sessions` | Create open session (`title`, `locationId`, `dueAt` ISO) |
 | `GET` | `/api/sessions` | List (own for teacher) |
@@ -246,15 +265,14 @@ Sidebar footer "Sign out" → AuthService.logout() → /auth/login
 | `POST` | `/api/sessions/:id/close` | Close (keep row) |
 | `DELETE` | `/api/sessions/:id` | Permanently remove session |
 
-## 9. Sequence: teacher blocked from Students and Reports
+## 9. Sequence: teacher creates a student account
 
 ```text
 Teacher session
-  → sidebar omits Students and Reports
-  → manual URL /students or /reports
-  → roleGuard(['admin']) fails
-  → homePathForRole('teacher') → /dashboard
-  → Excel export stays on /attendance and /locations
+  → sidebar Students → /students
+  → Add student account (name, ID, email, class, year, password)
+  → POST /api/students
+  → student signs in at /auth/student
 ```
 
 ## 10. Checklist: “Is teacher ready for Review 0 demo?”

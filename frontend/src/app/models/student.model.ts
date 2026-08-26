@@ -1,3 +1,4 @@
+import { SelectOption } from '../shared/components/select-dropdown/select-dropdown.model';
 import { StatCard } from '../shared/components/stat-card/stat-card.model';
 
 export interface Student {
@@ -14,7 +15,7 @@ export interface Student {
   hasAccount?: boolean;
 }
 
-/** Payload for the admin “Add student account” form (creates profile + login). */
+/** Payload for the teacher “Add student account” form (creates profile + login). */
 export interface CreateStudentRequest {
   studentId: string;
   name: string;
@@ -24,10 +25,18 @@ export interface CreateStudentRequest {
   password: string;
 }
 
+/** UI-only option lists the Students toolbar renders. */
 export interface StudentFilters {
   searchPlaceholder: string;
-  statusOptions: string[];
-  courseOptions: string[];
+  statusOptions: SelectOption[];
+  courseOptions: SelectOption[];
+}
+
+/** Current filter form state applied to the directory. */
+export interface StudentFilterState {
+  search: string;
+  course: string;
+  status: string;
 }
 
 export interface StudentManagement {

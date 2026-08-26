@@ -1,11 +1,13 @@
 :host {
   display: block;
   min-width: 0;
+  overflow: visible;
   width: 100%;
 }
 
 .student-filter {
   min-width: 0;
+  overflow: visible;
   width: 100%;
 }
 
@@ -15,6 +17,7 @@
   gap: 10px;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(0, 0.7fr) auto;
   min-width: 0;
+  overflow: visible;
 }
 
 .student-filter label {
@@ -31,7 +34,6 @@
 }
 
 .student-filter input,
-.student-filter select,
 .student-filter button {
   border-radius: var(--radius-sm);
   font: inherit;
@@ -39,8 +41,7 @@
   min-width: 0;
 }
 
-.student-filter input,
-.student-filter select {
+.student-filter input {
   background: var(--surface-muted);
   border: 1px solid var(--border-subtle);
   color: var(--color-brand-deep);
@@ -48,8 +49,7 @@
   width: 100%;
 }
 
-.student-filter input:focus,
-.student-filter select:focus {
+.student-filter input:focus {
   background: var(--surface);
   border-color: var(--color-brand);
   box-shadow: var(--focus-ring);

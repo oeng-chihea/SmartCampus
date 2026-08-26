@@ -23,7 +23,7 @@ export class VoicePageRegistry {
   startContext(): string {
     const handler = this.handlerSignal();
     if (!handler) {
-      return 'session_start_context: The staff is on an admin page.';
+      return 'session_start_context: Campus Voice is ready.';
     }
     return `session_start_context: ${handler.startContext()}`;
   }

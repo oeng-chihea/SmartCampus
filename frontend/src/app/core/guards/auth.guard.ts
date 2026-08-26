@@ -6,17 +6,14 @@ import { AuthService } from '../../services/auth.service';
 
 /**
  * Pick a role-specific login when a guard blocks access.
- * Prefer a single-role target; for admin+teacher shell use admin login.
+ * Prefer a single-role target; for the staff shell use teacher login.
  */
 function loginPathForGuardRoles(roles: UserRole[]): string {
   if (roles.length === 1) {
     return authLoginPath(roles[0]);
   }
-  if (roles.includes('student') && !roles.includes('admin') && !roles.includes('teacher')) {
+  if (roles.includes('student') && !roles.includes('teacher')) {
     return authLoginPath('student');
-  }
-  if (roles.includes('admin')) {
-    return authLoginPath('admin');
   }
   if (roles.includes('teacher')) {
     return authLoginPath('teacher');

@@ -80,7 +80,7 @@ export function isAffirmativeDecision(value: string | boolean | undefined): bool
     return null;
   }
   if (
-    /^(yes|yeah|yep|ok|okay|confirm|confirmed|do it|go ahead|proceed|continue|sure)$/.test(
+    /^(yes|yeah|yep|ok|okay|confirm|confirmed|do it|go ahead|proceed|continue|sure|try again|retry)$/.test(
       raw,
     )
   ) {

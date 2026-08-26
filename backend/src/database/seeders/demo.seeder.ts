@@ -13,7 +13,7 @@ import { UserEntity } from '../entities/user.entity';
  * Safe to run on every boot: skips existing primary keys.
  *
  * Student login accounts are NOT demo data — only the initial student
- * (Chihea) is seeded. Every other student account is created by an admin
+ * (Chihea) is seeded. Every other student account is created by a teacher
  * through the real `POST /students` flow.
  */
 @Injectable()
@@ -48,10 +48,33 @@ export class DemoSeeder implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     await this.removeLegacyDemoStudents();
+    await this.removeLegacyAdmin();
     await this.seedUsers();
     await this.seedStudents();
     await this.seedLocations();
     this.logger.log('Seed completed (users, students, locations)');
+  }
+
+  /** Remove the retired admin role and its seeded account. */
+  private async removeLegacyAdmin(): Promise<void> {
+    const leftover = await this.users.find({
+      where: [{ id: 'u-admin-1' }, { email: 'admin@smartcampus.edu' }],
+    });
+    if (leftover.length) {
+      await this.users.remove(leftover);
+      this.logger.log(`Removed ${leftover.length} legacy admin account(s)`);
+    }
+
+    const leftoverAdmins = await this.users.find({ where: { role: 'admin' } });
+    if (leftoverAdmins.length) {
+      for (const row of leftoverAdmins) {
+        row.role = USER_ROLES.teacher;
+      }
+      await this.users.save(leftoverAdmins);
+      this.logger.log(
+        `Converted ${leftoverAdmins.length} leftover admin role(s) to teacher`,
+      );
+    }
   }
 
   /** Delete leftover demo student accounts/profiles from earlier seeds. */
@@ -84,14 +107,6 @@ export class DemoSeeder implements OnModuleInit {
       role: string;
       studentId: string | null;
     }> = [
-      {
-        id: 'u-admin-1',
-        name: 'System Admin',
-        email: 'admin@smartcampus.edu',
-        password: 'admin123',
-        role: USER_ROLES.admin,
-        studentId: null,
-      },
       {
         id: 'u-teacher-1',
         name: 'Teacher Kim',

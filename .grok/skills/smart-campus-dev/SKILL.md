@@ -59,8 +59,8 @@ frontend/src/app/
 
 1. Create page under `features/<name>/pages/<name>/`.
 2. Add `routes/<name>.routes.ts` exporting a `Routes` array.
-3. Register under `AdminLayoutComponent` children in `app.routes.ts` with correct `roleGuard` if needed.
-4. Add sidebar item in `admin-navigation.ts` (and filter in layout if admin-only).
+3. Register under `AdminLayoutComponent` children in `app.routes.ts` with `roleGuard(['teacher'])` if needed.
+4. Add sidebar item in `admin-navigation.ts`.
 5. Add path constant in `app-routes.ts`.
 6. Add model types in `models/` if new entities appear.
 7. Add service in `services/` + mock JSON under `assets/mock-data/` (until API is live).
@@ -79,12 +79,12 @@ frontend/src/app/
 - Session: `AuthService` + `localStorage` key `smartcampus_auth_session`.
 - Guards: `authGuard`, `guestGuard`, `roleGuard(roles)` in `core/guards/auth.guard.ts`.
 - After login: always `router.navigateByUrl(auth.homePathForRole(role))`.
-- Roles type: `'admin' | 'teacher' | 'student'` (`models/user.model.ts`).
+- Roles type: `'teacher' | 'student'` (`models/user.model.ts`). Teacher is campus administration.
 - Frontend login calls Nest `POST /api/auth/login` and stores the real access
   token in `localStorage` key `smartcampus_auth_session`.
 - **No demo login chips** — students sign in with personal accounts created by
-  an admin (`POST /api/students` with password, or generic `POST /api/users`).
-  Only admin/teacher/Chihea are seeded. Login access is enforced server-side via
+  a teacher (`POST /api/students` with password, or generic `POST /api/users`).
+  Only teacher/Chihea are seeded. Login access is enforced server-side via
   `students.login_enabled` (403 for disabled accounts).
 
 ## UI patterns already in the app
@@ -99,7 +99,7 @@ frontend/src/app/
 
 Shared components to reuse first:
 
-- `stat-card`, `student-table`, `student-filter`, `attendance-filter`, `session-picker-dialog` (paginated session modal, limit 10), `table` (shared data table for locations / attendance / sessions), `attendance-chart`, `recent-scan-list`, `location-filter`, `modal-dialog`, `confirm-dialog`, `select-dropdown`
+- `stat-card`, `student-table`, `student-filter`, `attendance-filter`, `session-picker-dialog` (paginated session modal, limit 10), `table` (shared data table for locations / attendance / sessions), `attendance-chart`, `recent-scan-list`, `location-filter`, `modal-dialog`, `confirm-dialog`, `select-dropdown`, `voice-assistant` (SVG talking person; mouth follows live Gemini audio; no photo, video, or transcript bubble; teacher tap-to-start, student scan auto-start + time-of-day greeting)
 
 ### Generic modal dialog (`app-modal-dialog`)
 
@@ -121,14 +121,14 @@ backend/src/
   database/          # data-source, migrations, seeders (scaffold)
   modules/
     auth/            # implemented: POST /api/auth/login (+ login_enabled check)
-    users/           # implemented: POST /api/users (admin account provisioning)
-    students/        # implemented: GET/POST /api/students, PATCH /:id/access
+    users/           # implemented: POST /api/users (teacher account provisioning)
+    students/        # implemented: GET/POST /api/students, PATCH /:id/access (teacher)
     dashboard/         # live GET /dashboard (cards, 12-month rate, recent scans)
     attendance/
     locations/
     sessions/
-    reports/           # admin-only placeholder; teachers use Excel export
-    ai/                # POST /api/ai/live-token (Gemini Live English voice)
+    reports/           # teacher placeholder; Excel export is on Attendance / Locations
+    ai/                # POST /api/ai/live-token + GET/POST /api/ai/campus-records (Gemini Live English voice; teacher + student)
 ```
 
 When implementing API modules:
@@ -216,6 +216,6 @@ When implementing API modules:
 **Don’t**
 
 - Nest admin feature pages outside `AdminLayoutComponent`.
-- Add teacher access to Students or Reports without product decision.
+- Reintroduce a separate admin role. Teacher is campus administration.
 - Hardcode route strings across many files—use constants.
 - Commit secrets; demo passwords are intentionally public for FR demos only.

@@ -17,18 +17,9 @@ const SIDEBAR_COLLAPSED_KEY = 'smartcampus.admin.sidebarCollapsed';
   },
 })
 export class AdminLayoutComponent {
-  /** Admin-only pages hidden from teacher role */
-  private readonly adminOnlyPaths = new Set(['/students', '/reports']);
-
   readonly sidebarCollapsed = signal(this.readCollapsedPreference());
 
-  readonly navigation = computed<AdminNavItem[]>(() => {
-    const role = this.auth.role();
-    if (role === 'admin') {
-      return ADMIN_NAVIGATION;
-    }
-    return ADMIN_NAVIGATION.filter((item) => !this.adminOnlyPaths.has(item.path));
-  });
+  readonly navigation = computed<AdminNavItem[]>(() => ADMIN_NAVIGATION);
 
   readonly userLabel = computed(() => {
     const user = this.auth.user();

@@ -20,7 +20,7 @@
 
   <section class="students-page__workspace" aria-label="Student directory">
     <div class="students-page__toolbar">
-      <app-student-filter [filters]="filters()" />
+      <app-student-filter [filters]="filters()" (apply)="onFilterApply($event)" />
       <button
         type="button"
         class="students-page__add"
@@ -45,9 +45,13 @@
       <p class="students-page__empty">
         No students yet. Add the first student account above.
       </p>
+    } @else if (visibleStudents().length === 0) {
+      <p class="students-page__empty">
+        No students match these filters. Try another class or status.
+      </p>
     } @else {
       <app-student-table
-        [students]="students()"
+        [students]="visibleStudents()"
         (loginToggle)="onLoginToggle($event)"
       />
     }

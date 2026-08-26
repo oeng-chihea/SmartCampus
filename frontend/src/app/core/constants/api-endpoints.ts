@@ -26,4 +26,5 @@ export const API_ENDPOINTS = {
   reports: '/reports',
   scanOrigin: '/runtime/scan-origin',
   aiLiveToken: '/ai/live-token',
+  aiCampusRecords: '/ai/campus-records',
 } as const;

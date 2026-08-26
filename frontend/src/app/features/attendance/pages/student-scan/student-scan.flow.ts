@@ -97,7 +97,10 @@ export class StudentScanPageFlow {
     }
   }
 
-  async markPresent(session: OpenLiveSessionCard): Promise<void> {
+  async markPresent(
+    session: OpenLiveSessionCard,
+    options?: { reload?: boolean },
+  ): Promise<void> {
     if (this.state.hasSubmittedFor(session.id)) {
       this.state.alreadySubmitted(this.state.recordForSession(session.id));
       return;
@@ -127,7 +130,7 @@ export class StudentScanPageFlow {
       }
 
       const request = await this.buildSubmitRequest(live.qr.payload, live.title, () =>
-        this.markPresent(session),
+        this.markPresent(session, options),
       );
       if (!request) {
         // Location denied/unavailable — notice shown, nothing submitted (FR-02).
@@ -136,7 +139,9 @@ export class StudentScanPageFlow {
 
       const record = await this.attendance.submit(request);
       this.state.submitSucceeded(record);
-      void this.reload(false);
+      if (options?.reload !== false) {
+        void this.reload(false);
+      }
     } catch (error) {
       if (this.attendance.isConflict(error)) {
         await this.reload(false);

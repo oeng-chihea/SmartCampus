@@ -41,17 +41,17 @@ describe('Smart Campus API (e2e)', () => {
     request(app.getHttpServer())
       .post('/api/auth/login')
       .send({
-        email: 'admin@smartcampus.edu',
-        password: 'admin123',
+        email: 'teacher@smartcampus.edu',
+        password: 'teacher123',
       })
       .expect(201)
       .expect(({ body }: { body: Record<string, unknown> }) => {
         expect(body).toMatchObject({
           user: {
-            id: 'u-admin-1',
-            name: 'System Admin',
-            email: 'admin@smartcampus.edu',
-            role: 'admin',
+            id: 'u-teacher-1',
+            name: 'Teacher Kim',
+            email: 'teacher@smartcampus.edu',
+            role: 'teacher',
           },
         });
         expect(body.accessToken).toEqual(expect.any(String));
@@ -61,21 +61,21 @@ describe('Smart Campus API (e2e)', () => {
     request(app.getHttpServer())
       .post('/api/auth/login')
       .send({
-        email: 'admin@smartcampus.edu',
+        email: 'teacher@smartcampus.edu',
         password: 'wrong-password',
       })
       .expect(401));
 
   it.each([
     [
-      { password: 'admin123' },
+      { password: 'teacher123' },
       ['email should not be empty', 'email must be an email'],
     ],
     [
-      { email: 'not-an-email', password: 'admin123' },
+      { email: 'not-an-email', password: 'teacher123' },
       ['email must be an email'],
     ],
-    [{ email: 'admin@smartcampus.edu' }, ['password should not be empty']],
+    [{ email: 'teacher@smartcampus.edu' }, ['password should not be empty']],
   ])('rejects an invalid login payload %#', (payload, messages) =>
     request(app.getHttpServer())
       .post('/api/auth/login')

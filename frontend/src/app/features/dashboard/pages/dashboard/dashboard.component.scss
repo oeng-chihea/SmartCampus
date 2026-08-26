@@ -8,10 +8,10 @@
   align-content: start;
   background: var(--page-bg);
   display: grid;
-  gap: clamp(14px, 1.6vw, 24px);
+  gap: clamp(16px, 1.4vw, 24px);
   min-height: 100%;
   min-width: 0;
-  padding: clamp(14px, 2vw, 32px);
+  padding: clamp(20px, 1.7vw, 30px);
   width: 100%;
 }
 
@@ -29,10 +29,10 @@
 
 .dashboard-hero h1 {
   color: var(--color-brand-deep);
-  font-size: clamp(1.65rem, 4vw, 3.1rem);
-  font-weight: 750;
-  letter-spacing: -0.03em;
-  line-height: 1.08;
+  font-size: clamp(2rem, 3.4vw, 3rem);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
   margin: 0;
   max-width: 18ch;
   overflow-wrap: anywhere;
@@ -40,10 +40,10 @@
 
 .dashboard-hero p {
   color: var(--color-slate);
-  font-size: clamp(0.9rem, 1.4vw, 1.05rem);
-  line-height: 1.55;
-  margin: 10px 0 0;
-  max-width: 58ch;
+  font-size: clamp(0.88rem, 1.15vw, 1rem);
+  line-height: 1.6;
+  margin: 12px 0 0;
+  max-width: 62ch;
 }
 
 .dashboard__alert {
@@ -66,7 +66,7 @@
 
 .dashboard__stats {
   display: grid;
-  gap: clamp(10px, 1.2vw, 16px);
+  gap: clamp(10px, 1.1vw, 16px);
   grid-template-columns: repeat(4, minmax(0, 1fr));
   min-width: 0;
 }
@@ -74,14 +74,16 @@
 .dashboard__insights {
   align-items: start;
   display: grid;
-  gap: clamp(12px, 1.4vw, 18px);
+  gap: clamp(12px, 1.2vw, 18px);
   grid-template-columns: minmax(0, 1.55fr) minmax(260px, 0.9fr);
   min-width: 0;
+  overflow: visible;
 }
 
 .dashboard__chart-panel,
 .dashboard__records-panel {
   min-width: 0;
+  overflow: visible;
   width: 100%;
 }
 

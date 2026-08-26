@@ -1,8 +1,14 @@
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
+import { API_ENDPOINTS } from '../core/constants/api-endpoints';
 import { APP_ROUTES } from '../core/constants/app-routes';
 import { isAffirmativeDecision } from '../core/utils/voice-row-match.util';
 import {
+  CampusRecordsQuery,
+  CampusRecordsSnapshot,
   CampusVoicePage,
   VoiceActArgs,
   VoiceConfirmArgs,
@@ -20,6 +26,7 @@ const PAGE_PATH: Record<CampusVoicePage, string> = {
   sessions: `/${APP_ROUTES.sessions}`,
   students: `/${APP_ROUTES.students}`,
   reports: `/${APP_ROUTES.reports}`,
+  scan: `/${APP_ROUTES.studentScan}`,
 };
 
 const PAGE_LABEL: Record<CampusVoicePage, string> = {
@@ -29,6 +36,7 @@ const PAGE_LABEL: Record<CampusVoicePage, string> = {
   sessions: 'Sessions',
   students: 'Students',
   reports: 'Reports',
+  scan: 'Mark attendance',
 };
 
 function fail(message: string): VoiceToolResult {
@@ -42,8 +50,9 @@ function ok(message: string, extra: Partial<VoiceToolResult> = {}): VoiceToolRes
 @Injectable({ providedIn: 'root' })
 export class VoiceToolExecutor {
   private readonly router = inject(Router);
-  private readonly auth = inject(AuthService);
   private readonly pages = inject(VoicePageRegistry);
+  private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
 
   async execute(
     name: string,
@@ -52,6 +61,8 @@ export class VoiceToolExecutor {
     switch (name) {
       case 'navigate_campus':
         return this.navigate(String(args['page'] ?? ''));
+      case 'read_campus_records':
+        return this.readCampusRecords(args as CampusRecordsQuery);
       case 'control_page_view':
         return this.control(args as unknown as VoiceControlArgs);
       case 'select_row':
@@ -67,18 +78,72 @@ export class VoiceToolExecutor {
     }
   }
 
+  async readCampusRecords(query: CampusRecordsQuery): Promise<VoiceToolResult> {
+    const body: CampusRecordsQuery = {};
+    if (query.scope && query.scope !== 'all') {
+      body.scope = query.scope;
+    }
+    const search = String(query.query ?? '').trim();
+    if (search) {
+      body.query = search;
+    }
+    if (query.attendance_status && query.attendance_status !== 'all') {
+      body.attendance_status = query.attendance_status;
+    }
+    if (query.location_status && query.location_status !== 'all') {
+      body.location_status = query.location_status;
+    }
+    if (query.date_filter && query.date_filter !== 'all') {
+      body.date_filter = query.date_filter;
+    }
+    const building = String(query.building ?? '').trim();
+    if (building) {
+      body.building = building;
+    }
+    const sessionId = String(query.session_id ?? '').trim();
+    if (sessionId) {
+      body.session_id = sessionId;
+    }
+    const sessionQuery = String(query.session_query ?? '').trim();
+    if (sessionQuery) {
+      body.session_query = sessionQuery;
+    }
+
+    try {
+      const snapshot = await firstValueFrom(
+        this.http.post<CampusRecordsSnapshot>(
+          `${environment.apiBaseUrl}${API_ENDPOINTS.aiCampusRecords}`,
+          body,
+          { headers: authTokenHeaders(this.auth.getAccessToken()) },
+        ),
+      );
+      return ok(snapshot.spokenSummary, {
+        spokenSummary: snapshot.spokenSummary,
+        item_summary: snapshot.spokenSummary,
+        snapshot,
+        records: snapshot.attendance.records,
+        attendance: {
+          total: snapshot.attendance.total,
+          present: snapshot.attendance.present,
+          absent: snapshot.attendance.absent,
+          inside: snapshot.attendance.inside,
+          outside: snapshot.attendance.outside,
+        },
+      });
+    } catch {
+      return fail('Could not read campus records. Try again.');
+    }
+  }
+
   async navigate(pageRaw: string): Promise<VoiceToolResult> {
     const page = pageRaw.trim().toLowerCase() as CampusVoicePage;
     if (!PAGE_PATH[page]) {
-      return fail('I can open Dashboard, Attendance, Locations, or Sessions.');
-    }
-    if (page === 'students' && this.auth.role() !== 'admin') {
-      return fail('Students is admin only. I can open Attendance or Sessions instead.');
-    }
-    if (page === 'reports' && this.auth.role() !== 'admin') {
       return fail(
-        'Reports is admin only. Use Export on Attendance or Locations instead.',
+        'I can open Dashboard, Students, Attendance, Locations, Sessions, or Reports.',
       );
+    }
+    if (this.auth.role() === 'student' && page !== 'scan') {
+      return fail('Students stay on Mark attendance. I cannot open teacher pages.');
     }
     const opened = await this.router.navigateByUrl(PAGE_PATH[page]);
     if (!opened) {
@@ -142,3 +207,10 @@ export class VoiceToolExecutor {
 type VoicePageHandlerResult =
   | { handler: NonNullable<ReturnType<VoicePageRegistry['current']>>; error?: undefined }
   | { handler?: undefined; error: VoiceToolResult };
+
+function authTokenHeaders(token: string | null): HttpHeaders {
+  if (!token) {
+    return new HttpHeaders();
+  }
+  return new HttpHeaders({ Authorization: `Bearer ${token}` });
+}

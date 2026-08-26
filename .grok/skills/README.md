@@ -6,7 +6,7 @@ This folder holds **Grok skills** for the Smart Campus Attendance System. Skills
 
 | Skill | Path | Purpose |
 |-------|------|---------|
-| **smart-campus-workflow** | `smart-campus-workflow/SKILL.md` | Page-to-page user flows by role (admin, teacher, student) |
+| **smart-campus-workflow** | `smart-campus-workflow/SKILL.md` | Page-to-page user flows by role (teacher, student) |
 | **smart-campus-teacher** | `smart-campus-teacher/SKILL.md` | Teacher role: Sessions create + **due time** / QR / close / delete |
 | **smart-campus-student** | `smart-campus-student/SKILL.md` | Student accounts, scan flow, due-time dialog (keep past-due cards) |
 | **smart-campus-dev** | `smart-campus-dev/SKILL.md` | Where to put code, routes, services, and mock data when building features |
@@ -57,7 +57,7 @@ npm run backend:start
 
 **Smart Campus** is an **attendance-first** campus system:
 
-- **Frontend:** Angular (`frontend/`) — admin/teacher shell + student scan UI  
+- **Frontend:** Angular (`frontend/`) — teacher (administration) shell + student scan UI  
 - **Backend:** NestJS (`backend/`) — live auth, students, sessions/QR/close/delete, attendance submit + geofence check  
 - **Data today:** login + sessions (+ delete) live; student submit runs a **live GPS geofence check** (FR-02, Haversine vs each location's `radiusMeters`) and **stores** the device GPS on the attendance row; **Locations** admin page is a live **student visit log** (`POST /api/locations/visits`); dashboard still uses **mock JSON**  
 - **Auth today:** Nest login + Bearer token in `localStorage`
@@ -66,19 +66,17 @@ npm run backend:start
 
 | Role | After login | Main UI |
 |------|-------------|---------|
-| `admin` | `/dashboard` | Admin layout + full sidebar (includes Students and Reports) |
-| `teacher` | `/dashboard` | Admin layout; **no** Students or Reports; **Sessions** is primary live work |
+| `teacher` | `/dashboard` | Staff layout + full sidebar (Students, Attendance, Locations, Sessions, Reports). Teacher is campus administration. |
 | `student` | `/student/scan` | Student scan page only |
 
 ### Seeded login accounts
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | `admin@smartcampus.edu` | `admin123` |
 | Teacher | `teacher@smartcampus.edu` | `teacher123` |
 | Student (initial) | `chihea@smartcampus.edu` | `chihea123` |
 
-Every other student account is created by an admin from **Students → Add student account**
+Every other student account is created by a teacher from **Students → Add student account**
 (no shared demo student accounts). See `smart-campus-student/SKILL.md`.
 
 ---
@@ -93,21 +91,21 @@ Every other student account is created by an admin from **Students → Add stude
                              │ login success (API)
               ┌──────────────┼──────────────────┐
               │              │                  │
-         admin/teacher    student          invalid → stay on login
+            teacher       student          invalid → stay on login
               │              │
               ▼              ▼
      ┌────────────────┐  ┌─────────────────┐
      │ AdminLayout    │  │ /student/scan   │
      │  /dashboard    │  │ (scan shell)    │
-     │  /students *   │  │ Sign out → login│
+     │  /students     │  │ Sign out → login│
      │  /attendance   │  └─────────────────┘
      │  /locations    │
      │  /sessions ★   │  ★ live create + due time + QR + close + delete
-     │  /reports † *  │
+     │  /reports †    │
      │ Sign out → login
      └────────────────┘
-     * admin only (Students + Reports)
-     † placeholder
+     Students: teacher creates email + password
+     † placeholder (Excel export also on Attendance / Locations)
 
 Student scan due rules:
   before due → Mark present → Present (+ My attendance app-table row)
@@ -116,7 +114,7 @@ Student scan due rules:
   teacher Delete → open card gone; history for that session REMOVED (cascade)
 ```
 
-**Sidebar navigation (admin/teacher)** is defined in  
+**Sidebar navigation (teacher / administration)** is defined in  
 `frontend/src/app/core/constants/admin-navigation.ts` and wired in  
 `AdminLayoutComponent` → `AdminSidebarComponent`.
 

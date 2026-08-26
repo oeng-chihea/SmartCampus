@@ -38,7 +38,7 @@ smart-campus-system/
 | `table` | Sessions log; student My attendance; locations/admin attendance |
 | `confirm-dialog` | Sessions delete; student due-time blocked mark/scan |
 | `modal-dialog` / `select-dropdown` | Sessions create / edit form; other dialogs |
-| `voice-assistant` | Admin layout (English Gemini Live mic; admin/teacher only) |
+| `voice-assistant` | Staff layout and student scan SVG talking person (Gemini Live audio drives the mouth; no photo/video/transcript; teacher tap-to-start, student auto-start + greeting) |
 
 ## Models
 
@@ -65,14 +65,14 @@ smart-campus-system/
 | Module | Status |
 |--------|--------|
 | `auth` | Live login (`POST /api/auth/login`), HMAC-signed tokens, enforces `students.login_enabled` (403 for disabled) |
-| `users` | **Live** account provisioning: `POST /api/users` (admin); links student accounts to profiles |
-| `students` | **Live** directory: `GET /api/students`, `POST /api/students` (+ account), `PATCH /:id/access` |
+| `users` | **Live** account provisioning: `POST /api/users` (teacher); links student accounts to profiles |
+| `students` | **Live** directory: `GET /api/students`, `POST /api/students` (+ account), `PATCH /:id/access` (teacher) |
 | `dashboard` | **Live** `GET /api/dashboard` (admin/teacher): summary cards, 12-month check-in rate (`(Present + Outside Location) / (Present + Outside Location + Absent)` in `Asia/Phnom_Penh`), latest 10 scans (excludes Absent). Teachers: own sessions only |
 | `attendance` | **Live** student submit + `GET /me` (existing sessions only; purges orphans; **excludes Absent**); `POST /admin` lists scanners until `dueAt`, then materializes **Absent** for login-account students who never scanned (`absents_finalized`); submit runs the **geofence check** (FR-02, Haversine vs `radiusMeters`) when the client sends GPS coordinates. **Excel:** `POST /admin/excel` (same filter body, ExcelJS `.xlsx`) |
 | `locations` | **Live** zone catalog (`GET /api/locations`) for session create + geofence, and student visit log (`POST /api/locations/visits` with search/building/status). **Excel:** `POST /api/locations/visits/excel` (same filter body). Default pin is **KIT Phnom Penh Campus** (`LOC-001`, 11.5479313, 104.9405941, 80 m). Visit rows show the assigned zone plus the student’s scan GPS (`latitude` / `longitude` stored on `attendance_records`); zone `latitude/longitude/radiusMeters` are consumed by the attendance geofence check |
 | `sessions` | **Live** create / list / QR / **edit** (`POST /:id/edit`) / close / **delete** (delete cascades attendance by `session_id`) |
 | `reports` | Registered boundary; frontend page is still a placeholder |
-| `ai` | **Live** `POST /api/ai/live-token` (admin/teacher): mints a constrained Gemini Live ephemeral token (`gemini-3.1-flash-live-preview`). `GEMINI_API_KEY` stays on Nest. Angular admin mic widget streams English audio and runs page tools (navigate, search, QR, export). Student scan is not voice-controlled. |
+| `ai` | **Live** `POST /api/ai/live-token` (teacher + student): mints a constrained Gemini Live ephemeral token (`gemini-3.1-flash-live-preview`) without preloading campus records. Teacher instruction waits for speech. Student instruction greets with one short Good morning / afternoon / evening line (Asia/Phnom_Penh) and already knows the full campus loop (teacher session + QR → GPS gate → Present / Outside Location → due / close / delete); it does not tutorial those steps on the first turn. Student snapshots mark each live class **already recorded** vs **not yet recorded** from this student's scans. Students can say **mark all** to check in every eligible live class in one tool call (GPS still required). `GET/POST /api/ai/campus-records` for teachers reads Dashboard, Students, Attendance, Locations (visit log + zone catalog), and Sessions. For students it returns **only that student's** open classes and My attendance scans. `GEMINI_API_KEY` stays on Nest. SVG talking-person widget streams English audio (mouth follows playback; no photo, video, or transcript bubble). Staff widget is tap-to-start in the admin workspace; student scan auto-starts in the scan workspace and can be stopped by voice or the X control. |
 | TypeORM / migrations | Users/students/sessions/attendance persist via TypeORM (`synchronize: true` in dev) |
 
 All backend routes use the `/api` global prefix. Feature modules contain
@@ -83,7 +83,7 @@ or persistence.
 ## README vs code (known drift)
 
 Root `README.md` lists broader product areas (courses, requests, notifications, roles UI, settings).  
-**Current product nav is attendance-first** (`ADMIN_NAVIGATION`): Dashboard, Students, Attendance, Locations, Sessions, Reports. Teachers do **not** see Students or Reports (`adminOnlyPaths`); they export Excel from Attendance and Locations. Prefer the nav constants and routes over the older README feature list when deciding scope.
+**Current product nav is attendance-first** (`ADMIN_NAVIGATION`): Dashboard, Students, Attendance, Locations, Sessions, Reports. Teacher is campus administration and sees the full list, including Students (create email + password). Prefer the nav constants and routes over the older README feature list when deciding scope.
 
 ## Data dependency example (Locations visit log)
 

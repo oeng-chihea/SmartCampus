@@ -9,6 +9,8 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { toAreaPath, toCurvePath } from '../../../core/utils/chart-curve.util';
+import { buildChartTooltipStyle } from '../../../core/utils/chart-tooltip.util';
 import { MonthlyAttendancePoint } from '../../../models/dashboard.model';
 
 const FALLBACK_WIDTH = 800;
@@ -17,7 +19,10 @@ const FALLBACK_HEIGHT = 220;
 export interface ChartPoint extends MonthlyAttendancePoint {
   index: number;
   x: number;
+  /** Tooltip / guide Y — the higher of the two series (smaller SVG y). */
   y: number;
+  presentY: number;
+  absentY: number;
 }
 
 interface ChartLayout {
@@ -57,6 +62,8 @@ export class AttendanceChartComponent implements AfterViewInit {
     return box.padTop + box.plotHeight;
   });
 
+  readonly scaleMax = computed(() => niceMax(this.monthlyTrend()));
+
   readonly points = computed<ChartPoint[]>(() => {
     const data = this.monthlyTrend();
     if (!data.length) {
@@ -65,26 +72,41 @@ export class AttendanceChartComponent implements AfterViewInit {
 
     const box = this.layout();
     const last = Math.max(data.length - 1, 1);
+    const scale = this.scaleMax();
 
     return data.map((item, index) => {
-      const rate = clamp(item.presentRate, 0, 100);
+      const presentY = box.padTop + (1 - item.present / scale) * box.plotHeight;
+      const absentY = box.padTop + (1 - item.absent / scale) * box.plotHeight;
       return {
         ...item,
         index,
         x: box.padLeft + (index / last) * box.plotWidth,
-        y: box.padTop + (1 - rate / 100) * box.plotHeight,
+        presentY,
+        absentY,
+        y: Math.min(presentY, absentY),
       };
     });
   });
 
-  readonly linePath = computed(() => toLinePath(this.points()));
-  readonly areaPath = computed(() => toAreaPath(this.points(), this.baselineY()));
+  readonly presentLinePath = computed(() =>
+    toCurvePath(this.points().map((point) => ({ x: point.x, y: point.presentY }))),
+  );
+  readonly absentLinePath = computed(() =>
+    toCurvePath(this.points().map((point) => ({ x: point.x, y: point.absentY }))),
+  );
+  readonly presentAreaPath = computed(() =>
+    toAreaPath(
+      this.points().map((point) => ({ x: point.x, y: point.presentY })),
+      this.baselineY(),
+    ),
+  );
 
   readonly yTicks = computed(() => {
     const box = this.layout();
-    return [100, 75, 50, 25].map((rate) => ({
-      rate,
-      y: box.padTop + (1 - rate / 100) * box.plotHeight,
+    const scale = this.scaleMax();
+    return [1, 0.75, 0.5, 0.25].map((fraction) => ({
+      rate: Math.round(scale * fraction),
+      y: box.padTop + (1 - fraction) * box.plotHeight,
     }));
   });
 
@@ -120,18 +142,7 @@ export class AttendanceChartComponent implements AfterViewInit {
       return null;
     }
 
-    const { width, height } = this.layout();
-    const left = (point.x / width) * 100;
-    const top = (point.y / height) * 100;
-    const flip = left > 72;
-
-    return {
-      left: `${left}%`,
-      top: `${top}%`,
-      transform: flip
-        ? 'translate(-100%, calc(-100% - 12px))'
-        : 'translate(8px, calc(-100% - 12px))',
-    };
+    return buildChartTooltipStyle(point, this.layout());
   });
 
   readonly guideX = computed(() => this.activePoint()?.x ?? null);
@@ -178,7 +189,7 @@ function layoutFor(frame: { width: number; height: number }): ChartLayout {
   const height = Math.max(frame.height, 1);
   const padLeft = width < 480 ? 28 : 40;
   const padRight = width < 480 ? 8 : 16;
-  const padTop = 16;
+  const padTop = 28;
   const padBottom = 10;
   return {
     width,
@@ -195,34 +206,17 @@ function layoutFor(frame: { width: number; height: number }): ChartLayout {
 function monthsWithRecords(
   data: MonthlyAttendancePoint[],
 ): MonthlyAttendancePoint[] {
-  return data.filter(
-    (row) => row.present + row.absent + row.outsideLocation > 0,
+  return data.filter((row) => row.present + row.absent > 0);
+}
+
+function niceMax(data: MonthlyAttendancePoint[]): number {
+  const peak = data.reduce(
+    (max, row) => Math.max(max, row.present, row.absent),
+    0,
   );
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-function toLinePath(points: ChartPoint[]): string {
-  if (!points.length) {
-    return '';
+  if (peak <= 4) {
+    return 4;
   }
-  return points
-    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${fmt(point.x)} ${fmt(point.y)}`)
-    .join(' ');
+  return Math.ceil(peak / 4) * 4;
 }
 
-function toAreaPath(points: ChartPoint[], baselineY: number): string {
-  if (!points.length) {
-    return '';
-  }
-  const line = toLinePath(points);
-  const last = points[points.length - 1];
-  const first = points[0];
-  return `${line} L ${fmt(last.x)} ${fmt(baselineY)} L ${fmt(first.x)} ${fmt(baselineY)} Z`;
-}
-
-function fmt(value: number): string {
-  return value.toFixed(1);
-}

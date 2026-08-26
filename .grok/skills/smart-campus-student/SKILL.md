@@ -1,7 +1,7 @@
 ---
 name: smart-campus-student
 description: >
-  Student role: per-student login accounts, admin account provisioning, login access
+  Student role: per-student login accounts, teacher account provisioning, login access
   control, and the attendance scan flow. Use when the user asks about student login,
   student accounts, how students get credentials, creating student accounts, Chihea,
   login_enabled, disabled student accounts, student scan flow, or runs /smart-campus-student.
@@ -18,14 +18,14 @@ Detailed steps: `references/student-account-flow.md`.
 ## Core rule: every student has their own account
 
 There are **no shared demo student accounts** anymore. A student can log in only
-when an admin has created a **personal login account** for them:
+when a teacher has created a **personal login account** for them:
 
 | Step | Who | What happens |
 |------|-----|--------------|
-| 1. Provision | Admin (`/students`) | “Add student account” form → creates student profile **and** login account (email + temporary password) |
+| 1. Provision | Teacher (`/students`) | “Add student account” form → creates student profile **and** login account (email + temporary password) |
 | 2. Login | Student | `/auth/student` with own email + password |
 | 3. Scan | Student | `/student/scan` → tap open session or scan teacher QR → attendance recorded under **their** identity |
-| 4. Control | Admin | Toggle **Login access** on/off → disabled students get `403 Forbidden` at login |
+| 4. Control | Teacher | Toggle **Login access** on/off → disabled students get `403 Forbidden` at login |
 
 Identity at scan time always comes from the **login token** (`users.student_id`),
 never from the QR payload — a student can never record attendance as someone else.
@@ -43,17 +43,16 @@ Only one student account is seeded (not demo data):
 | Class / Year | `SE401` / `Year 1` |
 | Home after login | `/student/scan` |
 
-Admin / teacher seeded accounts stay unchanged:
+Teacher seeded account (campus administration):
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | `admin@smartcampus.edu` | `admin123` |
 | Teacher | `teacher@smartcampus.edu` | `teacher123` |
 
 ## Student happy path (login → scan)
 
 ```text
-Admin creates account (POST /api/students with password)
+Teacher creates account (POST /api/students with password)
   → student signs in at /auth/student (POST /api/auth/login)
   → /student/scan
   → GET /api/sessions/open (all open sessions + same live QR as teacher)
@@ -72,6 +71,8 @@ Admin creates account (POST /api/students with password)
   → history in shared **app-table** (“My attendance” / Your recorded scans)
   → Sign out → /auth/student
 ```
+
+**Campus Voice (student):** on `/student/scan` the talking-person widget lives in the same page workspace as the live cards (staff-style floating person, extra bottom padding so cards stay clear). It auto-starts Gemini Live and greets with one short Good morning / afternoon / evening line (Phnom Penh time). It does **not** tutorial the buttons on that first turn. It knows the full campus loop and **which live classes this student already recorded vs has not recorded yet**. Say **mark all** / **mark them all** / **every class** to check in for every live class that is still open and not yet recorded (one tool call, including 10 sessions). GPS is still required. Stop with stop / end / close / exit, or tap X.
 
 **Geofence (FR-02, live) — hard gate:** location permission is **mandatory**.
 iPhone Safari only prompts for GPS on **HTTPS** (the teacher QR must be
@@ -138,7 +139,7 @@ Absent rows written for staff `/attendance` after due/close are **not** listed h
 - Enforced in `AuthService.login` (`backend/src/modules/auth/auth.service.ts`):
   student accounts whose profile has `loginEnabled = false` are rejected with
   **403** “This student account is disabled. Contact your administrator.”
-- Admin toggles it from the Students page; the toggle is **disabled** in the UI
+- Teacher toggles it from the Students page; the toggle is **disabled** in the UI
   for students that have **no account yet** (label “No account”).
 
 ## API endpoints
@@ -146,13 +147,15 @@ Absent rows written for staff `/attendance` after due/close are **not** listed h
 | Method | Path | Roles | Purpose |
 |--------|------|-------|---------|
 | `POST` | `/api/auth/login` | public | Login (enforces `login_enabled`) |
-| `POST` | `/api/users` | admin | Create any account (student role requires an existing profile) |
-| `GET` | `/api/students` | admin, teacher | Student directory (incl. `hasAccount`) |
-| `POST` | `/api/students` | admin | Create student; `password` in body also creates the login account |
-| `PATCH` | `/api/students/:studentId/access` | admin | Toggle `loginEnabled` |
+| `POST` | `/api/users` | teacher | Create teacher or student account (student role requires an existing profile) |
+| `GET` | `/api/students` | teacher | Student directory (incl. `hasAccount`) |
+| `POST` | `/api/students` | teacher | Create student; `password` in body also creates the login account |
+| `PATCH` | `/api/students/:studentId/access` | teacher | Toggle `loginEnabled` |
 | `GET` | `/api/sessions/open` | student+ | Live open sessions + QR |
 | `POST` | `/api/attendance/submit` | student | Mark attendance (identity from token); `latitude`/`longitude` are **required** — 400 if missing (FR-02 hard gate); drive the geofence check |
 | `GET` | `/api/attendance/me` | student | Own scan history (only existing sessions; purges orphans; excludes Absent) |
+| `POST` | `/api/ai/live-token` | student+teacher | Mint Gemini Live English voice token. Student instruction greets immediately with time of day and knows the scan/GPS flow. |
+| `GET` / `POST` | `/api/ai/campus-records` | student+teacher | Teacher: campus-wide records. Student: **own** open classes + My attendance only. |
 
 ## Key files
 
@@ -164,14 +167,16 @@ backend/src/modules/users/users.service.ts    # createUser (account provisioning
 backend/src/modules/users/users.controller.ts
 backend/src/modules/sessions/sessions.service.ts  # dueAt create + scan gate; delete cascades attendance
 backend/src/modules/attendance/attendance.service.ts  # submit + geofence (evaluateGeofence); findMine filters + purges orphans
-backend/src/common/utils/geo.util.ts          # haversineDistanceMeters / isWithinRadius (unit-tested)
-backend/src/database/seeders/demo.seeder.ts   # seeds admin/teacher/Chihea; deletes legacy demo students
+backend/src/modules/ai/campus-voice.instruction.ts  # student greeting + scan/GPS/stop flow
+backend/src/modules/ai/campus-voice.snapshot.service.ts  # student-only open classes + my scans
+backend/src/common/utils/date.util.ts          # campusGreetingPeriod (morning/afternoon/evening)
 
 frontend/src/app/features/auth/pages/login/          # no demo chips anymore
 frontend/src/app/services/auth.service.ts            # login, session, role paths
 frontend/src/app/services/student.service.ts         # live /students API + error mapping
 frontend/src/app/services/student-attendance.service.ts  # open sessions + submit + me
-frontend/src/app/features/attendance/pages/student-scan/  # scan UI + due dialog + history table + geofence submit
+frontend/src/app/features/attendance/pages/student-scan/  # scan UI + workspace Campus Voice + recorded vs to-mark live cards
+frontend/src/app/shared/components/voice-assistant/  # talking-person widget (student autoStart)
 frontend/src/app/core/utils/geolocation.util.ts       # getCurrentCoordinates / watchDeviceLocation
 frontend/src/app/core/utils/geofence.util.ts          # Turf.js inside-zone preview
 frontend/src/app/shared/components/scan-map/          # Leaflet + OSM student pin + zone circle
@@ -191,7 +196,7 @@ frontend/src/app/shared/components/student-table/      # login toggle (disabled 
   their profiles — the seeder also **deletes leftover rows** on boot.
 - Removed: demo account chips on the login page (`DEMO_ACCOUNTS`).
 - Added: real student directory + account creation + login toggle wired to the
-  Nest API (admin only). Students page is **live**, not mock JSON.
+  Nest API (teacher). Students page is **live**, not mock JSON.
 
 ## Related skills
 

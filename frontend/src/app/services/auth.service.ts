@@ -9,7 +9,7 @@ import { User, UserRole } from '../models/user.model';
 
 const STORAGE_KEY = 'smartcampus_auth_session';
 
-const LOGIN_ROLES: UserRole[] = ['admin', 'teacher', 'student'];
+const LOGIN_ROLES: UserRole[] = ['teacher', 'student'];
 
 export type LoginResult =
   | { ok: true; user: User }
@@ -146,6 +146,10 @@ export class AuthService {
       }
       const parsed = JSON.parse(raw) as AuthSession;
       if (!parsed?.accessToken || !parsed?.user?.role) {
+        return null;
+      }
+      if (!LOGIN_ROLES.includes(parsed.user.role)) {
+        localStorage.removeItem(STORAGE_KEY);
         return null;
       }
       return parsed;

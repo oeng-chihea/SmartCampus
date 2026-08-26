@@ -11,9 +11,9 @@ import { UsersService } from './users.service';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  /** Provision a login account (admin/teacher/student). Admin only. */
+  /** Provision a login account (teacher or student). Teacher only. */
   @Post()
-  @Roles(USER_ROLES.admin)
+  @Roles(USER_ROLES.teacher)
   create(@Body() dto: CreateUserDto) {
     return this.usersService.createUser(dto);
   }

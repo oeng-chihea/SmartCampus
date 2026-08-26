@@ -10,13 +10,9 @@ import { AuthService } from '../../../../services/auth.service';
 import { AlertComponent } from '../../../../shared/components/alert/alert.component';
 
 const ROLE_COPY: Record<UserRole, { title: string; lead: string }> = {
-  admin: {
-    title: 'Admin sign in',
-    lead: 'Sign in with your SmartCampus admin account to manage students and attendance.',
-  },
   teacher: {
     title: 'Teacher sign in',
-    lead: 'Sign in with your SmartCampus teacher account to run sessions and QR attendance.',
+    lead: 'Sign in with your SmartCampus teacher account to administer students, run sessions, and record QR attendance.',
   },
   student: {
     title: 'Student sign in',

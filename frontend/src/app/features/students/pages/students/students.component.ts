@@ -1,6 +1,11 @@
 import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { AlertMessage } from '../../../../models/alert.model';
-import { CreateStudentRequest, StudentFilters } from '../../../../models/student.model';
+import {
+  CreateStudentRequest,
+  StudentFilterState,
+  StudentFilters,
+} from '../../../../models/student.model';
+import { VOICE_RECORD_DETAIL_HINT } from '../../../../core/utils/voice-record-summary.util';
 import {
   describeMatches,
   matchVisibleRows,
@@ -18,6 +23,7 @@ import {
   StudentService,
   buildStudentFilters,
   buildStudentMetrics,
+  filterStudents,
 } from '../../../../services/student.service';
 import { AlertComponent } from '../../../../shared/components/alert/alert.component';
 import { StatCardComponent } from '../../../../shared/components/stat-card/stat-card.component';
@@ -52,10 +58,18 @@ export class StudentsComponent implements OnDestroy {
   readonly loading = signal(true);
   readonly alert = signal<AlertMessage | null>(null);
   readonly showForm = signal(false);
+  readonly filterState = signal<StudentFilterState>({
+    search: '',
+    course: 'all',
+    status: 'all',
+  });
 
   readonly metrics = computed(() => buildStudentMetrics(this.students()));
   readonly filters = computed<StudentFilters>(() =>
     buildStudentFilters(this.students()),
+  );
+  readonly visibleStudents = computed(() =>
+    filterStudents(this.students(), this.filterState()),
   );
 
   /** Course list for the “Add student” form (no “All classes” option). */
@@ -72,7 +86,7 @@ export class StudentsComponent implements OnDestroy {
     this.voicePages.register({
       page: 'students',
       startContext: () =>
-        `The staff is on Students. ${this.students().length} students in the directory.`,
+        `The staff is on Students. ${this.voiceStatusMessage()} ${VOICE_RECORD_DETAIL_HINT}`,
       control: (args) => this.voiceControl(args),
       select: (args) => this.voiceSelect(args),
       act: (args) => this.voiceAct(args),
@@ -99,6 +113,10 @@ export class StudentsComponent implements OnDestroy {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  onFilterApply(state: StudentFilterState): void {
+    this.filterState.set(state);
   }
 
   async onLoginToggle(studentId: string): Promise<void> {
@@ -167,12 +185,18 @@ export class StudentsComponent implements OnDestroy {
       if (args.action === 'refresh') {
         await this.load();
       }
-      return { ok: true, message: `${this.students().length} students in the directory.` };
+      return { ok: true, message: this.voiceStatusMessage() };
     }
     if (args.action === 'search' && args.query) {
       return this.voiceSelect({ query: args.query });
     }
     return { ok: false, message: 'On Students I can search, add an account, or toggle login.' };
+  }
+
+  private voiceStatusMessage(): string {
+    const rows = this.students();
+    const enabled = rows.filter((row) => row.loginEnabled).length;
+    return `${rows.length} students in the directory, ${enabled} can log in.`;
   }
 
   private async voiceSelect(args: VoiceSelectArgs): Promise<VoiceToolResult> {

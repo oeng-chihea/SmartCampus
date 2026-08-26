@@ -2,8 +2,6 @@ export interface GeminiLiveConnectConfig {
   responseModalities: string[];
   systemInstruction: string;
   tools: Array<{ functionDeclarations: unknown[] }>;
-  inputAudioTranscription: Record<string, never>;
-  outputAudioTranscription: Record<string, never>;
   sessionResumption: { handle?: string };
   realtimeInputConfig: {
     automaticActivityDetection: {

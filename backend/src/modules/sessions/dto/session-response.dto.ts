@@ -19,7 +19,7 @@ export interface SessionResponseDto {
   createdAt: string;
   openedAt: string;
   closedAt: string | null;
-  /** Present only for the session owner or admin when the session is Open. */
+  /** Present only for the session owner when the session is Open. */
   currentQr?: SessionQrSnapshot | null;
 }
 

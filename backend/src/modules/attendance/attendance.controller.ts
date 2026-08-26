@@ -61,7 +61,7 @@ export class AttendanceController {
    * is easy to inspect; date ranges are resolved on the database.
    */
   @Post('admin')
-  @Roles(USER_ROLES.admin, USER_ROLES.teacher)
+  @Roles(USER_ROLES.teacher)
   findAdmin(
     @Body() body: AdminAttendanceFilterDto,
     @CurrentUser() user: AuthenticatedUser,
@@ -74,7 +74,7 @@ export class AttendanceController {
    * Body is the same filter payload as POST /attendance/admin.
    */
   @Post('admin/excel')
-  @Roles(USER_ROLES.admin, USER_ROLES.teacher)
+  @Roles(USER_ROLES.teacher)
   async exportAdminExcel(
     @Body() body: AdminAttendanceFilterDto,
     @CurrentUser() user: AuthenticatedUser,

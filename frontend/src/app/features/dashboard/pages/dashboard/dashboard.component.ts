@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { APP_ROUTES } from '../../../../core/constants/app-routes';
+import { VOICE_RECORD_DETAIL_HINT } from '../../../../core/utils/voice-record-summary.util';
 import {
   VoiceActArgs,
   VoiceConfirmArgs,
@@ -50,8 +51,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       .map((card) => `${card.label} ${card.value}`)
       .join(', ');
     return cards
-      ? `The staff is on Dashboard. ${cards}.`
-      : 'The staff is on Dashboard.';
+      ? `The staff is on Dashboard. ${cards}. ${VOICE_RECORD_DETAIL_HINT}`
+      : `The staff is on Dashboard. ${VOICE_RECORD_DETAIL_HINT}`;
   }
 
   private async voiceControl(args: VoiceControlArgs): Promise<VoiceToolResult> {

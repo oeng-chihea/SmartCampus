@@ -39,8 +39,9 @@
     </div>
   </header>
 
-  <!-- Centered content column (full-width header stays above) -->
-  <div class="student-scan__content">
+  <div class="student-scan__workspace">
+    <!-- Centered content column (full-width header stays above) -->
+    <div class="student-scan__content">
     <!-- Intro + primary actions -->
     <div class="student-scan__intro">
       <p class="student-scan__lead">
@@ -83,7 +84,19 @@
       <div class="student-scan__section-head">
         <h2 id="live-sessions-title" class="student-scan__section-title">Live sessions</h2>
         @if (!state.loading() && state.openSessions().length > 0) {
-          <span class="student-scan__count">{{ state.openSessions().length }} open</span>
+          <div class="student-scan__counts">
+            @if (recordedLiveCount() > 0) {
+              <span class="student-scan__count student-scan__count--recorded">
+                {{ recordedLiveCount() }} recorded
+              </span>
+            }
+            @if (notRecordedLiveCount() > 0) {
+              <span class="student-scan__count student-scan__count--pending">
+                {{ notRecordedLiveCount() }} to mark
+              </span>
+            }
+            <span class="student-scan__count">{{ state.openSessions().length }} open</span>
+          </div>
         }
       </div>
 
@@ -109,6 +122,10 @@
             <li class="student-scan__session-item-wrap">
               <article
                 class="student-scan__card student-scan__card--session"
+                [class.student-scan__card--recorded]="alreadyDone(session.id)"
+                [class.student-scan__card--pending]="
+                  !alreadyDone(session.id) && !isPastDue(session)
+                "
                 [attr.aria-labelledby]="'session-' + session.id"
               >
                 <header class="student-scan__card-head">
@@ -213,6 +230,9 @@
         emptyMessage="Mark present for a live session and your records will show up here."
       />
     </section>
+    </div>
+
+    <app-voice-assistant class="student-scan__voice" [autoStart]="true" />
   </div>
 </section>
 

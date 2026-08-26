@@ -9,7 +9,7 @@ import { DashboardService } from './dashboard.service';
 
 @Controller('dashboard')
 @UseGuards(AuthGuard, RolesGuard)
-@Roles(USER_ROLES.admin, USER_ROLES.teacher)
+@Roles(USER_ROLES.teacher)
 export class DashboardController {
   constructor(private readonly dashboard: DashboardService) {}
 

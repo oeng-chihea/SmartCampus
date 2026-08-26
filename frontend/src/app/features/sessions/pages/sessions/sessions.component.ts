@@ -5,6 +5,7 @@ import {
   formatSessionOpened,
 } from '../../../../core/utils/date.util';
 import { formatCampusLocationLabel } from '../../../../core/utils/format.util';
+import { VOICE_RECORD_DETAIL_HINT } from '../../../../core/utils/voice-record-summary.util';
 import {
   describeMatches,
   matchVisibleRows,
@@ -268,7 +269,7 @@ export class SessionsComponent implements OnInit, OnDestroy {
   private voiceStartContext(): string {
     const rows = this.state.sessions();
     const open = rows.filter((row) => row.status === 'Open').length;
-    return `The staff is on Sessions. Open sessions: ${open}. Closed: ${rows.length - open}.`;
+    return `The staff is on Sessions. Open sessions: ${open}. Closed: ${rows.length - open}. ${VOICE_RECORD_DETAIL_HINT}`;
   }
 
   private async voiceControl(args: VoiceControlArgs): Promise<VoiceToolResult> {

@@ -6,6 +6,7 @@ import { API_ENDPOINTS } from '../core/constants/api-endpoints';
 import {
   float32ToPcm16Base64,
   pcm16Base64ToAudioBuffer,
+  speechLevelFromTimeDomain,
   voiceCaptureWorkletSource,
 } from '../core/utils/voice-audio.util';
 import { VoiceLiveStatus, VoiceLiveToken } from '../models/voice-live.model';
@@ -29,6 +30,8 @@ export class VoiceLiveService {
   readonly userTranscript = signal('');
   readonly assistantTranscript = signal('');
   readonly error = signal<string | null>(null);
+  /** 0–1 mouth openness from the live Gemini playback. */
+  readonly speechLevel = signal(0);
   readonly active = computed(
     () => this.status() === 'connecting' || this.status() === 'listening' || this.status() === 'speaking',
   );
@@ -43,7 +46,12 @@ export class VoiceLiveService {
   private workletUrl: string | null = null;
   private playbackTime = 0;
   private playbackSources = new Set<AudioBufferSourceNode>();
+  private playbackAnalyser: AnalyserNode | null = null;
+  private playbackTimeDomain: Uint8Array<ArrayBuffer> | null = null;
+  private speechRaf = 0;
+  private pendingListen = false;
   private starting = false;
+  private greetOnConnect = false;
 
   async toggle(): Promise<void> {
     if (this.active()) {
@@ -61,11 +69,17 @@ export class VoiceLiveService {
     this.error.set(null);
     this.userTranscript.set('');
     this.assistantTranscript.set('');
+    this.speechLevel.set(0);
+    this.pendingListen = false;
+    this.greetOnConnect = this.auth.role() === 'student';
     this.status.set('connecting');
 
     try {
       await this.openSession();
       await this.startMic();
+      if (this.greetOnConnect) {
+        this.sendStudentGreetingTurn();
+      }
       this.status.set('listening');
     } catch (error) {
       this.status.set('error');
@@ -140,18 +154,46 @@ export class VoiceLiveService {
         }
       });
     });
-
-    this.sendStartContext();
   }
 
   private async fetchToken(): Promise<VoiceLiveToken> {
-    const body = this.resumeHandle ? { resumeHandle: this.resumeHandle } : {};
+    const body: { resumeHandle?: string; page?: string } = {};
+    if (this.resumeHandle) {
+      body.resumeHandle = this.resumeHandle;
+    }
+    const page = this.pages.current()?.page;
+    if (page) {
+      body.page = page;
+    }
     return firstValueFrom(
       this.http.post<VoiceLiveToken>(
         `${environment.apiBaseUrl}${API_ENDPOINTS.aiLiveToken}`,
         body,
         { headers: this.authHeaders() },
       ),
+    );
+  }
+
+  private sendStudentGreetingTurn(): void {
+    if (!this.session || this.session.readyState !== WebSocket.OPEN || !this.sessionReady) {
+      return;
+    }
+    this.session.send(
+      JSON.stringify({
+        clientContent: {
+          turns: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  text: 'The student just opened Mark attendance. Greet them now with only the correct Good morning, Good afternoon, or Good evening from the system instruction, plus that you are Campus Voice for their live classes. Do not explain how to mark present, scan QR, or allow location on this first turn. Then wait.',
+                },
+              ],
+            },
+          ],
+          turnComplete: true,
+        },
+      }),
     );
   }
 
@@ -173,25 +215,10 @@ export class VoiceLiveService {
           ? { parts: [{ text: config.systemInstruction }] }
           : undefined,
         tools: config.tools,
-        inputAudioTranscription: config.inputAudioTranscription || {},
-        outputAudioTranscription: config.outputAudioTranscription || {},
         sessionResumption: config.sessionResumption,
         realtimeInputConfig: config.realtimeInputConfig,
       },
     };
-  }
-
-  private sendStartContext(): void {
-    if (!this.session || this.session.readyState !== WebSocket.OPEN) {
-      return;
-    }
-    this.session.send(
-      JSON.stringify({
-        realtimeInput: {
-          text: this.pages.startContext(),
-        },
-      }),
-    );
   }
 
   private async onSocketMessage(
@@ -245,7 +272,9 @@ export class VoiceLiveService {
       );
     }
     if (content.interrupted) {
+      this.pendingListen = false;
       this.stopPlayback();
+      this.speechLevel.set(0);
       if (this.active()) {
         this.status.set('listening');
       }
@@ -257,13 +286,14 @@ export class VoiceLiveService {
       if (!data) {
         continue;
       }
+      this.pendingListen = false;
       this.status.set('speaking');
       await this.queuePlayback(data);
     }
 
     if (content.turnComplete && this.active()) {
-      this.status.set('listening');
-      this.userTranscript.set('');
+      this.pendingListen = true;
+      this.finishSpeakingIfQuiet();
     }
   }
 
@@ -274,28 +304,33 @@ export class VoiceLiveService {
       return;
     }
 
-    const responses = [];
-    let stopRequested = false;
-    for (const call of calls) {
-      const name = String(call.name || '').trim();
-      const args =
-        call.args && typeof call.args === 'object'
-          ? (call.args as Record<string, unknown>)
-          : {};
-      const result = await this.tools.execute(name, args);
-      responses.push({
-        id: call.id,
-        name,
-        response: { output: result },
-      });
-      if (result.stop_requested) {
-        stopRequested = true;
-      }
-    }
+    const responses = await Promise.all(
+      calls.map(async (call) => {
+        const name = String(call.name || '').trim();
+        const args =
+          call.args && typeof call.args === 'object'
+            ? (call.args as Record<string, unknown>)
+            : {};
+        const result = await this.tools.execute(name, args);
+        return {
+          id: call.id,
+          name,
+          result,
+          response: { output: result },
+        };
+      }),
+    );
+    const stopRequested = responses.some((entry) => entry.result.stop_requested);
 
     this.session.send(
       JSON.stringify({
-        toolResponse: { functionResponses: responses },
+        toolResponse: {
+          functionResponses: responses.map(({ id, name, response }) => ({
+            id,
+            name,
+            response,
+          })),
+        },
       }),
     );
 
@@ -407,17 +442,75 @@ export class VoiceLiveService {
     if (this.playbackContext.state === 'suspended') {
       await this.playbackContext.resume();
     }
+    this.ensurePlaybackAnalyser();
     const buffer = pcm16Base64ToAudioBuffer(this.playbackContext, base64, OUTPUT_RATE);
     const source = this.playbackContext.createBufferSource();
     source.buffer = buffer;
-    source.connect(this.playbackContext.destination);
+    if (this.playbackAnalyser) {
+      source.connect(this.playbackAnalyser);
+    } else {
+      source.connect(this.playbackContext.destination);
+    }
     const startAt = Math.max(this.playbackTime, this.playbackContext.currentTime);
     source.start(startAt);
     this.playbackTime = startAt + buffer.duration;
     this.playbackSources.add(source);
+    this.startSpeechMonitor();
     source.onended = () => {
       this.playbackSources.delete(source);
+      this.finishSpeakingIfQuiet();
     };
+  }
+
+  private ensurePlaybackAnalyser(): void {
+    if (!this.playbackContext || this.playbackAnalyser) {
+      return;
+    }
+    const analyser = this.playbackContext.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.28;
+    analyser.connect(this.playbackContext.destination);
+    this.playbackAnalyser = analyser;
+    this.playbackTimeDomain = new Uint8Array(new ArrayBuffer(analyser.fftSize));
+  }
+
+  private startSpeechMonitor(): void {
+    if (this.speechRaf) {
+      return;
+    }
+    const tick = () => {
+      this.speechLevel.set(this.readSpeechLevel());
+      this.speechRaf = requestAnimationFrame(tick);
+    };
+    this.speechRaf = requestAnimationFrame(tick);
+  }
+
+  private stopSpeechMonitor(): void {
+    if (this.speechRaf) {
+      cancelAnimationFrame(this.speechRaf);
+      this.speechRaf = 0;
+    }
+    this.speechLevel.set(0);
+  }
+
+  private readSpeechLevel(): number {
+    if (!this.playbackAnalyser || !this.playbackTimeDomain) {
+      return 0;
+    }
+    this.playbackAnalyser.getByteTimeDomainData(this.playbackTimeDomain);
+    return speechLevelFromTimeDomain(this.playbackTimeDomain);
+  }
+
+  private finishSpeakingIfQuiet(): void {
+    if (!this.pendingListen || this.playbackSources.size > 0) {
+      return;
+    }
+    this.pendingListen = false;
+    this.stopSpeechMonitor();
+    if (this.active()) {
+      this.status.set('listening');
+      this.userTranscript.set('');
+    }
   }
 
   private stopPlayback(): void {
@@ -430,10 +523,12 @@ export class VoiceLiveService {
     }
     this.playbackSources.clear();
     this.playbackTime = 0;
+    this.stopSpeechMonitor();
   }
 
   private async cleanup(): Promise<void> {
     this.sessionReady = false;
+    this.pendingListen = false;
     this.stopPlayback();
     if (this.workletNode) {
       try {

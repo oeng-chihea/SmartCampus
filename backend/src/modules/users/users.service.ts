@@ -33,8 +33,8 @@ export class UsersService {
   }
 
   /**
-   * Admin-only account provisioning (any role). Student accounts must link to
-   * an existing student profile and enable login on it.
+   * Teacher account provisioning (teacher or student). Student accounts must
+   * link to an existing student profile and enable login on it.
    */
   async createUser(dto: CreateUserDto): Promise<UserResponseDto> {
     const name = dto.name.trim();

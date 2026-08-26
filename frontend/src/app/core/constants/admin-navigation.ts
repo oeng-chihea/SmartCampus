@@ -12,7 +12,7 @@ export interface AdminNavItem {
   path: string;
 }
 
-/** Attendance-first admin navigation (FR-aligned; no requests/courses CRM) */
+/** Attendance-first teacher (administration) navigation */
 export const ADMIN_NAVIGATION: AdminNavItem[] = [
   { label: 'Dashboard', icon: 'dashboard', path: '/dashboard' },
   { label: 'Students', icon: 'students', path: '/students' },

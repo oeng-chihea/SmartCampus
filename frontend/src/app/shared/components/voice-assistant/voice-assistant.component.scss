@@ -7,33 +7,237 @@
   z-index: 30;
 }
 
-.voice-assistant {
-  align-items: flex-end;
-  display: flex;
-  flex-direction: row-reverse;
-  gap: 10px;
-  pointer-events: none;
+:host.is-active {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  top: 0;
 }
 
+:host.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.voice-assistant {
+  --speech-level: 0;
+  align-items: flex-end;
+  display: flex;
+  height: 100%;
+  justify-content: flex-end;
+  pointer-events: none;
+  width: 100%;
+}
+
+:host.is-active .voice-assistant {
+  align-items: center;
+  justify-content: center;
+}
+
+.voice-assistant__backdrop {
+  background: rgba(15, 23, 42, 0.45);
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.voice-assistant__call,
 .voice-assistant__mic,
-.voice-assistant__panel {
+.voice-assistant__close {
   pointer-events: auto;
 }
 
-.voice-assistant__mic {
+.voice-assistant__call {
   align-items: center;
-  background: var(--color-brand);
+  cursor: grab;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  touch-action: none;
+  z-index: 1;
+}
+
+:host.is-active .voice-assistant__call {
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 28px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  padding: 18px 22px 14px;
+}
+
+.voice-assistant__call.is-positioned {
+  bottom: auto;
+  margin: 0;
+  position: fixed;
+  right: auto;
+}
+
+:host.is-dragging .voice-assistant__call {
+  cursor: grabbing;
+}
+
+.voice-assistant__person {
+  background: transparent;
+  height: 132px;
+  overflow: visible;
+  position: relative;
+  width: 112px;
+}
+
+.voice-assistant.is-active .voice-assistant__person {
+  height: 204px;
+  width: 172px;
+}
+
+.voice-assistant__human {
+  display: block;
+  filter: drop-shadow(0 10px 16px rgba(16, 36, 24, 0.28));
+  height: 100%;
+  overflow: visible;
+  width: 100%;
+}
+
+.voice-assistant__head,
+.voice-assistant__torso,
+.voice-assistant__brow,
+.voice-assistant__iris,
+.voice-assistant__lid,
+.voice-assistant__mouth,
+.voice-assistant__talk,
+.voice-assistant__smile {
+  transform-box: fill-box;
+}
+
+.voice-assistant__head {
+  transform-origin: 50% 88%;
+}
+
+.voice-assistant__torso {
+  transform-origin: 50% 100%;
+}
+
+.voice-assistant[data-status='listening'] .voice-assistant__head,
+.voice-assistant[data-status='connecting'] .voice-assistant__head {
+  animation: voice-breathe 2.8s ease-in-out infinite;
+}
+
+.voice-assistant[data-status='listening'] .voice-assistant__torso,
+.voice-assistant[data-status='connecting'] .voice-assistant__torso {
+  animation: voice-torso 2.8s ease-in-out infinite;
+}
+
+.voice-assistant[data-status='speaking'] .voice-assistant__head {
+  transform: translateY(calc(var(--speech-level) * -7px))
+    rotate(calc(var(--speech-level) * -2.4deg));
+}
+
+.voice-assistant[data-status='speaking'] .voice-assistant__torso {
+  transform: scaleY(calc(1 + var(--speech-level) * 0.045));
+}
+
+.voice-assistant__brow {
+  transform-origin: 50% 100%;
+}
+
+.voice-assistant[data-status='speaking'] .voice-assistant__brow {
+  transform: translateY(calc(var(--speech-level) * -3px));
+}
+
+.voice-assistant__lid {
+  transform-origin: 50% 0%;
+  animation: voice-blink 3.2s ease-in-out infinite;
+}
+
+.voice-assistant__eye--right .voice-assistant__lid {
+  animation-delay: 0.12s;
+}
+
+.voice-assistant[data-status='speaking'] .voice-assistant__lid {
+  transform: scaleY(calc(0.16 - var(--speech-level) * 0.08));
+  animation: none;
+}
+
+.voice-assistant__iris {
+  transform-origin: 50% 50%;
+}
+
+.voice-assistant[data-status='listening'] .voice-assistant__iris,
+.voice-assistant[data-status='connecting'] .voice-assistant__iris {
+  animation: voice-glance 5.6s ease-in-out infinite;
+}
+
+.voice-assistant__mouth {
+  transform-origin: 50% 0%;
+}
+
+.voice-assistant[data-status='speaking'] .voice-assistant__mouth {
+  transform: translateY(calc(var(--speech-level) * 1.1px));
+}
+
+.voice-assistant__smile {
+  transform-origin: 50% 40%;
+  opacity: clamp(0, calc(1 - var(--speech-level) * 5), 1);
+}
+
+.voice-assistant__talk {
+  transform-origin: 50% 10%;
+  opacity: clamp(0, calc((var(--speech-level) - 0.03) * 10), 1);
+  transform: scaleX(calc(0.97 + var(--speech-level) * 0.05))
+    scaleY(calc(0.34 + var(--speech-level) * 0.66));
+}
+
+.voice-assistant__name {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+:host.is-active .voice-assistant__name {
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.voice-assistant__error {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  color: var(--color-danger-deep);
+  font-size: 0.78rem;
+  margin: 0;
+  max-width: 11rem;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.voice-assistant__actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.voice-assistant__mic,
+.voice-assistant__close {
+  align-items: center;
   border: 0;
   border-radius: 999px;
-  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.28);
-  color: #fff;
   cursor: pointer;
   display: inline-flex;
-  flex: 0 0 auto;
-  height: 52px;
+  height: 44px;
   justify-content: center;
   position: relative;
-  width: 52px;
+  touch-action: manipulation;
+  width: 44px;
+}
+
+.voice-assistant__mic {
+  background: var(--color-brand);
+  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.28);
+  color: #fff;
 }
 
 .voice-assistant__mic:hover {
@@ -47,6 +251,24 @@
 
 .voice-assistant[data-status='error'] .voice-assistant__mic {
   background: var(--color-danger);
+}
+
+.voice-assistant__close {
+  background: #0f172a;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.28);
+  color: #fff;
+}
+
+.voice-assistant__close:hover {
+  background: #1e293b;
+}
+
+.voice-assistant__hint {
+  color: #64748b;
+  font-size: 0.72rem;
+  margin: 4px 0 0;
+  text-align: center;
+  user-select: none;
 }
 
 .voice-assistant__pulse {
@@ -63,42 +285,6 @@
   opacity: 1;
 }
 
-.voice-assistant__panel {
-  background: var(--surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  max-width: min(22rem, calc(100vw - 6rem));
-  min-width: 0;
-  padding: 8px 12px;
-}
-
-.voice-assistant__status,
-.voice-assistant__heard,
-.voice-assistant__reply,
-.voice-assistant__error {
-  margin: 0;
-}
-
-.voice-assistant__status {
-  color: var(--color-muted);
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.voice-assistant__heard,
-.voice-assistant__reply {
-  color: var(--color-text);
-  font-size: 0.86rem;
-  margin-top: 4px;
-}
-
-.voice-assistant__error {
-  color: var(--color-danger-deep);
-  font-size: 0.8rem;
-  margin-top: 4px;
-}
-
 @keyframes voice-pulse {
   from {
     opacity: 0.7;
@@ -110,18 +296,69 @@
   }
 }
 
+@keyframes voice-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.04);
+  }
+}
+
+@keyframes voice-torso {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(1.05);
+  }
+}
+
+@keyframes voice-blink {
+  0%,
+  72%,
+  86%,
+  100% {
+    transform: scaleY(0.18);
+  }
+  78%,
+  80% {
+    transform: scaleY(1.2);
+  }
+}
+
+@keyframes voice-glance {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  35% {
+    transform: translateX(2.6px);
+  }
+  68% {
+    transform: translateX(-2.2px);
+  }
+}
+
 @media (max-width: 720px) {
   .voice-assistant {
     padding: 12px;
   }
 
-  .voice-assistant__panel {
-    display: none;
+  .voice-assistant.is-active .voice-assistant__person {
+    height: 168px;
+    width: 142px;
   }
+}
 
-  .voice-assistant[data-status='error'] .voice-assistant__panel,
-  .voice-assistant[data-status='listening'] .voice-assistant__panel,
-  .voice-assistant[data-status='speaking'] .voice-assistant__panel {
-    display: block;
+@media (prefers-reduced-motion: reduce) {
+  .voice-assistant__head,
+  .voice-assistant__torso,
+  .voice-assistant__lid,
+  .voice-assistant__iris,
+  .voice-assistant__pulse {
+    animation: none;
   }
 }

@@ -35,6 +35,7 @@ describe('isAffirmativeDecision', () => {
   it('maps spoken yes and no', () => {
     expect(isAffirmativeDecision(true)).toBe(true);
     expect(isAffirmativeDecision('OK')).toBe(true);
+    expect(isAffirmativeDecision('try again')).toBe(true);
     expect(isAffirmativeDecision('cancel')).toBe(false);
     expect(isAffirmativeDecision('maybe')).toBeNull();
   });

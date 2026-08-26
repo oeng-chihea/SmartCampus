@@ -15,10 +15,6 @@ describe('LocationsService', () => {
   let sessions: SessionEntity[];
   let records: AttendanceRecordEntity[];
 
-  const admin: AuthenticatedUser = {
-    userId: 'user-admin',
-    role: USER_ROLES.admin,
-  };
   const teacher: AuthenticatedUser = {
     userId: 'user-teacher',
     role: USER_ROLES.teacher,
@@ -287,7 +283,7 @@ describe('LocationsService', () => {
 
   it('returns no visits when no student has scanned', async () => {
     records.length = 0;
-    const page = await service.findVisits({}, admin);
+    const page = await service.findVisits({}, teacher);
     expect(page.visits).toEqual([]);
     expect(page.metrics).toEqual({
       total: 0,
@@ -299,11 +295,10 @@ describe('LocationsService', () => {
   });
 
   it('lists student visits instead of the seeded zone catalog', async () => {
-    const page = await service.findVisits({}, admin);
-    expect(page.visits).toHaveLength(3);
+    const page = await service.findVisits({}, teacher);
+    expect(page.visits).toHaveLength(2);
     expect(page.visits.map((visit) => visit.id).sort()).toEqual([
       'att-1',
-      'att-2',
       'att-3',
     ]);
     expect(page.visits.some((visit) => visit.locationId === 'LOC-001')).toBe(
@@ -322,9 +317,9 @@ describe('LocationsService', () => {
         'Institute of Technology of Cambodia, Russian Federation Boulevard, Phnom Penh',
     });
     expect(page.metrics).toEqual({
-      total: 3,
+      total: 2,
       present: 2,
-      outsideLocation: 1,
+      outsideLocation: 0,
     });
   });
 
@@ -342,33 +337,31 @@ describe('LocationsService', () => {
   });
 
   it('filters visits by search, building, and status in the query', async () => {
-    const byName = await service.findVisits({ search: 'Chihea' }, admin);
+    const byName = await service.findVisits({ search: 'Chihea' }, teacher);
     expect(byName.visits.map((visit) => visit.id).sort()).toEqual([
       'att-1',
       'att-3',
     ]);
 
-    const byRoom = await service.findVisits({ search: '201' }, admin);
+    const byRoom = await service.findVisits({ search: '201' }, teacher);
     expect(byRoom.visits.map((visit) => visit.id).sort()).toEqual([
       'att-1',
-      'att-2',
     ]);
 
     const byBuilding = await service.findVisits(
       { building: 'Building B' },
-      admin,
+      teacher,
     );
     expect(byBuilding.visits).toHaveLength(1);
     expect(byBuilding.visits[0].id).toBe('att-3');
-    expect(byBuilding.metrics.total).toBe(3);
+    expect(byBuilding.metrics.total).toBe(2);
 
     const byStatus = await service.findVisits(
       { status: 'Outside Location' },
-      admin,
+      teacher,
     );
-    expect(byStatus.visits).toHaveLength(1);
-    expect(byStatus.visits[0].studentId).toBe('SC-1024');
-    expect(byStatus.metrics.outsideLocation).toBe(1);
+    expect(byStatus.visits).toHaveLength(0);
+    expect(byStatus.metrics.outsideLocation).toBe(0);
   });
 
   it('excludes Absent attendance rows from the visit log', async () => {
@@ -386,16 +379,16 @@ describe('LocationsService', () => {
       longitude: null,
     } as AttendanceRecordEntity);
 
-    const page = await service.findVisits({}, admin);
+    const page = await service.findVisits({}, teacher);
     expect(page.visits.map((visit) => visit.id)).not.toContain('att-absent');
-    expect(page.visits).toHaveLength(3);
+    expect(page.visits).toHaveLength(2);
   });
 
   it('exports filtered visits as an xlsx workbook with full scanned-at text', async () => {
     const now = new Date(2026, 7, 20, 12, 0, 0);
     const file = await service.exportVisitsExcel(
       { status: 'Present' },
-      admin,
+      teacher,
       now,
     );
 
