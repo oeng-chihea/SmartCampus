@@ -43,6 +43,7 @@ const envFilePath = [
         username: config.get<string>('database.username'),
         password: config.get<string>('database.password'),
         database: config.get<string>('database.database'),
+        ssl: config.get('database.ssl'),
         entities: [...ALL_ENTITIES],
         synchronize: config.get<boolean>('database.synchronize') ?? true,
         autoLoadEntities: true,
