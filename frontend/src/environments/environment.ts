@@ -11,5 +11,5 @@ export const environment = {
    * the SPA and the API on the same host. For a split Render deploy, set the
    * absolute API origin, e.g. 'https://smart-campus-api.onrender.com/api'.
    */
-  apiBaseUrl: '/api',
+  apiBaseUrl: 'https://smartcampus-64ef.onrender.com/api',
 };
