@@ -56,21 +56,16 @@ Then open **https://localhost:4200** for laptop login (the dev server uses
 HTTPS so phones can use GPS). Accept the local certificate warning once.
 API calls use relative `/api` and are proxied to Nest.
 
-### Phone QR / student scan on campus Wi‑Fi
+### Phone QR / student scan (public URL)
 
-Teacher QR images encode **`https://<Mac-Wi-Fi-IP>:4200`** automatically
-(`GET /api/runtime/scan-origin`). iPhone Safari will not give GPS on plain
-`http://` LAN URLs — HTTPS is required even if Location is set to Always.
+Teacher QR images encode the **current site URL**:
+`https://<your-app>/student/scan?payload=…` (or `environment.appBaseUrl` /
+`PUBLIC_APP_URL` when set). Phones do **not** need the same Wi‑Fi as the
+teacher laptop. They need internet (campus Wi‑Fi or mobile data) and **HTTPS**
+so Safari can prompt for GPS.
 
-1. From the **repo root** run `npm run frontend:start` (HTTPS, `0.0.0.0:4200`).
-2. Mac and phone on the **same Wi‑Fi**. Allow port **4200** in the Mac firewall.
-3. Open Sessions, create/show QR — the scan link should look like
-   `https://192.168.x.x:4200/student/scan?payload=...`
-4. Phone Camera opens that link. First time: Safari “Not Private” →
-   **Advanced → visit this website**. If Safari still does not ask for
-   location, install the local cert (Settings → Profile → Install, then
-   General → About → Certificate Trust Settings).
-5. Tap **Mark me present** → Safari **Allow** location → attendance submits.
+1. Deploy (or open) the app on HTTPS. Create a session and show QR.
+2. Phone Camera opens that HTTPS scan link.
+3. Student signs in if needed → **Mark me present** → **Allow** location.
 
-Old `http://` QRs stay broken. Refresh / create a new session after the HTTPS
-restart. If Wi‑Fi is disconnected the QR falls back to localhost.
+Local `https://localhost:4200` QR only works on that computer, not on a phone.

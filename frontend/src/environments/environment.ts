@@ -1,15 +1,15 @@
 export const environment = {
-  production: false,
+  production: true,
   /**
-   * Base URL the teacher QR encodes — must be reachable from student phones.
-   * Empty string = derive from the browser's current origin at runtime,
-   * so QR codes always point at whatever host serves the app.
+   * Origin encoded into teacher QR images. Empty = the URL of this site
+   * (window.location.origin), so phones open the public HTTPS app URL.
+   * Set this only if the QR must use a different public host than the teacher tab.
    */
   appBaseUrl: '',
   /**
-   * Nest global prefix `/api`. Relative path works when the same host (or a
-   * reverse proxy) serves both the SPA and the API. For production hosting,
-   * set an absolute URL if the API is on another origin.
+   * Nest `/api` prefix. Relative `/api` works when a reverse proxy serves both
+   * the SPA and the API on the same host. For a split Render deploy, set the
+   * absolute API origin, e.g. 'https://smart-campus-api.onrender.com/api'.
    */
   apiBaseUrl: '/api',
 };

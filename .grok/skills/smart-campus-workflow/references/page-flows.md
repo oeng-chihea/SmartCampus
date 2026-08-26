@@ -90,8 +90,8 @@ Login teacher → /dashboard → sidebar Sessions → /sessions
        → POST /api/sessions { title, locationId, dueAt }
   → Session log: Location · Opened · Due · Status
   → Live QR left panel → GET /api/sessions/:id/qr (refresh ~30s) + Due time
-       QR image encodes https://<lan-ip>:4200/student/scan?payload=…
-       (GET /api/runtime/scan-origin; phones need HTTPS for GPS)
+       QR image encodes https://<site>/student/scan?payload=…
+       (site URL or PUBLIC_APP_URL / appBaseUrl; phones need HTTPS for GPS)
   → ⋮ Actions on Open row:
        Show QR       → load QR panel
        Edit session  → POST /api/sessions/:id/edit

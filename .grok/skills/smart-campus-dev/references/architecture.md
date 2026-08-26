@@ -115,7 +115,7 @@ features/sessions/pages/sessions/
   sessions.state.ts                  # signals, form fields, metrics
   sessions.flow.ts                  # reload / create / edit / showQr / close / delete
 services/session.service.ts         # HTTP client (Bearer)
-services/scan-origin.service.ts     # GET /api/runtime/scan-origin → https://<lan-ip>:4200
+services/scan-origin.service.ts     # public site URL → QR (not LAN IP)
 core/utils/date.util.ts             # formatSessionOpened / formatSessionDue / isSessionPastDue
 core/utils/format.util.ts           # formatCampusLocationLabel → Building A-Room 201
 

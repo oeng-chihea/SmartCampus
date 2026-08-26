@@ -41,7 +41,7 @@ Login uses Nest `POST /api/auth/login` and stores Bearer token in
 | Review student location visits (assigned zone + scanned-at GPS) | `/locations` | **Live API** |
 | Export location visits Excel | `/locations` | **Live API** `POST /api/locations/visits/excel` |
 | **Create attendance session** (dialog) | `/sessions` | **Live API** |
-| **Show short-lived QR** (auto-refresh ~30s; encodes `https://<lan-ip>:4200`) | `/sessions` | **Live API** |
+| **Show short-lived QR** (auto-refresh ~30s; encodes the public HTTPS site URL) | `/sessions` | **Live API** |
 | **Edit session** (title, location) | `/sessions` ⋮ menu | **Live API** |
 | **Close session** (invalidates QR) | `/sessions` | **Live API** |
 | **Delete session** (row + store + **cascade attendance**) | `/sessions` ⋮ menu | **Live API** |
@@ -134,7 +134,7 @@ Requires `Authorization: Bearer <accessToken>`.
 
 ## UI notes for Sessions (teacher)
 
-- **Left:** Live QR · Short-lived session code · **Scan link** (`https://<lan-ip>:4200` from `GET /api/runtime/scan-origin`) · **Due** date+time for selected session  
+- **Left:** Live QR · Short-lived session code · **Scan link** (public site URL, e.g. `https://your-app.onrender.com/student/scan?payload=…`) · **Due** date+time for selected session  
 - **Right:** Open attendance → **Create session** button → dialog form  
 - Create form fields: **title**, **location**, **due** (`type="date"` + `type="time"`, required, any calendar day — no “must be in the future” check)  
 - Edit form fields: **title**, **location** only — Due is hidden (create-only)  

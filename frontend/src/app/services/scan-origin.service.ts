@@ -1,56 +1,18 @@
-import { HttpClient } from '@angular/common/http';
-import { Injectable, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
-import { API_ENDPOINTS } from '../core/constants/api-endpoints';
-import { ScanOriginResponse } from '../models/scan-origin.model';
+import { resolveAppOrigin } from '../core/utils/qr-scan.util';
 
 /**
- * Resolves the origin encoded into attendance QR images.
- * Prefers the machine's Wi-Fi / LAN address so phones do not open localhost.
+ * Origin encoded into attendance QR images.
+ * Uses the public site URL (configured appBaseUrl, otherwise this tab's URL).
+ * Does not look up the laptop's campus Wi-Fi IP.
  */
 @Injectable({ providedIn: 'root' })
 export class ScanOriginService {
-  private readonly http = inject(HttpClient);
-  private cached: string | null = null;
-  private inflight: Promise<string> | null = null;
-
   async resolve(): Promise<string> {
-    if (environment.appBaseUrl) {
-      return environment.appBaseUrl.replace(/\/$/, '');
-    }
-    if (this.cached) {
-      return this.cached;
-    }
-    if (this.inflight) {
-      return this.inflight;
-    }
-
-    this.inflight = this.fetchOrigin()
-      .then((origin) => {
-        this.cached = origin;
-        return origin;
-      })
-      .finally(() => {
-        this.inflight = null;
-      });
-
-    return this.inflight;
-  }
-
-  private async fetchOrigin(): Promise<string> {
-    try {
-      const info = await firstValueFrom(
-        this.http.get<ScanOriginResponse>(
-          `${environment.apiBaseUrl}${API_ENDPOINTS.scanOrigin}`,
-        ),
-      );
-      if (info.origin) {
-        return info.origin.replace(/\/$/, '');
-      }
-    } catch {
-      // Fall through to the current tab origin.
-    }
-    return typeof window !== 'undefined' ? window.location.origin : '';
+    return resolveAppOrigin(
+      environment.appBaseUrl,
+      typeof window !== 'undefined' ? window.location.origin : '',
+    );
   }
 }

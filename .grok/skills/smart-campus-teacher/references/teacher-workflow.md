@@ -50,8 +50,8 @@ Dialog opens
   ▼
 POST /api/sessions { title, locationId, dueAt }
   → session status Open + dueAt stored
-  → left panel shows QR image + Due time + Wi‑Fi scan link + payload
-     (QR encodes https://<lan-ip>:4200/student/scan?payload=… via GET /api/runtime/scan-origin)
+  → left panel shows QR image + Due time + public scan URL + payload
+     (QR encodes https://<site>/student/scan?payload=… from the site URL, not a LAN IP)
   → row appears in Session log (Opened + Due columns)
   → UI refreshes QR ~every 30s via GET /api/sessions/:id/qr
   │
