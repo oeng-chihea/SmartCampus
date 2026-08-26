@@ -43,7 +43,7 @@ export class SessionsPageState {
   readonly selectedSessionId = signal<string | null>(null);
   readonly qr = signal<SessionQrResponse | null>(null);
   readonly qrDataUrl = signal<string | null>(null);
-  /** Deep-link encoded into the QR (LAN Wi-Fi origin when available). */
+  /** Deep-link encoded into the QR (public site URL). */
   readonly scanUrl = signal<string | null>(null);
 
   // ── Dialog form (ngModel; plain fields) ───────────────────

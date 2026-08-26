@@ -12,8 +12,8 @@ export class AppController {
   }
 
   /**
-   * Public: LAN origin the teacher QR should encode so phones on the same
-   * Wi-Fi can open /student/scan (instead of localhost).
+   * Public: site URL the teacher QR should encode so phones open
+   * /student/scan over the internet (not a campus Wi-Fi LAN IP).
    */
   @Get('runtime/scan-origin')
   getScanOrigin(

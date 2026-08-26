@@ -69,7 +69,7 @@ export class StudentScanPageFlow {
       const cards: OpenLiveSessionCard[] = await Promise.all(
         open.map(async (session) => ({
           ...session,
-          // Same Wi-Fi deep-link URL the teacher QR encodes (Camera-friendly).
+          // Same public HTTPS URL the teacher QR encodes (Camera-friendly).
           qrDataUrl: await QRCode.toDataURL(
             buildAttendanceScanUrl(session.qr.payload, origin),
             {
@@ -460,7 +460,7 @@ export const LOCATION_BLOCKED_MESSAGE =
 export function locationBlockedMessage(reason: GeolocationFailureReason): string {
   switch (reason) {
     case 'insecure':
-      return 'This page is not HTTPS. Open the teacher QR (https://…) — Safari cannot use GPS on a plain http:// Wi-Fi address.';
+      return 'This page is not HTTPS. Open the teacher QR HTTPS link — Safari cannot use GPS on a plain http:// page.';
     case 'timeout':
     case 'unavailable':
       return 'Could not read GPS. Keep Location on for Safari, wait a moment, then try again.';

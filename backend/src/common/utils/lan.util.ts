@@ -1,12 +1,10 @@
 import { networkInterfaces, type NetworkInterfaceInfo } from 'os';
 
-const DEFAULT_FRONTEND_PORT = 4200;
-
 const PREFERRED_IFACE = /^(en0|en1|wlan0|eth0|wi-?fi)/i;
 
 /**
  * First private IPv4 on this machine (campus Wi‑Fi / LAN).
- * Prefers en0 / wlan, then 192.168.*, then any other RFC1918 address.
+ * Kept for diagnostics; teacher QR no longer encodes this address.
  */
 export function detectLanIPv4(
   interfaces: NodeJS.Dict<NetworkInterfaceInfo[]> = networkInterfaces(),
@@ -35,29 +33,27 @@ export function detectLanIPv4(
 }
 
 /**
- * Phone-reachable origin for teacher QR deep links.
- * Uses the LAN IPv4 when Wi‑Fi is up; otherwise falls back to the browser origin.
+ * Origin encoded into teacher QR deep links.
+ * Prefers PUBLIC_APP_URL, then the teacher browser URL.
+ * Does not substitute the API server's LAN / Wi-Fi IP.
  */
 export function buildScanOrigin(
-  lanAddress: string | null,
   requestOrigin?: string | null,
-  frontendPort = Number(process.env.FRONTEND_PORT ?? DEFAULT_FRONTEND_PORT),
+  publicAppUrl?: string | null,
 ): string {
-  const fromRequest = parseOrigin(requestOrigin);
-  const port = fromRequest?.port || String(frontendPort);
-
-  // Phones need HTTPS for Safari GPS. Always encode https on a LAN IP,
-  // even if the teacher tab is still http://localhost:4200.
-  if (lanAddress) {
-    return `https://${lanAddress}:${port}`;
+  const configured = originFromUrl(publicAppUrl, true);
+  if (configured) {
+    return configured;
   }
-
-  if (fromRequest && !isLoopbackHost(fromRequest.hostname)) {
-    const hostPort = fromRequest.port || port;
-    return `https://${fromRequest.hostname}:${hostPort}`;
+  const fromRequest = originFromUrl(requestOrigin, false);
+  if (fromRequest) {
+    return fromRequest;
   }
+  return 'http://localhost:4200';
+}
 
-  return `http://localhost:${port}`;
+export function isPublicScanHost(hostname: string): boolean {
+  return !isLoopbackHost(hostname) && !isPrivateIPv4(hostname);
 }
 
 export function isPrivateIPv4(address: string): boolean {
@@ -76,6 +72,28 @@ export function isPrivateIPv4(address: string): boolean {
   }
   const second = Number(match[1]);
   return second >= 16 && second <= 31;
+}
+
+function originFromUrl(
+  raw?: string | null,
+  requirePublicHost = false,
+): string | null {
+  const parsed = parseOrigin(raw);
+  if (!parsed) {
+    return null;
+  }
+  if (requirePublicHost && !isPublicScanHost(parsed.hostname)) {
+    return null;
+  }
+  if (isLoopbackHost(parsed.hostname)) {
+    return parsed.origin;
+  }
+  if (isPrivateIPv4(parsed.hostname)) {
+    return null;
+  }
+  return parsed.protocol === 'https:'
+    ? parsed.origin
+    : `https://${parsed.host}`;
 }
 
 function isIPv4(family: string | number): boolean {

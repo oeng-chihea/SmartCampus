@@ -75,9 +75,9 @@ Teacher creates account (POST /api/students with password)
 **Campus Voice (student):** on `/student/scan` the talking-person widget lives in the same page workspace as the live cards (staff-style floating person, extra bottom padding so cards stay clear). It auto-starts Gemini Live and greets with one short Good morning / afternoon / evening line (Phnom Penh time). It does **not** tutorial the buttons on that first turn. It knows the full campus loop and **which live classes this student already recorded vs has not recorded yet**. Say **mark all** / **mark them all** / **every class** to check in for every live class that is still open and not yet recorded (one tool call, including 10 sessions). GPS is still required. Stop with stop / end / close / exit, or tap X.
 
 **Geofence (FR-02, live) — hard gate:** location permission is **mandatory**.
-iPhone Safari only prompts for GPS on **HTTPS** (the teacher QR must be
-`https://<lan-ip>:4200`). Location Services / Safari “Always” cannot unlock
-GPS on a plain `http://` LAN page.
+iPhone Safari only prompts for GPS on **HTTPS** (the teacher QR must open the
+public site URL, e.g. `https://your-app.onrender.com`). Phones do not need the
+same Wi‑Fi as the teacher laptop. A plain `http://` page cannot prompt for GPS.
 The scan flow (`buildSubmitRequest` in `student-scan.flow.ts`) never calls the
 submit API without a GPS fix — denied/unsupported/timeout opens a
 `locationBlocked` confirm dialog (`StudentScanPageState`) with a "Try again"

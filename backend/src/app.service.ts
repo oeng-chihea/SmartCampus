@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { buildScanOrigin, detectLanIPv4 } from './common/utils/lan.util';
+import { buildScanOrigin, isPublicScanHost } from './common/utils/lan.util';
 
 export interface ScanOriginResponse {
-  /** Origin encoded into teacher QR images (phone-reachable when Wi-Fi is up). */
+  /** Public site origin encoded into teacher QR images. */
   origin: string;
   lanAddress: string | null;
   connected: boolean;
@@ -15,15 +15,24 @@ export class AppService {
   }
 
   /**
-   * Wi-Fi / LAN origin for attendance QR deep links.
-   * `requestOrigin` is the teacher browser Origin/Referer (used for the port).
+   * Public HTTPS origin for attendance QR deep links.
+   * Uses PUBLIC_APP_URL when set, otherwise the teacher browser Origin.
    */
   getScanOrigin(requestOrigin?: string | null): ScanOriginResponse {
-    const lanAddress = detectLanIPv4();
+    const origin = buildScanOrigin(
+      requestOrigin,
+      process.env.PUBLIC_APP_URL ?? '',
+    );
+    let hostname = '';
+    try {
+      hostname = new URL(origin).hostname;
+    } catch {
+      hostname = '';
+    }
     return {
-      origin: buildScanOrigin(lanAddress, requestOrigin),
-      lanAddress,
-      connected: Boolean(lanAddress),
+      origin,
+      lanAddress: null,
+      connected: Boolean(hostname) && isPublicScanHost(hostname),
     };
   }
 }

@@ -150,8 +150,9 @@ When implementing API modules:
    - Display helpers: `formatSessionOpened` / `formatSessionDue` → `8-16-26-11:04Pm`;
      `isSessionPastDue` for student gate;
      `formatCampusLocationLabel` → `Building A-Room 201` (table + create dialog)
-   - QR deep links use `GET /api/runtime/scan-origin` (`https://<lan-ip>:4200`)
-     so phones get a secure context for Safari GPS (HTTP LAN cannot prompt)
+   - QR deep links use the public site URL (`window.location.origin` or
+     `appBaseUrl` / `PUBLIC_APP_URL`) so phones open HTTPS over the internet
+     (not the laptop's campus Wi‑Fi IP)
    - APIs: `POST/GET /api/sessions`, `GET …/:id/qr`, `POST …/:id/edit`,
      `POST …/:id/close`, `DELETE …/:id`
    - After `dueAt`, submit is rejected; session stays Open until teacher Close

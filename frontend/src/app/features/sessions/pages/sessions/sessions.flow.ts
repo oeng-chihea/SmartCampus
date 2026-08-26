@@ -345,7 +345,7 @@ export class SessionsPageFlow {
     }
   }
 
-  /** Encode a Wi-Fi deep-link URL (not the raw token alone) into the QR image. */
+  /** Encode the public site URL (not a campus Wi-Fi IP) into the QR image. */
   private async qrFromPayload(
     rawPayload: string,
   ): Promise<{ dataUrl: string; scanUrl: string }> {

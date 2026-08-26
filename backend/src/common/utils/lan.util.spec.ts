@@ -56,21 +56,27 @@ describe('lan.util', () => {
     expect(detectLanIPv4(interfaces)).toBeNull();
   });
 
-  it('builds an HTTPS Wi-Fi origin even when the teacher tab is HTTP localhost', () => {
-    expect(buildScanOrigin('192.168.1.23', 'http://localhost:4200')).toBe(
-      'https://192.168.1.23:4200',
+  it('uses the public site URL instead of a Wi-Fi LAN address', () => {
+    expect(buildScanOrigin('https://smart-campus.onrender.com')).toBe(
+      'https://smart-campus.onrender.com',
+    );
+    expect(
+      buildScanOrigin('http://localhost:4200', 'https://campus.example'),
+    ).toBe('https://campus.example');
+  });
+
+  it('keeps localhost for a local teacher tab', () => {
+    expect(buildScanOrigin('http://127.0.0.1:4200')).toBe(
+      'http://127.0.0.1:4200',
     );
   });
 
-  it('falls back to localhost when Wi-Fi is disconnected', () => {
-    expect(buildScanOrigin(null, 'http://127.0.0.1:4200')).toBe(
+  it('does not encode a private LAN address into the QR origin', () => {
+    expect(buildScanOrigin('http://192.168.1.23:4200')).toBe(
       'http://localhost:4200',
     );
-  });
-
-  it('keeps a non-loopback request origin when no LAN address exists', () => {
-    expect(buildScanOrigin(null, 'http://10.0.0.8:4200/sessions')).toBe(
-      'https://10.0.0.8:4200',
+    expect(buildScanOrigin('http://10.0.0.8:4200/sessions')).toBe(
+      'http://localhost:4200',
     );
   });
 

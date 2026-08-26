@@ -12,6 +12,22 @@ import { environment } from '../../../environments/environment';
 
 export const QR_PAYLOAD_PREFIX = 'SMARTCAMPUS';
 
+/** Public site origin for teacher QR. Prefers a configured URL over this tab. */
+export function resolveAppOrigin(
+  appBaseUrl: string,
+  windowOrigin: string,
+): string {
+  const configured = String(appBaseUrl ?? '')
+    .trim()
+    .replace(/\/$/, '');
+  if (configured) {
+    return configured;
+  }
+  return String(windowOrigin ?? '')
+    .trim()
+    .replace(/\/$/, '');
+}
+
 /** Build the student deep-link URL encoded into teacher QR images. */
 export function buildAttendanceScanUrl(
   rawPayload: string,

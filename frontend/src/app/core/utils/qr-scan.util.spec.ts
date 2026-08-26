@@ -3,6 +3,7 @@ import {
   buildAttendanceScanUrl,
   extractAttendancePayload,
   isRawAttendancePayload,
+  resolveAppOrigin,
   sessionIdFromPayload,
 } from './qr-scan.util';
 
@@ -19,6 +20,15 @@ describe('qr-scan.util', () => {
     const url = buildAttendanceScanUrl(RAW, 'https://campus.example');
     expect(url).toBe(
       'https://campus.example/student/scan?payload=SMARTCAMPUS%7CSES-001%7Ctoken-abc',
+    );
+  });
+
+  it('prefers a configured public URL over the current tab', () => {
+    expect(
+      resolveAppOrigin('https://smart-campus.onrender.com/', 'https://localhost:4200'),
+    ).toBe('https://smart-campus.onrender.com');
+    expect(resolveAppOrigin('', 'https://smart-campus.onrender.com')).toBe(
+      'https://smart-campus.onrender.com',
     );
   });
 
