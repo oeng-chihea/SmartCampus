@@ -8,7 +8,6 @@ export const APP_ROUTES = {
   attendance: 'attendance',
   locations: 'locations',
   sessions: 'sessions',
-  reports: 'reports',
   studentScan: 'student/scan',
   studentHistory: 'student/history',
 } as const;

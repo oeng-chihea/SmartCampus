@@ -66,7 +66,7 @@ npm run backend:start
 
 | Role | After login | Main UI |
 |------|-------------|---------|
-| `teacher` | `/dashboard` | Staff layout + full sidebar (Students, Attendance, Locations, Sessions, Reports). Teacher is campus administration. |
+| `teacher` | `/dashboard` | Staff layout + full sidebar (Students, Attendance, Locations, Sessions). Teacher is campus administration. |
 | `student` | `/student/scan` | Student scan page only |
 
 ### Seeded login accounts
@@ -101,11 +101,10 @@ Every other student account is created by a teacher from **Students → Add stud
      │  /attendance   │  └─────────────────┘
      │  /locations    │
      │  /sessions ★   │  ★ live create + due time + QR + close + delete
-     │  /reports †    │
      │ Sign out → login
      └────────────────┘
      Students: teacher creates email + password
-     † placeholder (Excel export also on Attendance / Locations)
+     Excel export is on Attendance and Locations (no Reports page)
 
 Student scan due rules:
   before due → Mark present → Present (+ My attendance app-table row)

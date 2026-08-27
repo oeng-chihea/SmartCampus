@@ -23,7 +23,7 @@ describe('campus voice tools', () => {
       }),
     );
     expect(pagesForRole(USER_ROLES.teacher)).toContain('students');
-    expect(pagesForRole(USER_ROLES.teacher)).toContain('reports');
+    expect(pagesForRole(USER_ROLES.teacher)).not.toContain('reports');
 
     const act = tools.find((tool) => tool.name === 'act_on_row');
     expect(act?.parametersJsonSchema.properties['action']).toEqual(
@@ -99,7 +99,9 @@ describe('campus voice instruction', () => {
     const teacher = buildCampusVoiceInstruction(USER_ROLES.teacher);
     expect(teacher).toContain('Speak English only');
     expect(teacher).not.toMatch(/[\u1780-\u17FF]/);
-    expect(teacher).toContain('including Students and Reports');
+    expect(teacher).toContain('including Students');
+    expect(teacher).not.toContain('including Students and Reports');
+    expect(teacher).toContain('There is no Reports page');
     expect(teacher).toContain('create student email and password accounts');
     expect(teacher).toContain('Call read_campus_records for any campus data question');
     expect(teacher).toContain('Do not call it at session start');

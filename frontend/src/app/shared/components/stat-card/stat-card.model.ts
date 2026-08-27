@@ -3,7 +3,6 @@ export type StatCardIcon =
   | 'attendance'
   | 'locations'
   | 'sessions'
-  | 'reports'
   | 'present'
   | 'late';
 

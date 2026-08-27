@@ -22,7 +22,6 @@ smart-campus-system/
 | `features/attendance` | admin-records, student-scan | `/attendance`, `/student/scan` | `AttendanceService` (+ auth for scan) | **Live API** (`POST /api/attendance/admin` Present + Absent; student submit / me) |
 | `features/locations` | locations | `/locations` | `LocationService` | **Live API** (`POST /api/locations/visits` — visit log with assigned zone + student GPS). Catalog `GET /api/locations` is for Sessions / geofence only. |
 | `features/sessions` | sessions (state + flow + UI) | `/sessions` | `SessionService` | **Live API** create / QR / edit / close / delete |
-| `features/reports` | empty folder | `/reports` placeholder | — | — |
 
 ## Shared components → consumers
 
@@ -71,7 +70,6 @@ smart-campus-system/
 | `attendance` | **Live** student submit + `GET /me` (existing sessions only; purges orphans; **excludes Absent**); `POST /admin` lists scanners until `dueAt`, then materializes **Absent** for login-account students who never scanned (`absents_finalized`); submit runs the **geofence check** (FR-02, Haversine vs `radiusMeters`) when the client sends GPS coordinates. **Excel:** `POST /admin/excel` (same filter body, ExcelJS `.xlsx`) |
 | `locations` | **Live** zone catalog (`GET /api/locations`) for session create + geofence, and student visit log (`POST /api/locations/visits` with search/building/status). **Excel:** `POST /api/locations/visits/excel` (same filter body). Default pin is **KIT Phnom Penh Campus** (`LOC-001`, 11.5479313, 104.9405941, 80 m). Visit rows show the assigned zone plus the student’s scan GPS (`latitude` / `longitude` stored on `attendance_records`); zone `latitude/longitude/radiusMeters` are consumed by the attendance geofence check |
 | `sessions` | **Live** create / list / QR / **edit** (`POST /:id/edit`) / close / **delete** (delete cascades attendance by `session_id`) |
-| `reports` | Registered boundary; frontend page is still a placeholder |
 | `ai` | **Live** `POST /api/ai/live-token` (teacher + student): mints a constrained Gemini Live ephemeral token (`gemini-3.1-flash-live-preview`) without preloading campus records. Teacher instruction waits for speech. Student instruction greets with one short Good morning / afternoon / evening line (Asia/Phnom_Penh) and already knows the full campus loop (teacher session + QR → GPS gate → Present / Outside Location → due / close / delete); it does not tutorial those steps on the first turn. Student snapshots mark each live class **already recorded** vs **not yet recorded** from this student's scans. Students can say **mark all** to check in every eligible live class in one tool call (GPS still required). `GET/POST /api/ai/campus-records` for teachers reads Dashboard, Students, Attendance, Locations (visit log + zone catalog), and Sessions. For students it returns **only that student's** open classes and My attendance scans. `GEMINI_API_KEY` stays on Nest. SVG talking-person widget streams English audio (mouth follows playback; no photo, video, or transcript bubble). Staff widget is tap-to-start in the admin workspace; student scan auto-starts in the scan workspace and can be stopped by voice or the X control. |
 | TypeORM / migrations | Users/students/sessions/attendance persist via TypeORM (`synchronize: true` in dev) |
 
@@ -83,7 +81,7 @@ or persistence.
 ## README vs code (known drift)
 
 Root `README.md` lists broader product areas (courses, requests, notifications, roles UI, settings).  
-**Current product nav is attendance-first** (`ADMIN_NAVIGATION`): Dashboard, Students, Attendance, Locations, Sessions, Reports. Teacher is campus administration and sees the full list, including Students (create email + password). Prefer the nav constants and routes over the older README feature list when deciding scope.
+**Current product nav is attendance-first** (`ADMIN_NAVIGATION`): Dashboard, Students, Attendance, Locations, Sessions. Teacher is campus administration and sees the full list, including Students (create email + password). There is no Reports page. Prefer the nav constants and routes over the older README feature list when deciding scope.
 
 ## Data dependency example (Locations visit log)
 

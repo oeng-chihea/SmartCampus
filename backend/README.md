@@ -26,7 +26,7 @@ modules/<feature>/
 ```
 
 The registered modules are `auth`, `users`, `students`, `dashboard`,
-`attendance`, `locations`, `sessions`, and `reports`. Only demo authentication
+`attendance`, `locations`, and `sessions`. Only demo authentication
 has runtime feature behavior in this phase. Empty controllers intentionally do
 not expose placeholder endpoints.
 

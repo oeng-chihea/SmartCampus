@@ -23,7 +23,7 @@ Read `references/page-flows.md` for the full route table and file map.
   created; "Try again" dialog), while a granted fix outside the session's
   radius still records but as **Outside Location** instead of Present.
 - Frontend is Angular; backend NestJS is live for login, dashboard, attendance,
-  locations, sessions, and student scan. Reports is still a placeholder.
+  locations, sessions, and student scan. There is no Reports page; Excel export is on Attendance and Locations.
 
 ## Entry and exit
 
@@ -68,14 +68,13 @@ Read `references/page-flows.md` for the full route table and file map.
     /attendance  → AdminRecordsComponent   (records + filters)
     /locations   → LocationsComponent      (student visit log table)
     /sessions    → SessionsComponent       (create session, live QR, edit, close, delete)
-    /reports     → AdminPlaceholderPage    (placeholder; Excel export is on Attendance / Locations)
     **           → redirect to dashboard
 ```
 
 **Navigation between admin pages** is **sidebar links only** (no deep page-to-page wizards yet):
 
 1. User is inside `AdminLayoutComponent` (sidebar + `router-outlet`).
-2. Sidebar reads `ADMIN_NAVIGATION` (full staff nav, including Students and Reports).
+2. Sidebar reads `ADMIN_NAVIGATION` (full staff nav, including Students; no Reports item).
 3. Clicking a nav item `routerLink`s to that path; active state via `routerLinkActive`.
 4. Content page loads inside the workspace; layout and session stay the same.
 5. **Sign out** in sidebar footer → logout → `/auth/login`.
@@ -93,7 +92,6 @@ Read `references/page-flows.md` for the full route table and file map.
 | Sessions | ⋮ → Edit session | Same page; `POST /api/sessions/:id/edit`; title / location only (due frozen) |
 | Sessions | ⋮ → Close | Same page; Closed; students lose open card; history kept |
 | Sessions | ⋮ → Delete | Same page; session removed; **attendance for that sessionId cascaded** |
-| Any teacher page | Sidebar → Reports | `/reports` (placeholder). Excel export also lives on Attendance and Locations |
 | Locations | Change filters | Same page; `POST /api/locations/visits` (search, building, status). Building and status dropdowns apply immediately (no Apply button). |
 | Locations | Export | Same page; `POST /api/locations/visits/excel` (same filters) → `.xlsx` download |
 | Attendance | Export | Same page; `POST /api/attendance/admin/excel` (same filters) → `.xlsx` download |
@@ -148,7 +146,7 @@ Read `references/page-flows.md` for the full route table and file map.
 Special cases:
 
 - **Students** cannot use teacher routes → sent to `/student/scan`.
-- **Teachers** see the full staff sidebar including Students and Reports, and can create student email + password accounts.
+- **Teachers** see the full staff sidebar including Students, and can create student email + password accounts. Reports is not a teacher page.
 
 ## Data flow on each page (current)
 
@@ -168,13 +166,13 @@ Live pages: **state** (signals) + **flow** (API) + thin component.
 
 Backend today: auth login, dashboard, locations, sessions/QR, student attendance
 submit, admin attendance, and the student directory/accounts API are live.
-Reports is still a placeholder.
+There is no Reports page; Excel export is on Attendance and Locations.
 
 ## How to explain the product to someone new
 
 1. Start at **login** — teachers use the seeded Teacher Kim account; students use the
    personal account their teacher created (only Chihea is pre-seeded).
-2. **Teacher** lands on **Dashboard** → sidebar includes Students, Attendance, Locations, Sessions, Reports. Primary live work is **Sessions** (QR); **Students** is where they create email + password accounts. Export lives on Attendance and Locations.
+2. **Teacher** lands on **Dashboard** → sidebar includes Students, Attendance, Locations, Sessions. Primary live work is **Sessions** (QR); **Students** is where they create email + password accounts. Export lives on Attendance and Locations. There is no Reports page.
 3. **Student** lands on **Scan** → sees same live QR as teacher → **Mark me present**
    (before due); after due, dialog blocks mark/scan until teacher closes the session.
 4. Everything protected by **auth + role**; wrong role never stays on the wrong shell.
@@ -197,7 +195,7 @@ Reports is still a placeholder.
 
 ## Teacher role (short)
 
-Teachers use the staff shell and **can** open `/students` (create email + password) and `/reports`. Their primary
+Teachers use the staff shell and **can** open `/students` (create email + password). Their primary
 live workflow is **`/sessions`**: create session dialog (**title, location, due date + time**)
 → short-lived QR → **Edit session** (`POST /api/sessions/:id/edit`, title + location; due stays as created) → **Close**
 (end class; drops student open list; history kept) and/or

@@ -93,6 +93,7 @@ Login as teacher
 | Issue QR for another teacher’s session | Backend `assertCanManage` (owner only) |
 | Create session without Active location | Backend rejects Inactive zones |
 | Change session due after create | Edit dialog hides Due; `POST /api/sessions/:id/edit` accepts title + location only |
+| Open a Reports page | Not in `ADMIN_NAVIGATION`; `/reports` redirects to `/dashboard` |
 
 ## Sidebar (teacher)
 
@@ -102,8 +103,9 @@ Full staff nav (teacher is administration):
 2. Students ← create email + password, toggle login  
 3. Attendance (includes Excel export)  
 4. Locations (includes Excel export)  
-5. Sessions ← **primary live session workflow**  
-6. Reports (placeholder; Excel export is also on Attendance and Locations)
+5. Sessions ← **primary live session workflow**
+
+There is **no Reports** sidebar item or `/reports` page. Excel export is on Attendance and Locations.
 
 Defined in `admin-navigation.ts`; shown in full on `AdminLayoutComponent`.
 
@@ -177,7 +179,7 @@ GPS / Outside Location on student submit is **live** (FR-02) — see
 ## When coding for teachers
 
 1. Keep teacher on **AdminLayout** children; do not invent a separate teacher layout.  
-2. Teacher is campus administration — `/students` (email + password) and `/reports` stay on this role.  
+2. Teacher is campus administration — `/students` (email + password) stays on this role. Do not add a Reports sidebar item or `/reports` page.  
 3. Session create / QR / **edit** / close / **delete** go through `SessionService` + Bearer token.  
 4. Prefer dialogs for create / edit forms (match Sessions).  
 5. Keep Sessions display formats via the shared helpers above (do not reintroduce locale `short` dates or `, Room ` labels on this page).  

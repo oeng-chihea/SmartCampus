@@ -25,7 +25,6 @@ const PAGE_PATH: Record<CampusVoicePage, string> = {
   locations: `/${APP_ROUTES.locations}`,
   sessions: `/${APP_ROUTES.sessions}`,
   students: `/${APP_ROUTES.students}`,
-  reports: `/${APP_ROUTES.reports}`,
   scan: `/${APP_ROUTES.studentScan}`,
 };
 
@@ -35,7 +34,6 @@ const PAGE_LABEL: Record<CampusVoicePage, string> = {
   locations: 'Locations',
   sessions: 'Sessions',
   students: 'Students',
-  reports: 'Reports',
   scan: 'Mark attendance',
 };
 
@@ -139,7 +137,7 @@ export class VoiceToolExecutor {
     const page = pageRaw.trim().toLowerCase() as CampusVoicePage;
     if (!PAGE_PATH[page]) {
       return fail(
-        'I can open Dashboard, Students, Attendance, Locations, Sessions, or Reports.',
+        'I can open Dashboard, Students, Attendance, Locations, or Sessions.',
       );
     }
     if (this.auth.role() === 'student' && page !== 'scan') {

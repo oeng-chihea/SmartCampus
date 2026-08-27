@@ -6,7 +6,6 @@ export type CampusVoicePage =
   | 'locations'
   | 'sessions'
   | 'students'
-  | 'reports'
   | 'scan';
 
 export interface CampusVoiceFunctionDeclaration {
@@ -26,7 +25,6 @@ const STAFF_PAGES: CampusVoicePage[] = [
   'locations',
   'sessions',
   'students',
-  'reports',
 ];
 
 const STUDENT_PAGES: CampusVoicePage[] = ['scan'];
@@ -42,7 +40,6 @@ function pageListLabel(pages: CampusVoicePage[]): string {
     locations: 'Locations',
     sessions: 'Sessions',
     students: 'Students',
-    reports: 'Reports',
     scan: 'Mark attendance',
   };
   const named = pages.map((page) => labels[page]);

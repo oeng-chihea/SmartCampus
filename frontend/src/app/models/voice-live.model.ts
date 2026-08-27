@@ -4,7 +4,6 @@ export type CampusVoicePage =
   | 'locations'
   | 'sessions'
   | 'students'
-  | 'reports'
   | 'scan';
 
 export type VoiceLiveStatus =

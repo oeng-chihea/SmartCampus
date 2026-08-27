@@ -6,7 +6,6 @@ const CAMPUS_VOICE_PAGES = [
   'locations',
   'sessions',
   'students',
-  'reports',
   'scan',
 ] as const;
 

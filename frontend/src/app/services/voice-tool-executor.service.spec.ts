@@ -9,7 +9,6 @@ describe('voice tool routes', () => {
     expect(`/${APP_ROUTES.locations}`).toBe('/locations');
     expect(`/${APP_ROUTES.sessions}`).toBe('/sessions');
     expect(`/${APP_ROUTES.students}`).toBe('/students');
-    expect(`/${APP_ROUTES.reports}`).toBe('/reports');
     expect(`/${APP_ROUTES.studentScan}`).toBe('/student/scan');
     expect(API_ENDPOINTS.aiCampusRecords).toBe('/ai/campus-records');
   });

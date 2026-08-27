@@ -3,7 +3,7 @@
 This workspace contains two application projects:
 
 - `frontend/` - Angular application for teacher (administration) and student user interfaces.
-- `backend/` - NestJS API application for authentication, management modules, and reporting.
+- `backend/` - NestJS API application for authentication and management modules.
 
 ## Project Structure
 
@@ -33,7 +33,6 @@ smart-campus-system/
 - Attendance Management: `frontend/src/app/features/attendance`, `backend/src/modules/attendance`
 - Campus Locations: `frontend/src/app/features/locations`, `backend/src/modules/locations`
 - Attendance Sessions: `frontend/src/app/features/sessions`, `backend/src/modules/sessions`
-- Report System: `frontend/src/app/features/reports`, `backend/src/modules/reports`
 - User identities and roles: `backend/src/modules/users`
 
 The Nest API uses the `/api` prefix. The only implemented feature endpoint in

@@ -15,7 +15,6 @@ Last reviewed against the Angular routes, Sessions live API, and role skills.
 | `/attendance` | AdminLayout | `AdminRecordsComponent` | auth + teacher | **Live API** Present + Absent (own sessions) |
 | `/locations` | AdminLayout | `LocationsComponent` | auth + teacher | **Live API** student visit log + API filters (assigned zone + scan GPS) |
 | `/sessions` | AdminLayout | `SessionsComponent` | auth + teacher | **Live API** create / QR / **edit** / close / **delete** |
-| `/reports` | AdminLayout | `AdminPlaceholderPageComponent` | auth + teacher | Placeholder |
 | `/student/scan` | none (standalone page) | `StudentScanComponent` | auth + **student** | **Live** open session QR + Mark present |
 | Unknown under admin | AdminLayout | redirect → dashboard | — | Active |
 
@@ -36,10 +35,9 @@ Defined primarily in:
 | `/attendance` | ✓ | ✗ → scan |
 | `/locations` | ✓ | ✗ → scan |
 | `/sessions` create + QR + edit + close + delete | ✓ (own sessions) | ✗ |
-| `/reports` placeholder | ✓ | ✗ |
 | `/student/scan` | ✗ → dashboard | ✓ |
 | See Students in sidebar | ✓ | n/a |
-| See Reports in sidebar | ✓ | n/a |
+| See Reports in sidebar | ✗ | n/a |
 | See other teachers’ sessions | ✗ own only | n/a |
 
 Teacher-focused detail: `.grok/skills/smart-campus-teacher/`.
@@ -187,7 +185,7 @@ Any /dashboard|/students|... request:
 - Left: `AdminSidebarComponent` (brand, nav, user label, collapse, logout).
 - Right: `<router-outlet>` for feature pages.
 - Sidebar collapse preference: `localStorage` key `smartcampus.admin.sidebarCollapsed`.
-- Teacher nav shows the full staff list including Students and Reports.
+- Teacher nav shows the full staff list including Students. There is no Reports item.
 - Floating **Campus Voice** SVG talking-person widget (`app-voice-assistant`) in the workspace. Mouth follows live Gemini audio (no photo, video, or transcript bubble). `POST /api/ai/live-token` mints a Gemini Live token without preloading campus records. `POST /api/ai/campus-records` reads Dashboard, Students, Attendance, Locations (visits + zone catalog), and Sessions in detail (names, buildings, rooms, distances, dues, login) when the teacher asks a data question. Tools also click the current page. Does not greet until the teacher speaks.
 
 ### Student scan (no shared layout folder)
@@ -240,7 +238,7 @@ Detailed flow: `.grok/skills/smart-campus-student/references/student-account-flo
 |------|---------|----------------|
 | Student scan GPS / geofence | **Live, hard gate** — location permission is mandatory; deny/unsupported/timeout blocks the submit entirely (no record, "Try again" dialog); granted fix outside `radiusMeters` (Haversine) → Outside Location (still recorded) | Consider soft-fail / grace mode if GPS reliability becomes an issue |
 | Student history route | In-page “My scans” only | `/student/history` route |
-| Reports page | Admin-only placeholder | Teachers use Attendance / Locations Excel export |
+| Reports page | **Removed** — not in sidebar or routes | Teachers use Attendance / Locations Excel export |
 | Dashboard UI | **Live** `GET /api/dashboard` | — |
 | Teacher live feed of scans | **Live on `/attendance`** — Present + Absent for the teacher's sessions after due/close | Optional live list on Sessions |
 | Student account bulk import | Admin creates one-by-one | CSV/SIS import + first-login password reset |

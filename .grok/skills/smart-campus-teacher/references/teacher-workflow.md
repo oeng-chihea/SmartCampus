@@ -26,7 +26,6 @@ Both **frontend** and **backend** must run for Sessions and Locations.
     ├─► /attendance ───────────────────── live Present + Absent (own sessions)
     ├─► /locations ────────────────────── live student visit log (zone + scan GPS)
     ├─► /sessions  ────────────────────── LIVE create / QR / edit / close / delete  ★ primary
-    ├─► /reports   ────────────────────── placeholder (Excel export also on Attendance / Locations)
     └─► /students  ────────────────────── create email + password, toggle login
 ```
 
@@ -207,7 +206,8 @@ Sidebar footer "Sign out" → AuthService.logout() → /auth/login
 
 | Action | Result |
 |--------|--------|
-| Open `/dashboard`, `/students`, `/attendance`, `/locations`, `/sessions`, `/reports` | Allowed |
+| Open `/dashboard`, `/students`, `/attendance`, `/locations`, `/sessions` | Allowed |
+| Open `/reports` | Redirect to `/dashboard` (page removed) |
 | Create student email + password on `/students` | Allowed |
 | Open `/student/scan` | Redirect to `/dashboard` (not student) |
 | Visit `/auth/login` while logged in | Redirect to `/dashboard` |

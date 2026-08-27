@@ -127,7 +127,6 @@ backend/src/
     attendance/
     locations/
     sessions/
-    reports/           # teacher placeholder; Excel export is on Attendance / Locations
     ai/                # POST /api/ai/live-token + GET/POST /api/ai/campus-records (Gemini Live English voice; teacher + student)
 ```
 

@@ -3,14 +3,6 @@ import { authGuard, guestGuard, roleGuard } from './core/guards/auth.guard';
 import { AdminLayoutComponent } from './layouts/admin-layout/admin-layout.component';
 import { AuthLayoutComponent } from './layouts/auth-layout/auth-layout.component';
 
-const adminPlaceholder = (title: string) => ({
-  loadComponent: () =>
-    import('./layouts/admin-layout/components/admin-placeholder-page/admin-placeholder-page.component').then(
-      (component) => component.AdminPlaceholderPageComponent,
-    ),
-  data: { title },
-});
-
 export const routes: Routes = [
   {
     path: '',
@@ -58,10 +50,6 @@ export const routes: Routes = [
         path: 'sessions',
         loadChildren: () =>
           import('./routes/sessions.routes').then((module) => module.sessionsRoutes),
-      },
-      {
-        path: 'reports',
-        ...adminPlaceholder('Attendance reports'),
       },
       {
         path: '**',

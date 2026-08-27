@@ -3,8 +3,7 @@ export type AdminNavIcon =
   | 'students'
   | 'attendance'
   | 'locations'
-  | 'sessions'
-  | 'reports';
+  | 'sessions';
 
 export interface AdminNavItem {
   label: string;
@@ -19,5 +18,4 @@ export const ADMIN_NAVIGATION: AdminNavItem[] = [
   { label: 'Attendance', icon: 'attendance', path: '/attendance' },
   { label: 'Locations', icon: 'locations', path: '/locations' },
   { label: 'Sessions', icon: 'sessions', path: '/sessions' },
-  { label: 'Reports', icon: 'reports', path: '/reports' },
 ];

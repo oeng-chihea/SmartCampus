@@ -23,7 +23,6 @@ export const API_ENDPOINTS = {
   sessionClose: (id: string) => `/sessions/${id}/close`,
   sessionEdit: (id: string) => `/sessions/${id}/edit`,
   sessionDelete: (id: string) => `/sessions/${id}`,
-  reports: '/reports',
   scanOrigin: '/runtime/scan-origin',
   aiLiveToken: '/ai/live-token',
   aiCampusRecords: '/ai/campus-records',
