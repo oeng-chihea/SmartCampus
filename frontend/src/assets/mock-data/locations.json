@@ -17,7 +17,7 @@
       "name": "Building A, Room 201",
       "building": "Building A",
       "room": "201",
-      "radiusMeters": 80,
+      "radiusMeters": 200,
       "latitude": 11.5479313,
       "longitude": 104.9405941,
       "status": "Active",

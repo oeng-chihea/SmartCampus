@@ -10,9 +10,12 @@ import { GeolocationFailureReason } from '../../../../core/utils/geolocation.uti
 import {
   formatCampusLocationLabel,
   formatDistanceMeters,
+  formatGeofenceStatus,
   formatScanAccuracy,
   formatScanCoordinates,
   formatScannedAtCell,
+  formatScannedAtPlace,
+  geofenceBadgeVariant,
 } from '../../../../core/utils/format.util';
 import {
   isMarkAllVoiceRequest,
@@ -115,6 +118,7 @@ export class StudentScanComponent implements OnInit, OnDestroy {
           row.latitude,
           row.longitude,
           row.accuracyMeters,
+          row.location,
         ),
     },
     {
@@ -130,8 +134,8 @@ export class StudentScanComponent implements OnInit, OnDestroy {
       type: 'badge',
       width: 'minmax(9.5rem, 0.95fr)',
       align: 'start',
-      value: (row) => row.status,
-      badgeVariant: (row) => row.status.toLowerCase().replace(/\s+/g, '-'),
+      value: (row) => formatGeofenceStatus(row.status),
+      badgeVariant: (row) => geofenceBadgeVariant(row.status),
     },
   ];
 
@@ -221,6 +225,14 @@ export class StudentScanComponent implements OnInit, OnDestroy {
     return formatScanCoordinates(record.latitude, record.longitude);
   }
 
+  scannedAtLabel(record: AttendanceRecord): string {
+    return formatScannedAtPlace(record.scannedLocation, record.location);
+  }
+
+  locationStatusLabel(status: string): string {
+    return formatGeofenceStatus(status);
+  }
+
   accuracyLabel(record: AttendanceRecord): string {
     return formatScanAccuracy(record.accuracyMeters) ?? '—';
   }
@@ -234,7 +246,7 @@ export class StudentScanComponent implements OnInit, OnDestroy {
   }
 
   statusClass(status: string): string {
-    return `record-detail__badge record-detail__badge--${status.toLowerCase().replace(/\s+/g, '-')}`;
+    return `record-detail__badge record-detail__badge--${geofenceBadgeVariant(status)}`;
   }
 
   logout(): void {

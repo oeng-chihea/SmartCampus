@@ -1,3 +1,8 @@
+/** Geofence status label. Stored `Present` means inside the zone. */
+export function formatGeofenceStatus(status: string): string {
+  return status === 'Present' ? 'Inside' : status;
+}
+
 /**
  * Campus location display: `Building A-Room 201`
  * Accepts either building + room parts, or a stored name like `Building A, Room 201`.

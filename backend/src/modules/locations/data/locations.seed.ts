@@ -6,9 +6,10 @@ import { CampusLocationResponseDto } from '../dto/location-response.dto';
  *
  * Default pin (LOC-001) is KIT Phnom Penh Campus from
  * https://maps.app.goo.gl/fWTmb9wFLkMZQRp29
- * (11.5479313, 104.9405941). Other rooms are small offsets on the
- * same campus so each zone has its own radius. The seeder writes these
- * into MySQL on boot; keep `locations.json` in sync.
+ * (11.5479313, 104.9405941). Radius is 200 m so Galileo Street /
+ * Elite Town III scans (~130 m south of the Maps pin) still count as
+ * inside. Other rooms are small offsets on the same campus. The seeder
+ * writes these into MySQL on boot; keep `locations.json` in sync.
  *
  * sessionsUsing starts at 0 and is updated by SessionsService.
  */
@@ -19,13 +20,16 @@ export const DEFAULT_CAMPUS_COORDINATES = {
   longitude: 104.9405941,
 } as const;
 
+/** Default KIT zone radius. Covers the Koh Pich campus compound. */
+export const DEFAULT_LOCATION_RADIUS_METERS = 200;
+
 export const LOCATION_SEED: CampusLocationResponseDto[] = [
   {
     id: DEFAULT_LOCATION_ID,
     name: 'Building A, Room 201',
     building: 'Building A',
     room: '201',
-    radiusMeters: 80,
+    radiusMeters: DEFAULT_LOCATION_RADIUS_METERS,
     latitude: DEFAULT_CAMPUS_COORDINATES.latitude,
     longitude: DEFAULT_CAMPUS_COORDINATES.longitude,
     status: 'Active',

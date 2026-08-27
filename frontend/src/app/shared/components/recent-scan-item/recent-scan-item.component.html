@@ -13,7 +13,7 @@
       <small class="recent-scan__distance">{{ scan().distanceMeters }} m from zone</small>
     }
     <span [class]="'recent-scan__status status-' + statusClass()">
-      {{ scan().status }}
+      {{ statusLabel() }}
     </span>
   </div>
 </article>

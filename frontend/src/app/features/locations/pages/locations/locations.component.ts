@@ -4,8 +4,11 @@ import {
   distanceBadgeVariant,
   formatCampusLocationLabel,
   formatDistanceMeters,
+  formatGeofenceStatus,
   formatScanCoordinates,
   formatScannedAtCell,
+  formatScannedAtPlace,
+  geofenceBadgeVariant,
 } from '../../../../core/utils/format.util';
 import {
   LocationFilterState,
@@ -96,7 +99,13 @@ export class LocationsComponent implements OnInit, OnDestroy {
       width: 'minmax(12rem, 1.8fr)',
       cellClass: 'data-table__cell--scanned-at',
       primary: (row) =>
-        formatScannedAtCell(row.scannedLocation, row.latitude, row.longitude),
+        formatScannedAtCell(
+          row.scannedLocation,
+          row.latitude,
+          row.longitude,
+          undefined,
+          formatCampusLocationLabel(row.building, row.room) || row.locationName,
+        ),
     },
     {
       key: 'recorded',
@@ -120,8 +129,8 @@ export class LocationsComponent implements OnInit, OnDestroy {
       type: 'badge',
       width: 'minmax(12.5rem, 0.95fr)',
       align: 'start',
-      value: (row) => row.status,
-      badgeVariant: (row) => row.status.toLowerCase().replace(/\s+/g, '-'),
+      value: (row) => formatGeofenceStatus(row.status),
+      badgeVariant: (row) => geofenceBadgeVariant(row.status),
     },
   ];
 
@@ -225,7 +234,7 @@ export class LocationsComponent implements OnInit, OnDestroy {
     if (!raw) {
       return undefined;
     }
-    if (raw === 'present') {
+    if (raw === 'present' || raw === 'inside') {
       return 'Present';
     }
     if (raw.includes('outside')) {
@@ -261,6 +270,17 @@ export class LocationsComponent implements OnInit, OnDestroy {
     return formatScanCoordinates(visit.latitude, visit.longitude);
   }
 
+  scannedAtLabel(visit: LocationVisit): string {
+    return formatScannedAtPlace(
+      visit.scannedLocation,
+      this.campusLabel(visit) || visit.locationName,
+    );
+  }
+
+  locationStatusLabel(status: string): string {
+    return formatGeofenceStatus(status);
+  }
+
   distanceLabel(visit: LocationVisit): string {
     return formatDistanceMeters(visit.distanceMeters);
   }
@@ -270,6 +290,6 @@ export class LocationsComponent implements OnInit, OnDestroy {
   }
 
   statusClass(status: string): string {
-    return `record-detail__badge record-detail__badge--${status.toLowerCase().replace(/\s+/g, '-')}`;
+    return `record-detail__badge record-detail__badge--${geofenceBadgeVariant(status)}`;
   }
 }

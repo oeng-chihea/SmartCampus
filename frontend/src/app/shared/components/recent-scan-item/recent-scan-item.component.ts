@@ -1,5 +1,6 @@
 import { Component, computed, input } from '@angular/core';
 import { formatRecentScanTime } from '../../../core/utils/date.util';
+import { formatGeofenceStatus, geofenceBadgeVariant } from '../../../core/utils/format.util';
 import { RecentScan } from '../../../models/dashboard.model';
 
 @Component({
@@ -10,11 +11,9 @@ import { RecentScan } from '../../../models/dashboard.model';
 export class RecentScanItemComponent {
   readonly scan = input.required<RecentScan>();
 
-  readonly statusClass = computed(() =>
-    this.scan()
-      .status.toLowerCase()
-      .replace(/\s+/g, '-'),
-  );
+  readonly statusLabel = computed(() => formatGeofenceStatus(this.scan().status));
+
+  readonly statusClass = computed(() => geofenceBadgeVariant(this.scan().status));
 
   readonly recordedLabel = computed(() => formatRecentScanTime(this.scan().recordedAt));
 }

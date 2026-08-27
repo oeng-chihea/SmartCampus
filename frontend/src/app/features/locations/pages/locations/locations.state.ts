@@ -1,4 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
+import { formatGeofenceStatus } from '../../../../core/utils/format.util';
 import {
   LocationFilterState,
   LocationFilters,
@@ -29,13 +30,20 @@ const EMPTY_FILTERS: LocationFilters = {
   buildingOptions: [ALL_BUILDINGS],
   statusOptions: [
     ALL_STATUSES,
-    { value: 'Present', label: 'Present' },
+    { value: 'Present', label: 'Inside' },
     { value: 'Outside Location', label: 'Outside Location' },
   ],
 };
 
 function toSelectOptions(values: string[]): SelectOption[] {
   return values.map((value) => ({ value, label: value }));
+}
+
+function toStatusOptions(values: string[]): SelectOption[] {
+  return values.map((value) => ({
+    value,
+    label: formatGeofenceStatus(value),
+  }));
 }
 
 /**
@@ -78,7 +86,7 @@ export class LocationsPageState {
       statusOptions: [
         ALL_STATUSES,
         ...(statuses.length > 0
-          ? toSelectOptions(statuses)
+          ? toStatusOptions(statuses)
           : EMPTY_FILTERS.statusOptions.slice(1)),
       ],
     };
@@ -140,7 +148,7 @@ export class LocationsPageState {
         tone: 'green',
       },
       {
-        label: 'Present',
+        label: 'Inside',
         value: String(metrics.present),
         helper: 'Inside the session geofence',
         icon: 'present',

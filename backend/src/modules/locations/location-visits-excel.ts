@@ -7,7 +7,7 @@ import {
   fileDateStamp,
   workbookToBuffer,
 } from '../../common/utils/excel.util';
-import { formatCampusLocationLabel } from '../../common/utils/format.util';
+import { formatCampusLocationLabel, formatGeofenceStatus } from '../../common/utils/format.util';
 import { LocationVisitFilterDto } from './dto/location-visit-filter.dto';
 import { LocationVisitPageResponseDto } from './dto/location-visit-response.dto';
 
@@ -58,12 +58,14 @@ export async function buildLocationVisitsExcel(
       location: formatCampusLocationLabel(row.building, row.room),
       building: row.building,
       room: row.room,
-      scannedAt: row.scannedLocation?.trim() ?? '',
+      scannedAt:
+        row.scannedLocation?.trim() ||
+        formatCampusLocationLabel(row.building, row.room),
       latitude: row.latitude,
       longitude: row.longitude,
       time: excelDateFromIso(row.recordedAt),
       distance: row.distanceMeters,
-      status: row.status,
+      status: formatGeofenceStatus(row.status),
     })),
   );
 

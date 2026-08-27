@@ -257,7 +257,7 @@
       </div>
       <div class="record-detail__item record-detail__item--wide">
         <dt>Scanned at</dt>
-        <dd>{{ record.scannedLocation || coordinatesLabel(record) }}</dd>
+        <dd>{{ scannedAtLabel(record) }}</dd>
       </div>
       <div class="record-detail__item">
         <dt>Coordinates</dt>
@@ -274,7 +274,7 @@
       <div class="record-detail__item record-detail__item--wide">
         <dt>Status</dt>
         <dd>
-          <span [class]="statusClass(record.status)">{{ record.status }}</span>
+          <span [class]="statusClass(record.status)">{{ locationStatusLabel(record.status) }}</span>
         </dd>
       </div>
     </dl>

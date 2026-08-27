@@ -1,6 +1,6 @@
 import { AttendanceRecord } from '../../models/attendance.model';
 import { LocationVisit } from '../../models/location.model';
-import { formatCampusLocationLabel, formatDistanceMeters } from './format.util';
+import { formatCampusLocationLabel, formatDistanceMeters, formatGeofenceStatus } from './format.util';
 import { CampusVoiceAttendanceSummary } from '../../models/voice-live.model';
 
 export const VOICE_RECORD_DETAIL_HINT =
@@ -37,14 +37,14 @@ export function formatLocationVoiceSummary(visits: LocationVisit[]): string {
 
 export function formatAttendanceRecordVoiceDetail(row: AttendanceRecord): string {
   const distance = formatDistanceMeters(row.distanceMeters);
-  const place = row.scannedLocation?.trim() || 'unspecified place';
+  const place = row.scannedLocation?.trim() || row.location || 'unspecified place';
   return [
     row.student,
     row.studentId,
     row.session,
     row.location,
     row.attendanceStatus,
-    row.status,
+    formatGeofenceStatus(row.status),
     distance === '—' ? 'no distance' : distance,
     `scanned at ${place}`,
   ].join(', ');
@@ -59,7 +59,7 @@ export function formatLocationVisitVoiceDetail(row: LocationVisit): string {
     row.session,
     place,
     row.building,
-    row.status,
+    formatGeofenceStatus(row.status),
     distance === '—' ? 'no distance' : distance,
     row.scannedLocation ? `scanned at ${row.scannedLocation}` : '',
   ]

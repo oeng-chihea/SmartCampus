@@ -451,7 +451,7 @@ describe('AttendanceService', () => {
 
   it('submits Present when before the due time and inside the geofence', async () => {
     const { payload } = await openSessionWithPayload(45);
-    // LOC-001 is KIT Phnom Penh (11.5479313, 104.9405941), 80m radius.
+    // LOC-001 is KIT Phnom Penh (11.5479313, 104.9405941), 200m radius.
     const record = await attendance.submit(
       { payload, latitude: 11.54795, longitude: 104.94061, accuracyMeters: 18 },
       student,
@@ -489,7 +489,7 @@ describe('AttendanceService', () => {
 
   it('submits Present with distance when GPS is inside the geofence', async () => {
     const { payload } = await openSessionWithPayload(45);
-    // LOC-001 is KIT Phnom Penh (11.5479313, 104.9405941), 80m radius.
+    // LOC-001 is KIT Phnom Penh (11.5479313, 104.9405941), 200m radius.
     const record = await attendance.submit(
       { payload, latitude: 11.54795, longitude: 104.94061, accuracyMeters: 12 },
       student,
@@ -497,23 +497,41 @@ describe('AttendanceService', () => {
 
     expect(record.status).toBe('Present');
     expect(record.distanceMeters).not.toBeNull();
-    expect(record.distanceMeters as number).toBeLessThanOrEqual(80);
+    expect(record.distanceMeters as number).toBeLessThanOrEqual(200);
     expect(record.latitude).toBe(11.54795);
     expect(record.longitude).toBe(104.94061);
   });
 
   it('marks Outside Location when GPS falls outside the geofence radius', async () => {
     const { payload } = await openSessionWithPayload(45);
-    // Same session (LOC-001, 80m radius) but far outside coordinates.
+    // Same session (LOC-001, 200m radius) but far outside coordinates.
     const record = await attendance.submit(
       { payload, latitude: 11.6, longitude: 105.0, accuracyMeters: 20 },
       student,
     );
 
     expect(record.status).toBe('Outside Location');
-    expect(record.distanceMeters as number).toBeGreaterThan(80);
+    expect(record.distanceMeters as number).toBeGreaterThan(200);
     expect(record.latitude).toBe(11.6);
     expect(record.longitude).toBe(105.0);
+  });
+
+  it('submits Present for a Galileo Street scan inside the 200 m KIT zone', async () => {
+    const { payload } = await openSessionWithPayload(45);
+    // ~131 m south of the Maps pin — previously Outside Location at 80 m.
+    const record = await attendance.submit(
+      {
+        payload,
+        latitude: 11.546736,
+        longitude: 104.940616,
+        accuracyMeters: 18,
+      },
+      student,
+    );
+
+    expect(record.status).toBe('Present');
+    expect(record.distanceMeters as number).toBeGreaterThan(100);
+    expect(record.distanceMeters as number).toBeLessThanOrEqual(200);
   });
 
   it('rejects submit after the due time', async () => {

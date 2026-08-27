@@ -7,6 +7,34 @@ export function toTitleCase(value: string): string {
 }
 
 /**
+ * Geofence status shown in tables and record detail.
+ * Stored `Present` means inside the zone; attendance check-in stays Present.
+ */
+export function formatGeofenceStatus(status: string): string {
+  return status === 'Present' ? 'Inside' : status;
+}
+
+export function geofenceBadgeVariant(status: string): string {
+  return formatGeofenceStatus(status).toLowerCase().replace(/\s+/g, '-');
+}
+
+/** Place name for Scanned at. Never falls back to raw coordinates. */
+export function formatScannedAtPlace(
+  scannedLocation: string | null | undefined,
+  fallbackName?: string | null,
+): string {
+  const place = scannedLocation?.trim();
+  if (place) {
+    return place;
+  }
+  const fallback = fallbackName?.trim();
+  if (fallback) {
+    return fallback;
+  }
+  return '—';
+}
+
+/**
  * Campus location display: `Building A-Room 201`
  * Accepts either building + room parts, or a stored name like `Building A, Room 201`.
  */
@@ -109,13 +137,14 @@ export function formatGpsReading(coords: {
 /**
  * Scanned-at table cell: place name first, coordinates underneath,
  * GPS accuracy as a separate chip so `±16 m` is easy to spot.
- * Falls back to coordinates alone when reverse geocode is missing.
+ * Falls back to the campus zone name when reverse geocode is missing.
  */
 export function formatScannedAtCell(
   scannedLocation: string | null | undefined,
   latitude: number | null | undefined,
   longitude: number | null | undefined,
   accuracyMeters?: number | null,
+  fallbackName?: string | null,
 ): {
   title: string;
   subtitle?: string;
@@ -126,8 +155,8 @@ export function formatScannedAtCell(
   const coordinates = formatScanCoordinates(latitude, longitude);
   const subtitle = coordinates === '—' ? undefined : coordinates;
   const chip = formatScanAccuracyChip(accuracyMeters);
-  const place = scannedLocation?.trim();
-  if (place) {
+  const place = formatScannedAtPlace(scannedLocation, fallbackName);
+  if (place !== '—') {
     return {
       title: place,
       subtitle,

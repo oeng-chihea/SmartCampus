@@ -7,7 +7,7 @@ import {
   fileDateStamp,
   workbookToBuffer,
 } from '../../common/utils/excel.util';
-import { formatCampusLocationLabel } from '../../common/utils/format.util';
+import { formatCampusLocationLabel, formatGeofenceStatus } from '../../common/utils/format.util';
 import { AdminAttendanceFilterDto } from './dto/admin-attendance-filter.dto';
 import { AdminAttendanceResponseDto } from './dto/admin-attendance-response.dto';
 
@@ -72,12 +72,14 @@ export async function buildAttendanceExcel(
       studentId: row.studentId,
       session: row.session,
       location: formatCampusLocationLabel(row.location),
-      scannedAt: row.scannedLocation?.trim() ?? '',
+      scannedAt:
+        row.scannedLocation?.trim() ||
+        formatCampusLocationLabel(row.location),
       latitude: row.latitude,
       longitude: row.longitude,
       time: excelDateFromIso(row.recordedAt),
       distance: row.distanceMeters,
-      status: row.status,
+      status: formatGeofenceStatus(row.status),
       attendanceStatus: row.attendanceStatus,
     })),
   );

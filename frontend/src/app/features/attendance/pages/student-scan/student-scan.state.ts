@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { formatGeofenceStatus } from '../../../../core/utils/format.util';
 import {
   DeviceCoordinates,
   GeolocationFailureReason,
@@ -76,7 +77,9 @@ export class StudentScanPageState {
   }
 
   submitSucceeded(record: AttendanceRecord): void {
-    this.success.set(`You’re marked ${record.status} for “${record.session}”.`);
+    this.success.set(
+      `You’re marked ${formatGeofenceStatus(record.status)} for “${record.session}”.`,
+    );
     this.myRecords.update((rows) => [
       record,
       ...rows.filter((r) => r.id !== record.id),

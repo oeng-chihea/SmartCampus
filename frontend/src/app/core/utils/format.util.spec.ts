@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   distanceBadgeVariant,
   formatDistanceMeters,
+  formatGeofenceStatus,
   formatGpsReading,
   formatScanAccuracyChip,
   formatScannedAtCell,
+  formatScannedAtPlace,
 } from './format.util';
 
 describe('formatGpsReading', () => {
@@ -40,6 +42,30 @@ describe('formatScanAccuracyChip', () => {
   });
 });
 
+describe('formatGeofenceStatus', () => {
+  it('labels an inside-zone scan as Inside', () => {
+    expect(formatGeofenceStatus('Present')).toBe('Inside');
+  });
+
+  it('keeps Outside Location and Absent unchanged', () => {
+    expect(formatGeofenceStatus('Outside Location')).toBe('Outside Location');
+    expect(formatGeofenceStatus('Absent')).toBe('Absent');
+  });
+});
+
+describe('formatScannedAtPlace', () => {
+  it('prefers the reverse-geocoded place name', () => {
+    expect(
+      formatScannedAtPlace('Elite Town III, Koh Pich', 'Building A, Room 201'),
+    ).toBe('Elite Town III, Koh Pich');
+  });
+
+  it('falls back to the campus zone name when geocode is missing', () => {
+    expect(formatScannedAtPlace(null, 'Building A, Room 201')).toBe(
+      'Building A, Room 201',
+    );
+  });
+});
 describe('formatDistanceMeters', () => {
   it('prints a rounded meter badge label', () => {
     expect(formatDistanceMeters(3046)).toBe('3046 m');
@@ -84,13 +110,18 @@ describe('formatScannedAtCell', () => {
     });
   });
 
-  it('falls back to coordinates as the title when the place name is missing', () => {
-    expect(formatScannedAtCell(null, 11.528035, 104.922967, 16)).toEqual({
-      title: '11.528035, 104.922967',
+  it('falls back to the campus zone name when the place name is missing', () => {
+    expect(
+      formatScannedAtCell(null, 11.528035, 104.922967, 16, 'Building A, Room 201'),
+    ).toEqual({
+      title: 'Building A, Room 201',
+      subtitle: '11.528035, 104.922967',
       chip: {
         label: '±16 m',
         title: 'Phone GPS accuracy ±16 m',
       },
+      truncate: true,
+      titleAttr: 'Building A, Room 201',
     });
   });
 

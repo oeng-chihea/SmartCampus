@@ -76,6 +76,7 @@ describe('voice record summary', () => {
     expect(detail).toContain('Building A-Room 201');
     expect(detail).toContain('12 m');
     expect(detail).toContain('scanned at KIT');
+    expect(detail).toContain('Inside');
   });
 
   it('reads visit building, room, and distance', () => {

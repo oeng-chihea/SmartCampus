@@ -487,7 +487,7 @@ describe('SessionsService', () => {
       locationName: 'Building A, Room 201',
       latitude: 11.5479313,
       longitude: 104.9405941,
-      radiusMeters: 80,
+      radiusMeters: 200,
     });
     expect(live[0].qr.payload).toContain('SMARTCAMPUS|');
   });

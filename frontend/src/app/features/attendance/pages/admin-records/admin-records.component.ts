@@ -6,8 +6,11 @@ import {
 import {
   distanceBadgeVariant,
   formatDistanceMeters,
+  formatGeofenceStatus,
   formatScanCoordinates,
   formatScannedAtCell,
+  formatScannedAtPlace,
+  geofenceBadgeVariant,
 } from '../../../../core/utils/format.util';
 import {
   AttendanceFilterState,
@@ -95,7 +98,13 @@ export class AdminRecordsComponent implements OnInit, OnDestroy {
       width: 'minmax(16rem, 2.5fr)',
       cellClass: 'data-table__cell--scanned-at',
       primary: (row) =>
-        formatScannedAtCell(row.scannedLocation, row.latitude, row.longitude),
+        formatScannedAtCell(
+          row.scannedLocation,
+          row.latitude,
+          row.longitude,
+          undefined,
+          row.location,
+        ),
     },
     {
       key: 'time',
@@ -119,8 +128,8 @@ export class AdminRecordsComponent implements OnInit, OnDestroy {
       type: 'badge',
       width: 'minmax(9.5rem, 0.95fr)',
       align: 'start',
-      value: (row) => row.status,
-      badgeVariant: (row) => row.status.toLowerCase().replace(/\s+/g, '-'),
+      value: (row) => formatGeofenceStatus(row.status),
+      badgeVariant: (row) => geofenceBadgeVariant(row.status),
     },
     {
       key: 'attendanceStatus',
@@ -268,6 +277,14 @@ export class AdminRecordsComponent implements OnInit, OnDestroy {
     return formatScanCoordinates(record.latitude, record.longitude);
   }
 
+  scannedAtLabel(record: AttendanceRecord): string {
+    return formatScannedAtPlace(record.scannedLocation, record.location);
+  }
+
+  locationStatusLabel(status: string): string {
+    return formatGeofenceStatus(status);
+  }
+
   distanceLabel(record: AttendanceRecord): string {
     return formatDistanceMeters(record.distanceMeters);
   }
@@ -277,6 +294,6 @@ export class AdminRecordsComponent implements OnInit, OnDestroy {
   }
 
   statusClass(status: string): string {
-    return `record-detail__badge record-detail__badge--${status.toLowerCase().replace(/\s+/g, '-')}`;
+    return `record-detail__badge record-detail__badge--${geofenceBadgeVariant(status)}`;
   }
 }

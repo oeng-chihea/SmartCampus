@@ -521,9 +521,9 @@ export class AttendanceService {
   }
 
   /**
-   * Name lookup must not block the scan. Wait up to 1s for a single
-   * Nominatim call; if it is still running, return the saved row and
-   * patch `scannedLocation` when the name arrives.
+   * Name lookup must not block the scan. Wait up to 2s for a single
+   * Nominatim call; if it is still running, save the campus zone name
+   * and patch `scannedLocation` when the street name arrives.
    */
   private async attachScannedLocation(
     record: AttendanceRecordEntity,
@@ -535,11 +535,16 @@ export class AttendanceService {
       dto.accuracyMeters,
     );
 
-    const scannedLocation = await withTimeout(lookup, 1_000);
+    const scannedLocation = await withTimeout(lookup, 2_000);
+    const resolved =
+      scannedLocation ?? record.location?.trim() ?? null;
+
+    if (resolved) {
+      record.scannedLocation = resolved;
+      await this.records.save(record);
+    }
 
     if (scannedLocation) {
-      record.scannedLocation = scannedLocation;
-      await this.records.save(record);
       return;
     }
 
