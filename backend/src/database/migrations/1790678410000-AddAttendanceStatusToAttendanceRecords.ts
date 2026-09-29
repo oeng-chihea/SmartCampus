@@ -15,12 +15,12 @@ export class AddAttendanceStatusToAttendanceRecords1790678410000
     // Preserve the legacy status interpretation for records created before
     // attendance status was stored separately from the geofence status.
     await queryRunner.query(
-      `UPDATE `attendance_records`
-       SET `attendance_status` = CASE
-         WHEN `status` = 'Absent' OR `status` IS NULL THEN 'Absent'
+      `UPDATE attendance_records
+       SET attendance_status = CASE
+         WHEN status = 'Absent' OR status IS NULL THEN 'Absent'
          ELSE 'Present'
        END
-       WHERE `attendance_status` IS NULL`,
+       WHERE attendance_status IS NULL`,
     );
   }
 
