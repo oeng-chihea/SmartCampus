@@ -2,6 +2,7 @@ import { Repository } from 'typeorm';
 import { USER_ROLES } from '../../common/constants/roles.constant';
 import { SESSION_STATUS } from '../../common/constants/session.constant';
 import { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import { AttendanceRecordEntity } from '../../database/entities/attendance-record.entity';
 import { SessionEntity } from '../../database/entities/session.entity';
 import { StudentEntity } from '../../database/entities/student.entity';
 import { AttendanceService } from '../attendance/attendance.service';
@@ -75,7 +76,11 @@ describe('buildMonthlyTrend', () => {
   it('counts Outside Location scans as Present on the attendance-status series', () => {
     const trend = buildMonthlyTrend(
       [
-        scan({ id: 'out', status: 'Outside Location', attendanceStatus: 'Present' }),
+        scan({
+          id: 'out',
+          status: 'Outside Location',
+          attendanceStatus: 'Present',
+        }),
         scan({
           id: 'abs',
           status: null,
@@ -129,30 +134,71 @@ describe('pickRecentScans', () => {
 
 describe('DashboardService', () => {
   let service: DashboardService;
-  let findAdminRecords: jest.Mock;
+  let reconcileAbsents: jest.Mock;
+  let createQueryBuilder: jest.Mock;
   let studentCount: jest.Mock;
   let sessionCount: jest.Mock;
 
   beforeEach(() => {
-    findAdminRecords = jest.fn(async () => ({
-      records: [
-        scan({ id: 's1' }),
-        scan({
-          id: 'abs',
-          status: null,
-          attendanceStatus: 'Absent',
-          distanceMeters: null,
-        }),
-      ],
-      metrics: { present: 0, late: 0, absent: 1, outsideLocation: 1 },
-      statusOptions: ['Inside', 'Outside Location'],
-      attendanceStatusOptions: ['Present', 'Absent'],
-    }));
+    const makeQueryBuilder = () => {
+      const builder: Record<string, jest.Mock> = {};
+      for (const method of [
+        'innerJoin',
+        'select',
+        'addSelect',
+        'where',
+        'andWhere',
+        'groupBy',
+        'orderBy',
+        'take',
+        'setParameters',
+      ]) {
+        builder[method] = jest.fn(() => builder);
+      }
+      builder.getRawMany = jest.fn(async () => [
+        {
+          month: 8,
+          present: 1,
+          absent: 1,
+          outsideLocation: 1,
+          todayPresent: 1,
+          todayAbsent: 1,
+          todayOutsideLocation: 1,
+        },
+      ]);
+      builder.getMany = jest.fn(async () => [
+        {
+          id: 's1',
+          student: 'Chihea',
+          studentId: 'SC-1001',
+          sessionId: 'ses-a',
+          session: 'Teacher coming for today',
+          location: 'Building A, Room 201',
+          recordedAt: new Date('2026-08-20T16:30:00.000Z'),
+          status: 'Inside',
+          attendanceStatus: 'Present',
+          distanceMeters: 12,
+          latitude: 11.54795,
+          longitude: 104.94061,
+          scannedLocation: null,
+          accuracyMeters: 18,
+        } as AttendanceRecordEntity,
+      ]);
+      return builder;
+    };
+    const statsQuery = makeQueryBuilder();
+    const recentQuery = makeQueryBuilder();
+    createQueryBuilder = jest
+      .fn()
+      .mockReturnValueOnce(statsQuery)
+      .mockReturnValueOnce(recentQuery);
+    reconcileAbsents = jest.fn(async () => undefined);
     studentCount = jest.fn(async () => 3);
     sessionCount = jest.fn(async () => 2);
 
     service = new DashboardService(
-      { findAdminRecords } as unknown as AttendanceService,
+      { reconcileAbsents } as unknown as AttendanceService,
+      { createQueryBuilder } as unknown as Repository<AttendanceRecordEntity>,
       { count: studentCount } as unknown as Repository<StudentEntity>,
       { count: sessionCount } as unknown as Repository<SessionEntity>,
     );
@@ -162,7 +208,8 @@ describe('DashboardService', () => {
     const now = new Date('2026-08-20T16:45:00.000Z');
     const page = await service.getAdminDashboard(teacher, now);
 
-    expect(findAdminRecords).toHaveBeenCalledWith({}, teacher, now);
+    expect(reconcileAbsents).toHaveBeenCalledWith(teacher, now);
+    expect(createQueryBuilder).toHaveBeenCalledTimes(2);
     expect(page.trendYear).toBe(2026);
     expect(page.summaryCards[0].value).toBe('3');
     expect(page.summaryCards[1].label).toBe('Present today');

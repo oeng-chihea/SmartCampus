@@ -8,8 +8,9 @@ import {
 import { USER_ROLES } from '../../common/constants/roles.constant';
 import { SESSION_STATUS } from '../../common/constants/session.constant';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
-import { campusDateParts, isSameCampusDay } from '../../common/utils/date.util';
+import { campusDateParts, toIsoDate } from '../../common/utils/date.util';
 import { formatCampusLocationLabel } from '../../common/utils/format.util';
+import { AttendanceRecordEntity } from '../../database/entities/attendance-record.entity';
 import { SessionEntity } from '../../database/entities/session.entity';
 import { StudentEntity } from '../../database/entities/student.entity';
 import { AttendanceService } from '../attendance/attendance.service';
@@ -46,10 +47,33 @@ interface StatusTally {
   outsideLocation: number;
 }
 
+interface MonthlyAttendanceAggregate {
+  month: string | number;
+  present: string | number;
+  absent: string | number;
+  outsideLocation: string | number;
+  todayPresent: string | number;
+  todayAbsent: string | number;
+  todayOutsideLocation: string | number;
+}
+
+const PRESENT_RECORD_SQL =
+  '(record.attendance_status = :presentStatus OR (record.attendance_status IS NULL AND record.status IS NOT NULL AND record.status <> :legacyAbsentStatus))';
+const ABSENT_RECORD_SQL =
+  '(record.attendance_status = :absentStatus OR (record.attendance_status IS NULL AND (record.status IS NULL OR record.status = :legacyAbsentStatus)))';
+const LEGACY_STATUS_PARAMETERS = {
+  presentStatus: ATTENDANCE_STATUS.present,
+  absentStatus: ATTENDANCE_STATUS.absent,
+  legacyAbsentStatus: 'Absent',
+  outsideStatus: ATTENDANCE_LOCATION_STATUS.outsideLocation,
+};
+
 @Injectable()
 export class DashboardService {
   constructor(
     private readonly attendance: AttendanceService,
+    @InjectRepository(AttendanceRecordEntity)
+    private readonly records: Repository<AttendanceRecordEntity>,
     @InjectRepository(StudentEntity)
     private readonly students: Repository<StudentEntity>,
     @InjectRepository(SessionEntity)
@@ -60,18 +84,99 @@ export class DashboardService {
     actor: AuthenticatedUser,
     now: Date = new Date(),
   ): Promise<AdminDashboardResponseDto> {
-    const page = await this.attendance.findAdminRecords({}, actor, now);
-    const records = page.records;
+    // Keep due-session attendance counts current without fetching every record.
+    await this.attendance.reconcileAbsents(actor, now);
+
     const trendYear = campusDateParts(now).year;
-    const today = tally(records.filter((row) => isToday(row.recordedAt, now)));
+    const dateParts = campusDateParts(now);
+    const yearStart = campusMidnightUtc(trendYear, 1, 1);
+    const yearEnd = campusMidnightUtc(trendYear + 1, 1, 1);
+    const todayStart = campusMidnightUtc(
+      dateParts.year,
+      dateParts.month,
+      dateParts.day,
+    );
+    const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+    // Dashboard cards and chart need aggregates, not every historical row.
+    // recorded_at is stored as UTC; shift to Phnom Penh time for month grouping.
+    const monthlyQuery = this.records
+      .createQueryBuilder('record')
+      .innerJoin(SessionEntity, 'session', 'session.id = record.session_id')
+      .select('MONTH(DATE_ADD(record.recorded_at, INTERVAL 7 HOUR))', 'month')
+      .addSelect(
+        `SUM(CASE WHEN ${PRESENT_RECORD_SQL} THEN 1 ELSE 0 END)`,
+        'present',
+      )
+      .addSelect(
+        `SUM(CASE WHEN ${ABSENT_RECORD_SQL} THEN 1 ELSE 0 END)`,
+        'absent',
+      )
+      .addSelect(
+        'SUM(CASE WHEN record.status = :outsideStatus THEN 1 ELSE 0 END)',
+        'outsideLocation',
+      )
+      .addSelect(
+        `SUM(CASE WHEN record.recorded_at >= :todayStart AND record.recorded_at < :todayEnd AND ${PRESENT_RECORD_SQL} THEN 1 ELSE 0 END)`,
+        'todayPresent',
+      )
+      .addSelect(
+        `SUM(CASE WHEN record.recorded_at >= :todayStart AND record.recorded_at < :todayEnd AND ${ABSENT_RECORD_SQL} THEN 1 ELSE 0 END)`,
+        'todayAbsent',
+      )
+      .addSelect(
+        'SUM(CASE WHEN record.recorded_at >= :todayStart AND record.recorded_at < :todayEnd AND record.status = :outsideStatus THEN 1 ELSE 0 END)',
+        'todayOutsideLocation',
+      )
+      .where('record.recorded_at >= :yearStart', { yearStart })
+      .andWhere('record.recorded_at < :yearEnd', { yearEnd })
+      .groupBy('MONTH(DATE_ADD(record.recorded_at, INTERVAL 7 HOUR))')
+      .setParameters({
+        ...LEGACY_STATUS_PARAMETERS,
+        todayStart,
+        todayEnd,
+      });
+
+    const recentQuery = this.records
+      .createQueryBuilder('record')
+      .innerJoin(SessionEntity, 'session', 'session.id = record.session_id')
+      .where(PRESENT_RECORD_SQL)
+      .orderBy('record.recorded_at', 'DESC')
+      .take(RECENT_SCAN_LIMIT)
+      .setParameters(LEGACY_STATUS_PARAMETERS);
+
+    if (actor.role === USER_ROLES.teacher) {
+      monthlyQuery.andWhere('session.teacher_id = :teacherId', {
+        teacherId: actor.userId,
+      });
+      recentQuery.andWhere('session.teacher_id = :teacherId', {
+        teacherId: actor.userId,
+      });
+    }
+
+    const [monthlyRows, recentRows, studentCount, openSessionCount] =
+      await Promise.all([
+        monthlyQuery.getRawMany<MonthlyAttendanceAggregate>(),
+        recentQuery.getMany(),
+        this.students.count(),
+        this.sessions.count({
+          where:
+            actor.role === USER_ROLES.teacher
+              ? { status: SESSION_STATUS.open, teacherId: actor.userId }
+              : { status: SESSION_STATUS.open },
+        }),
+      ]);
+
+    const today = monthlyRows.reduce<StatusTally>(
+      (counts, row) => ({
+        present: counts.present + toNumber(row.todayPresent),
+        absent: counts.absent + toNumber(row.todayAbsent),
+        outsideLocation:
+          counts.outsideLocation + toNumber(row.todayOutsideLocation),
+      }),
+      { present: 0, absent: 0, outsideLocation: 0 },
+    );
     const todayRate = checkInRate(today);
-    const studentCount = await this.students.count();
-    const openSessionCount = await this.sessions.count({
-      where:
-        actor.role === USER_ROLES.teacher
-          ? { status: SESSION_STATUS.open, teacherId: actor.userId }
-          : { status: SESSION_STATUS.open },
-    });
 
     return {
       title: 'SmartCampus Attendance System',
@@ -107,11 +212,58 @@ export class DashboardService {
           tone: 'violet',
         },
       ],
-      monthlyTrend: buildMonthlyTrend(records, trendYear),
+      monthlyTrend: buildMonthlyTrendFromAggregates(monthlyRows),
       trendYear,
-      recentScans: pickRecentScans(records),
+      recentScans: recentRows.map((row) =>
+        toRecentScan({
+          id: row.id,
+          student: row.student,
+          studentId: row.studentId,
+          sessionId: row.sessionId,
+          session: row.session,
+          location: row.location,
+          recordedAt: toIsoDate(row.recordedAt),
+          submittedAt: toIsoDate(row.recordedAt),
+          status: row.status,
+          attendanceStatus: ATTENDANCE_STATUS.present,
+          distanceMeters: row.distanceMeters,
+          latitude: row.latitude ?? null,
+          longitude: row.longitude ?? null,
+          scannedLocation: row.scannedLocation ?? null,
+          accuracyMeters: row.accuracyMeters ?? null,
+        }),
+      ),
     };
   }
+}
+
+function buildMonthlyTrendFromAggregates(
+  rows: MonthlyAttendanceAggregate[],
+): MonthlyAttendancePointDto[] {
+  const byMonth = new Map(rows.map((row) => [Number(row.month), row]));
+
+  return MONTH_LABELS.map((month, index) => {
+    const row = byMonth.get(index + 1);
+    const counts = {
+      present: toNumber(row?.present),
+      absent: toNumber(row?.absent),
+      outsideLocation: toNumber(row?.outsideLocation),
+    };
+    return {
+      month,
+      presentRate: checkInRate(counts),
+      ...counts,
+    };
+  });
+}
+
+function campusMidnightUtc(year: number, month: number, day: number): Date {
+  // Asia/Phnom_Penh uses UTC+07:00 year-round.
+  return new Date(Date.UTC(year, month - 1, day) - 7 * 60 * 60 * 1000);
+}
+
+function toNumber(value: string | number | null | undefined): number {
+  return Number(value ?? 0);
 }
 
 export function buildMonthlyTrend(
@@ -194,14 +346,6 @@ function checkInRate(counts: Pick<StatusTally, 'present' | 'absent'>): number {
     return 0;
   }
   return Math.round((100 * counts.present) / expected);
-}
-
-function isToday(iso: string, now: Date): boolean {
-  const recorded = new Date(iso);
-  if (Number.isNaN(recorded.getTime())) {
-    return false;
-  }
-  return isSameCampusDay(recorded, now);
 }
 
 function formatCount(value: number): string {

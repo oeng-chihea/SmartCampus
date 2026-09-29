@@ -2,10 +2,16 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryColumn,
 } from 'typeorm';
 
 @Entity('sessions')
+@Index('IDX_sessions_teacher_due_finalized', [
+  'teacherId',
+  'dueAt',
+  'absentsFinalized',
+])
 export class SessionEntity {
   @PrimaryColumn({ type: 'varchar', length: 64 })
   id!: string;

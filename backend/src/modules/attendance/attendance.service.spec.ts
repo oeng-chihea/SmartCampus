@@ -122,8 +122,8 @@ describe('AttendanceService', () => {
     } as unknown as AuthService;
 
     const sessionRepo = {
-      create: jest.fn((data: Partial<SessionEntity>) =>
-        ({ ...data }) as SessionEntity,
+      create: jest.fn(
+        (data: Partial<SessionEntity>) => ({ ...data }) as SessionEntity,
       ),
       save: jest.fn(async (entity: SessionEntity) => {
         const index = sessionStore.findIndex((row) => row.id === entity.id);
@@ -135,8 +135,9 @@ describe('AttendanceService', () => {
         return entity;
       }),
       find: jest.fn(async () => [...sessionStore]),
-      findOne: jest.fn(async ({ where }: { where: { id: string } }) =>
-        sessionStore.find((row) => row.id === where.id) ?? null,
+      findOne: jest.fn(
+        async ({ where }: { where: { id: string } }) =>
+          sessionStore.find((row) => row.id === where.id) ?? null,
       ),
     } as unknown as Repository<SessionEntity>;
 
@@ -157,8 +158,9 @@ describe('AttendanceService', () => {
     );
 
     const recordRepo = {
-      create: jest.fn((data: Partial<AttendanceRecordEntity>) =>
-        ({ ...data }) as AttendanceRecordEntity,
+      create: jest.fn(
+        (data: Partial<AttendanceRecordEntity>) =>
+          ({ ...data }) as AttendanceRecordEntity,
       ),
       save: jest.fn(async (entity: AttendanceRecordEntity) => {
         const byId = recordStore.find((row) => row.id === entity.id);
@@ -184,23 +186,54 @@ describe('AttendanceService', () => {
       update: jest.fn(async () => ({ affected: 1 })),
       find: jest.fn(
         async (options?: {
-          where?: { userId?: string; sessionId?: string };
+          where?: { userId?: string; sessionId?: unknown };
         }) => {
           let rows = [...recordStore];
           if (options?.where?.userId) {
             rows = rows.filter((row) => row.userId === options.where?.userId);
           }
           if (options?.where?.sessionId) {
-            rows = rows.filter(
-              (row) => row.sessionId === options.where?.sessionId,
-            );
+            const sessionFilter = options.where.sessionId as {
+              _value?: string | string[];
+            };
+            const sessionIds = Array.isArray(sessionFilter._value)
+              ? sessionFilter._value
+              : [String(sessionFilter._value ?? options.where.sessionId)];
+            rows = rows.filter((row) => sessionIds.includes(row.sessionId));
           }
           return rows.sort(
             (a, b) => b.recordedAt.getTime() - a.recordedAt.getTime(),
           );
         },
       ),
-      createQueryBuilder: jest.fn(() => {
+      createQueryBuilder: jest.fn((alias?: string) => {
+        if (!alias) {
+          let values: AttendanceRecordEntity[] = [];
+          const insertBuilder = {
+            insert: jest.fn().mockReturnThis(),
+            into: jest.fn().mockReturnThis(),
+            values: jest.fn((rows: AttendanceRecordEntity[]) => {
+              values = rows;
+              return insertBuilder;
+            }),
+            orIgnore: jest.fn().mockReturnThis(),
+            execute: jest.fn(async () => {
+              for (const row of values) {
+                const alreadyRecorded = recordStore.some(
+                  (existing) =>
+                    existing.studentId === row.studentId &&
+                    existing.sessionId === row.sessionId,
+                );
+                if (!alreadyRecorded) {
+                  recordStore.push(row);
+                }
+              }
+              return { affected: values.length };
+            }),
+          };
+          return insertBuilder;
+        }
+
         let teacherId: string | undefined;
         let searchNeedle: string | undefined;
         let sessionId: string | undefined;
@@ -215,7 +248,8 @@ describe('AttendanceService', () => {
           recordStore
             .filter((row) => {
               if (searchNeedle) {
-                const haystack = `${row.student} ${row.studentId}`.toLowerCase();
+                const haystack =
+                  `${row.student} ${row.studentId}`.toLowerCase();
                 if (!haystack.includes(searchNeedle.toLowerCase())) {
                   return false;
                 }
@@ -254,9 +288,7 @@ describe('AttendanceService', () => {
               }
               return true;
             })
-            .sort(
-              (a, b) => b.recordedAt.getTime() - a.recordedAt.getTime(),
-            );
+            .sort((a, b) => b.recordedAt.getTime() - a.recordedAt.getTime());
 
         const qb = {
           orderBy: jest.fn().mockReturnThis(),
@@ -342,27 +374,23 @@ describe('AttendanceService', () => {
     } as unknown as Repository<AttendanceRecordEntity>;
 
     const sessionLookupRepo = {
-      find: jest.fn(
-        async (options?: {
-          where?: {
-            id?: unknown;
-            absentsFinalized?: boolean;
-            teacherId?: string;
-          };
-        }) => {
-          let rows = [...sessionStore];
-          const where = options?.where ?? {};
-          if (typeof where.absentsFinalized === 'boolean') {
-            rows = rows.filter(
-              (row) => Boolean(row.absentsFinalized) === where.absentsFinalized,
-            );
-          }
-          if (typeof where.teacherId === 'string') {
-            rows = rows.filter((row) => row.teacherId === where.teacherId);
-          }
-          return rows;
-        },
-      ),
+      find: jest.fn(async (options?: { where?: unknown }) => {
+        let rows = [...sessionStore];
+        const where = (options?.where ?? {}) as {
+          id?: unknown;
+          absentsFinalized?: boolean;
+          teacherId?: string;
+        };
+        if (typeof where.absentsFinalized === 'boolean') {
+          rows = rows.filter(
+            (row) => Boolean(row.absentsFinalized) === where.absentsFinalized,
+          );
+        }
+        if (typeof where.teacherId === 'string') {
+          rows = rows.filter((row) => row.teacherId === where.teacherId);
+        }
+        return rows;
+      }),
       save: jest.fn(async (entity: SessionEntity) => {
         const index = sessionStore.findIndex((row) => row.id === entity.id);
         if (index >= 0) {
@@ -372,6 +400,22 @@ describe('AttendanceService', () => {
         }
         return entity;
       }),
+      update: jest.fn(
+        async (
+          criteria: { id?: { _value?: string[] } },
+          values: Partial<SessionEntity>,
+        ) => {
+          const ids = criteria.id?._value ?? [];
+          let affected = 0;
+          for (const session of sessionStore) {
+            if (ids.includes(session.id)) {
+              Object.assign(session, values);
+              affected += 1;
+            }
+          }
+          return { affected };
+        },
+      ),
       createQueryBuilder: jest.fn(() => {
         let teacherId: string | undefined;
         let requireUnfinalized = false;
@@ -435,8 +479,9 @@ describe('AttendanceService', () => {
     } as unknown as Repository<StudentEntity>;
 
     const reverseGeocode = {
-      lookup: jest.fn(async () =>
-        'Institute of Technology of Cambodia, Russian Federation Boulevard, Phnom Penh',
+      lookup: jest.fn(
+        async () =>
+          'Institute of Technology of Cambodia, Russian Federation Boulevard, Phnom Penh',
       ),
     } as unknown as ReverseGeocodeService;
 
@@ -485,7 +530,9 @@ describe('AttendanceService', () => {
     expect(record.distanceMeters).not.toBeNull();
     expect(record.latitude).toBe(11.54795);
     expect(record.longitude).toBe(104.94061);
-    expect(record.scannedLocation).toContain('Institute of Technology of Cambodia');
+    expect(record.scannedLocation).toContain(
+      'Institute of Technology of Cambodia',
+    );
     expect(record.accuracyMeters).toBe(18);
     expect(record.id).toMatch(/^att-/);
   });
@@ -680,9 +727,9 @@ describe('AttendanceService', () => {
     });
     expect(page.records.some((row) => row.studentId === 'SC-1999')).toBe(false);
     expect(page.metrics).toMatchObject({ present: 1, absent: 1 });
-    expect(sessionStore.find((row) => row.id === sessionId)?.absentsFinalized).toBe(
-      true,
-    );
+    expect(
+      sessionStore.find((row) => row.id === sessionId)?.absentsFinalized,
+    ).toBe(true);
   });
 
   it('does not backfill a student created after absents were finalized', async () => {
@@ -751,9 +798,9 @@ describe('AttendanceService', () => {
 
     const page = await attendance.findAdminRecords({}, teacher);
     expect(page.records).toEqual([]);
-    expect(sessionStore.find((row) => row.id === sessionId)?.absentsFinalized).toBe(
-      false,
-    );
+    expect(
+      sessionStore.find((row) => row.id === sessionId)?.absentsFinalized,
+    ).toBe(false);
   });
 
   it('limits teacher attendance (including absents) to their own sessions', async () => {
@@ -777,9 +824,15 @@ describe('AttendanceService', () => {
     } as SessionEntity);
 
     const afterDue = new Date(Date.now() + 50 * 60 * 1000);
-    const teacherPage = await attendance.findAdminRecords({}, teacher, afterDue);
+    const teacherPage = await attendance.findAdminRecords(
+      {},
+      teacher,
+      afterDue,
+    );
     expect(
-      teacherPage.records.every((row) => row.sessionId !== 'sess-other-teacher'),
+      teacherPage.records.every(
+        (row) => row.sessionId !== 'sess-other-teacher',
+      ),
     ).toBe(true);
   });
 
@@ -840,9 +893,9 @@ describe('AttendanceService', () => {
       teacher,
       afterDue,
     );
-    expect(present.records.every((row) => row.attendanceStatus === 'Present')).toBe(
-      true,
-    );
+    expect(
+      present.records.every((row) => row.attendanceStatus === 'Present'),
+    ).toBe(true);
     expect(present.records).toHaveLength(1);
 
     const absents = await attendance.findAdminRecords(
@@ -850,9 +903,9 @@ describe('AttendanceService', () => {
       teacher,
       afterDue,
     );
-    expect(absents.records.every((row) => row.attendanceStatus === 'Absent')).toBe(
-      true,
-    );
+    expect(
+      absents.records.every((row) => row.attendanceStatus === 'Absent'),
+    ).toBe(true);
     expect(absents.records.length).toBeGreaterThan(0);
   });
 

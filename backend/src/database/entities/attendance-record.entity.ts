@@ -1,10 +1,4 @@
-import {
-  Column,
-  Entity,
-  Index,
-  PrimaryColumn,
-  Unique,
-} from 'typeorm';
+import { Column, Entity, Index, PrimaryColumn, Unique } from 'typeorm';
 import {
   AttendanceLocationStatus,
   AttendanceStatus,
@@ -13,6 +7,8 @@ import {
 @Entity('attendance_records')
 @Unique('UQ_attendance_student_session', ['studentId', 'sessionId'])
 @Index('IDX_attendance_user', ['userId'])
+@Index('IDX_attendance_recorded_at', ['recordedAt'])
+@Index('IDX_attendance_session_student', ['sessionId', 'studentId'])
 export class AttendanceRecordEntity {
   @PrimaryColumn({ type: 'varchar', length: 64 })
   id!: string;
@@ -62,7 +58,12 @@ export class AttendanceRecordEntity {
   longitude!: number | null;
 
   /** Human place name from reverse geocode of the device GPS. */
-  @Column({ name: 'scanned_location', type: 'varchar', length: 255, nullable: true })
+  @Column({
+    name: 'scanned_location',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
   scannedLocation!: string | null;
 
   /** Browser-reported GPS accuracy in meters. Null on older rows. */

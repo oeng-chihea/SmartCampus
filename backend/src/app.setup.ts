@@ -40,8 +40,11 @@ function isDevLanOrigin(origin: string): boolean {
 export function configureApp(app: INestApplication): void {
   const config = app.get(ConfigService);
   const corsOrigins = config.get<string[]>('app.corsOrigins') ?? [];
-  const isDev = (config.get<string>('app.nodeEnv') ?? 'development') !== 'production';
-  new Logger('CORS').log(`Allowed origins: ${corsOrigins.join(', ') || '(none)'}`);
+  const isDev =
+    (config.get<string>('app.nodeEnv') ?? 'development') !== 'production';
+  new Logger('CORS').log(
+    `Allowed origins: ${corsOrigins.join(', ') || '(none)'}`,
+  );
 
   app.setGlobalPrefix('api');
   app.enableCors({
@@ -65,6 +68,7 @@ export function configureApp(app: INestApplication): void {
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     exposedHeaders: ['Content-Disposition'],
+    maxAge: 600,
   });
   app.useGlobalPipes(
     new ValidationPipe({

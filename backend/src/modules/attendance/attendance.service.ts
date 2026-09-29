@@ -6,7 +6,15 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomBytes } from 'crypto';
-import { FindOptionsWhere, In, IsNull, Not, Repository } from 'typeorm';
+import {
+  FindOptionsWhere,
+  In,
+  IsNull,
+  LessThanOrEqual,
+  MoreThan,
+  Not,
+  Repository,
+} from 'typeorm';
 import { QR_PAYLOAD_PREFIX } from '../../common/constants/session.constant';
 import {
   ADMIN_ATTENDANCE_STATUS_OPTIONS,
@@ -294,77 +302,87 @@ export class AttendanceService {
     actor: AuthenticatedUser,
     now: Date = new Date(),
   ): Promise<void> {
-    const where: FindOptionsWhere<SessionEntity> = {};
-    if (actor.role === USER_ROLES.teacher) {
-      where.teacherId = actor.userId;
-    }
+    const roleScope: FindOptionsWhere<SessionEntity> =
+      actor.role === USER_ROLES.teacher ? { teacherId: actor.userId } : {};
+    const candidates = await this.sessions.find({
+      where: [
+        {
+          ...roleScope,
+          dueAt: LessThanOrEqual(now),
+          absentsFinalized: false,
+        },
+        {
+          ...roleScope,
+          dueAt: MoreThan(now),
+          absentsFinalized: true,
+        },
+        { ...roleScope, dueAt: IsNull(), absentsFinalized: true },
+      ],
+    });
 
-    const visible = await this.sessions.find({ where });
-    const pendingDue: SessionEntity[] = [];
+    const pendingDue = candidates.filter(
+      (session) => this.isDuePassed(session, now) && !session.absentsFinalized,
+    );
+    const premature = candidates.filter(
+      (session) => !this.isDuePassed(session, now) && session.absentsFinalized,
+    );
 
-    for (const session of visible) {
-      if (!this.isDuePassed(session, now)) {
-        await this.clearPrematureAbsents(session);
-        continue;
-      }
-      if (!session.absentsFinalized) {
-        pendingDue.push(session);
-      }
-    }
+    // This repairs only legacy/inconsistent rows. Ordinary future sessions
+    // never trigger a DELETE on page reads.
+    await Promise.all(
+      premature.map((session) => this.clearPrematureAbsents(session)),
+    );
 
     if (pendingDue.length === 0) {
       return;
     }
 
-    const roster = (
-      await this.students.find({
+    const sessionIds = pendingDue.map((session) => session.id);
+    const [roster, existingRows] = await Promise.all([
+      this.students.find({
         where: { userId: Not(IsNull()) },
-      })
-    ).filter((student) => Boolean(student.userId));
+        select: { studentId: true, name: true, userId: true },
+      }),
+      this.records.find({
+        where: { sessionId: In(sessionIds) },
+        select: { sessionId: true, studentId: true },
+      }),
+    ]);
+
+    const recordedBySession = new Map<string, Set<string>>();
+    for (const row of existingRows) {
+      let ids = recordedBySession.get(row.sessionId);
+      if (!ids) {
+        ids = new Set<string>();
+        recordedBySession.set(row.sessionId, ids);
+      }
+      ids.add(row.studentId);
+    }
+
+    const missingRecords: AttendanceRecordEntity[] = [];
+    const insertBatch = async (): Promise<void> => {
+      if (missingRecords.length === 0) {
+        return;
+      }
+      const batch = missingRecords.splice(0, missingRecords.length);
+      await this.records
+        .createQueryBuilder()
+        .insert()
+        .into(AttendanceRecordEntity)
+        .values(batch)
+        .orIgnore()
+        .execute();
+    };
 
     for (const session of pendingDue) {
-      await this.finalizeSessionAbsents(session, roster, now);
-    }
-  }
-
-  /** Same gate as student scan: no dueAt means the window is still open. */
-  private isDuePassed(session: SessionEntity, now: Date): boolean {
-    if (!session.dueAt) {
-      return false;
-    }
-    return now.getTime() >= new Date(session.dueAt).getTime();
-  }
-
-  private async clearPrematureAbsents(session: SessionEntity): Promise<void> {
-    await this.records.delete({
-      sessionId: session.id,
-      attendanceStatus: ATTENDANCE_STATUS.absent,
-    });
-    if (session.absentsFinalized) {
-      session.absentsFinalized = false;
-      await this.sessions.save(session);
-    }
-  }
-
-  private async finalizeSessionAbsents(
-    session: SessionEntity,
-    roster: StudentEntity[],
-    now: Date,
-  ): Promise<void> {
-    const existing = await this.records.find({
-      where: { sessionId: session.id },
-      select: { studentId: true },
-    });
-    const recordedIds = new Set(existing.map((row) => row.studentId));
-    const recordedAt = session.dueAt ?? session.closedAt ?? now;
-
-    for (const student of roster) {
-      if (!student.userId || recordedIds.has(student.studentId)) {
-        continue;
-      }
-
-      try {
-        await this.records.save(
+      const recordedIds =
+        recordedBySession.get(session.id) ?? new Set<string>();
+      const recordedAt = session.dueAt ?? session.closedAt ?? now;
+      for (const student of roster) {
+        if (!student.userId || recordedIds.has(student.studentId)) {
+          continue;
+        }
+        missingRecords.push(
           this.records.create({
             id: this.nextRecordId(),
             userId: student.userId,
@@ -383,14 +401,37 @@ export class AttendanceService {
             accuracyMeters: null,
           }),
         );
-      } catch (error) {
-        if (!this.isDuplicateKeyError(error)) {
-          throw error;
+        if (missingRecords.length >= 400) {
+          await insertBatch();
         }
       }
     }
 
-    session.absentsFinalized = true;
+    // Batch writes instead of a database round trip for every absent student.
+    // INSERT IGNORE makes concurrent read requests idempotent under the unique
+    // (student_id, session_id) constraint. Keep at most 400 entities in memory
+    // while rebuilding many overdue sessions.
+    await insertBatch();
+    await this.sessions.update(
+      { id: In(sessionIds) },
+      { absentsFinalized: true },
+    );
+  }
+
+  /** Same gate as student scan: no dueAt means the window is still open. */
+  private isDuePassed(session: SessionEntity, now: Date): boolean {
+    if (!session.dueAt) {
+      return false;
+    }
+    return now.getTime() >= new Date(session.dueAt).getTime();
+  }
+
+  private async clearPrematureAbsents(session: SessionEntity): Promise<void> {
+    await this.records.delete({
+      sessionId: session.id,
+      attendanceStatus: ATTENDANCE_STATUS.absent,
+    });
+    session.absentsFinalized = false;
     await this.sessions.save(session);
   }
 
@@ -543,8 +584,7 @@ export class AttendanceService {
     );
 
     const scannedLocation = await withTimeout(lookup, 2_000);
-    const resolved =
-      scannedLocation ?? record.location?.trim() ?? null;
+    const resolved = scannedLocation ?? record.location?.trim() ?? null;
 
     if (resolved) {
       record.scannedLocation = resolved;
