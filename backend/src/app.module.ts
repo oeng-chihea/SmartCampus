@@ -44,6 +44,8 @@ const envFilePath = [
         database: config.get<string>('database.database'),
         ssl: config.get('database.ssl'),
         entities: [...ALL_ENTITIES],
+        migrations: [join(__dirname, 'database/migrations/*{.js,.ts}')],
+        migrationsRun: true,
         synchronize: config.get<boolean>('database.synchronize') ?? true,
         autoLoadEntities: true,
       }),
