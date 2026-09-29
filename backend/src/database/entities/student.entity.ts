@@ -1,6 +1,10 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
 @Entity('students')
+@Index('IDX_students_name', ['name'])
+@Index('IDX_students_email', ['email'])
+@Index('IDX_students_status', ['status'])
+@Index('IDX_students_course_status', ['course', 'status'])
 export class StudentEntity {
   @PrimaryColumn({ name: 'student_id', type: 'varchar', length: 32 })
   studentId!: string;

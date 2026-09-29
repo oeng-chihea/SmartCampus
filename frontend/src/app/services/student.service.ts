@@ -1,4 +1,9 @@
-import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpErrorResponse,
+  HttpHeaders,
+  HttpParams,
+} from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -7,28 +12,43 @@ import { unreachableApiMessage } from '../core/utils/http-error.util';
 import {
   CreateStudentRequest,
   Student,
+  StudentDirectoryResponse,
+  StudentFilterState,
+  UpdateStudentRequest,
 } from '../models/student.model';
 import { AuthService } from './auth.service';
 
 export {
   buildStudentFilters,
   buildStudentMetrics,
-  filterStudents,
 } from '../core/utils/student-stats.util';
 
 /**
  * Live Nest APIs for the teacher Students page:
- * list the directory, create a student (+ login account), toggle login access.
+ * Search the directory, create/update/delete student accounts, and toggle login access.
  */
 @Injectable({ providedIn: 'root' })
 export class StudentService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
 
-  listStudents(): Promise<Student[]> {
+  listStudents(filters?: StudentFilterState): Promise<StudentDirectoryResponse> {
+    let params = new HttpParams();
+    const search = filters?.search.trim();
+    if (search) {
+      params = params.set('search', search);
+    }
+    if (filters?.course && filters.course !== 'all') {
+      params = params.set('course', filters.course);
+    }
+    if (filters?.status && filters.status !== 'all') {
+      params = params.set('status', filters.status);
+    }
+
     return firstValueFrom(
-      this.http.get<Student[]>(this.url(API_ENDPOINTS.students), {
+      this.http.get<StudentDirectoryResponse>(this.url(API_ENDPOINTS.students), {
         headers: this.authHeaders(),
+        params,
       }),
     );
   }
@@ -36,6 +56,28 @@ export class StudentService {
   createStudent(request: CreateStudentRequest): Promise<Student> {
     return firstValueFrom(
       this.http.post<Student>(this.url(API_ENDPOINTS.students), request, {
+        headers: this.authHeaders(),
+      }),
+    );
+  }
+
+  updateStudent(
+    studentId: string,
+    request: UpdateStudentRequest,
+  ): Promise<Student> {
+    return firstValueFrom(
+      this.http.patch<Student>(
+        this.url(API_ENDPOINTS.studentById(studentId)),
+        request,
+        { headers: this.authHeaders() },
+      ),
+    );
+  }
+
+  deleteStudent(studentId: string): Promise<Student> {
+    return firstValueFrom(
+      this.http.delete<Student>(this.url(API_ENDPOINTS.students), {
+        body: { studentId },
         headers: this.authHeaders(),
       }),
     );

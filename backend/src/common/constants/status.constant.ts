@@ -1,18 +1,23 @@
-/** Attendance statuses (FR-06) */
+/** Location result for a student's attendance GPS check. */
+export const ATTENDANCE_LOCATION_STATUS = {
+  inside: 'Inside',
+  outsideLocation: 'Outside Location',
+} as const;
+
+export type AttendanceLocationStatus =
+  (typeof ATTENDANCE_LOCATION_STATUS)[keyof typeof ATTENDANCE_LOCATION_STATUS];
+
+/** Attendance check-in result (independent from the geofence result). */
 export const ATTENDANCE_STATUS = {
   present: 'Present',
-  late: 'Late',
   absent: 'Absent',
-  outsideLocation: 'Outside Location',
 } as const;
 
 export type AttendanceStatus =
   (typeof ATTENDANCE_STATUS)[keyof typeof ATTENDANCE_STATUS];
 
-/** Did the student check in on time? Derived from scan status. */
-export type AttendanceCheckInStatus =
-  | typeof ATTENDANCE_STATUS.present
-  | typeof ATTENDANCE_STATUS.absent;
+/** Alias kept for response contracts that describe the check-in dimension. */
+export type AttendanceCheckInStatus = AttendanceStatus;
 
 /** Geofence filter on POST /attendance/admin (`status`). */
 export const ADMIN_LOCATION_STATUS_FILTERS = ['inside', 'outside'] as const;
@@ -25,9 +30,14 @@ export const ADMIN_ATTENDANCE_STATUS_FILTERS = [
   ATTENDANCE_STATUS.absent,
 ] as const;
 
-/** Live admin/teacher location-status filter values. */
+/** Live admin/teacher location-status values returned by the API. */
+export const ADMIN_LOCATION_STATUS_OPTIONS: AttendanceLocationStatus[] = [
+  ATTENDANCE_LOCATION_STATUS.inside,
+  ATTENDANCE_LOCATION_STATUS.outsideLocation,
+];
+
+/** Live admin/teacher attendance-status values returned by the API. */
 export const ADMIN_ATTENDANCE_STATUS_OPTIONS: AttendanceStatus[] = [
   ATTENDANCE_STATUS.present,
   ATTENDANCE_STATUS.absent,
-  ATTENDANCE_STATUS.outsideLocation,
 ];

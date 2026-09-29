@@ -7,7 +7,21 @@ import {
   formatScanAccuracyChip,
   formatScannedAtCell,
   formatScannedAtPlace,
+  buildGoogleMapsUrl,
 } from './format.util';
+
+describe('buildGoogleMapsUrl', () => {
+  it('builds a Google Maps link from the exact scan coordinates', () => {
+    expect(buildGoogleMapsUrl(11.529053, 104.923448)).toBe(
+      'https://www.google.com/maps/search/?api=1&query=11.529053%2C104.923448',
+    );
+  });
+
+  it('returns no link when the scan coordinates are unavailable or invalid', () => {
+    expect(buildGoogleMapsUrl(null, 104.923448)).toBeNull();
+    expect(buildGoogleMapsUrl(11.529053, Number.NaN)).toBeNull();
+  });
+});
 
 describe('formatGpsReading', () => {
   it('prints the four diagnostic fields', () => {
@@ -44,12 +58,12 @@ describe('formatScanAccuracyChip', () => {
 
 describe('formatGeofenceStatus', () => {
   it('labels an inside-zone scan as Inside', () => {
-    expect(formatGeofenceStatus('Present')).toBe('Inside');
+    expect(formatGeofenceStatus('Inside')).toBe('Inside');
   });
 
-  it('keeps Outside Location and Absent unchanged', () => {
+  it('keeps Outside Location and shows no location for an absent row', () => {
     expect(formatGeofenceStatus('Outside Location')).toBe('Outside Location');
-    expect(formatGeofenceStatus('Absent')).toBe('Absent');
+    expect(formatGeofenceStatus(null)).toBe('—');
   });
 });
 

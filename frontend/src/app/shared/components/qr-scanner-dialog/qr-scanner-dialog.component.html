@@ -1,0 +1,352 @@
+<app-modal-dialog
+  [eyebrow]="modalEyebrow()"
+  [title]="modalTitle()"
+  closeAriaLabel="Close camera scanner"
+  size="md"
+  [spacious]="false"
+  [lockDismiss]="viewState() === 'submitting'"
+  [closeDisabled]="viewState() === 'submitting'"
+  (closed)="cancel()"
+>
+  <div class="qr-scanner">
+    @switch (viewState()) {
+      @case ('scanning') {
+        <!-- Viewport is permanently mounted so videoRef is immediately available without DOM race conditions -->
+        <div
+          class="qr-scanner__viewport"
+          [class.qr-scanner__viewport--hidden]="
+            cameraStatus() !== 'streaming' && cameraStatus() !== 'requesting'
+          "
+        >
+          <video
+            #videoElement
+            class="qr-scanner__video"
+            aria-label="Camera preview for QR scanning"
+            playsinline
+            webkit-playsinline
+            muted
+            autoplay
+          ></video>
+          <canvas #canvasElement class="qr-scanner__canvas" hidden></canvas>
+
+          <!-- Viewfinder overlay with targeting reticle and sweeping laser -->
+          @if (cameraStatus() === 'streaming') {
+            <div class="qr-scanner__overlay">
+              <div
+                class="qr-scanner__reticle"
+                #reticleElement
+                [class.qr-scanner__reticle--success]="scanSuccess()"
+              >
+                <div class="qr-scanner__corner qr-scanner__corner--tl" aria-hidden="true"></div>
+                <div class="qr-scanner__corner qr-scanner__corner--tr" aria-hidden="true"></div>
+                <div class="qr-scanner__corner qr-scanner__corner--bl" aria-hidden="true"></div>
+                <div class="qr-scanner__corner qr-scanner__corner--br" aria-hidden="true"></div>
+                @if (!scanSuccess()) {
+                  <div class="qr-scanner__laser" aria-hidden="true"></div>
+                } @else {
+                  <div class="qr-scanner__success-indicator" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="qr-scanner__check-icon"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          @if (cameraStatus() === 'requesting') {
+            <div
+              class="qr-scanner__overlay qr-scanner__overlay--requesting"
+              role="status"
+              aria-live="polite"
+            >
+              <div class="qr-scanner__spinner" aria-hidden="true"></div>
+              <p>Starting your camera…</p>
+              <span class="qr-scanner__subtext">Please allow camera permissions if prompted.</span>
+            </div>
+          }
+        </div>
+
+        @if (cameraStatus() === 'streaming') {
+          <div class="qr-scanner__controls">
+            <p class="qr-scanner__hint">
+              Point your camera at the teacher's live attendance QR code
+            </p>
+            @if (hasMultipleCameras()) {
+              <button
+                type="button"
+                class="qr-scanner__btn-flip"
+                (click)="toggleFacingMode()"
+                aria-label="Switch camera"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="qr-scanner__flip-icon"
+                  aria-hidden="true"
+                >
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                </svg>
+                <span>Switch camera</span>
+              </button>
+            }
+          </div>
+        }
+
+        @switch (cameraStatus()) {
+          @case ('denied') {
+            <div class="qr-scanner__error-state">
+              <div class="qr-scanner__error-badge" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path
+                    d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 19h14a2 2 0 0 0 2-2v-4M3 7V5a2 2 0 0 1 2-2h4l2 3h4M3 3l18 18"
+                  />
+                </svg>
+              </div>
+              <h3 class="qr-scanner__error-title">Camera access blocked</h3>
+              <p class="qr-scanner__error-desc">{{ errorMessage() }}</p>
+              <button type="button" class="qr-scanner__btn-retry" (click)="retryCamera()">
+                Try again
+              </button>
+            </div>
+          }
+          @case ('unavailable') {
+            <div class="qr-scanner__error-state">
+              <div class="qr-scanner__error-badge" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
+                  <line x1="7" y1="2" x2="7" y2="22" />
+                  <line x1="17" y1="2" x2="17" y2="22" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <line x1="2" y1="7" x2="7" y2="7" />
+                  <line x1="2" y1="17" x2="7" y2="17" />
+                  <line x1="17" y1="17" x2="22" y2="17" />
+                  <line x1="17" y1="7" x2="22" y2="7" />
+                </svg>
+              </div>
+              <h3 class="qr-scanner__error-title">No camera found</h3>
+              <p class="qr-scanner__error-desc">{{ errorMessage() }}</p>
+              <button type="button" class="qr-scanner__btn-retry" (click)="cancel()">Close</button>
+            </div>
+          }
+          @case ('insecure') {
+            <div class="qr-scanner__error-state">
+              <div class="qr-scanner__error-badge" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </div>
+              <h3 class="qr-scanner__error-title">HTTPS required</h3>
+              <p class="qr-scanner__error-desc">{{ errorMessage() }}</p>
+              <button type="button" class="qr-scanner__btn-retry" (click)="cancel()">Close</button>
+            </div>
+          }
+          @case ('error') {
+            <div class="qr-scanner__error-state">
+              <div class="qr-scanner__error-badge" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </div>
+              <h3 class="qr-scanner__error-title">Camera unavailable</h3>
+              <p class="qr-scanner__error-desc">
+                {{
+                  errorMessage() ||
+                    'Could not start the camera. Please check your browser permissions.'
+                }}
+              </p>
+              <button type="button" class="qr-scanner__btn-retry" (click)="retryCamera()">
+                Try again
+              </button>
+            </div>
+          }
+          @default {}
+        }
+      }
+
+      @case ('submitting') {
+        <div
+          class="qr-scanner__result-card qr-scanner__result-card--submitting"
+          role="status"
+          aria-live="polite"
+        >
+          <div class="qr-scanner__spinner" aria-hidden="true"></div>
+          <h3 class="qr-scanner__result-title">Recording attendance…</h3>
+          <p class="qr-scanner__result-desc">
+            Verifying your campus location and recording your attendance for this class.
+          </p>
+        </div>
+      }
+
+      @case ('success') {
+        <div
+          class="qr-scanner__result-card qr-scanner__result-card--success"
+          role="status"
+          aria-live="polite"
+        >
+          <div class="qr-scanner__badge qr-scanner__badge--success" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="qr-scanner__badge-icon"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+
+          <span class="qr-scanner__status-pill qr-scanner__status-pill--present">
+            {{ successInfo()?.attendanceStatus || 'PRESENT' }}
+          </span>
+
+          <h3 class="qr-scanner__result-title">Marked as Present!</h3>
+
+          @if (successInfo()?.sessionTitle; as title) {
+            <div class="qr-scanner__session-info">
+              <span class="qr-scanner__session-label">Session</span>
+              <strong class="qr-scanner__session-title">{{ title }}</strong>
+            </div>
+          }
+
+          <p class="qr-scanner__result-desc">
+            {{ successInfo()?.message || 'Your attendance has been recorded successfully.' }}
+          </p>
+        </div>
+      }
+
+      @case ('location-blocked') {
+        <div
+          class="qr-scanner__result-card qr-scanner__result-card--location"
+          role="alert"
+          aria-live="assertive"
+        >
+          <div class="qr-scanner__badge qr-scanner__badge--location" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="qr-scanner__badge-icon"
+            >
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+          </div>
+
+          <h3 class="qr-scanner__result-title">Location access required</h3>
+
+          @if (locationErrorInfo()?.sessionTitle; as title) {
+            <span class="qr-scanner__session-pill">Session: {{ title }}</span>
+          }
+
+          <p class="qr-scanner__result-desc">
+            {{
+              locationErrorInfo()?.message ||
+                'Location access is required to mark attendance. Please allow location permissions in your browser or device settings and try again.'
+            }}
+          </p>
+
+          <div class="qr-scanner__tip-box">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+            <span
+              >Please enable Location Services in your settings, then tap
+              <strong>Try again</strong>.</span
+            >
+          </div>
+        </div>
+      }
+
+      @case ('error') {
+        <div
+          class="qr-scanner__result-card qr-scanner__result-card--error"
+          role="alert"
+          aria-live="assertive"
+        >
+          <div class="qr-scanner__badge qr-scanner__badge--error" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="qr-scanner__badge-icon"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+          </div>
+
+          <h3 class="qr-scanner__result-title">
+            {{ generalErrorInfo()?.title || 'Could not mark attendance' }}
+          </h3>
+
+          <p class="qr-scanner__result-desc">
+            {{ generalErrorInfo()?.message }}
+          </p>
+        </div>
+      }
+    }
+  </div>
+
+  <div
+    class="qr-scanner__actions"
+    [class.qr-scanner__actions--center]="viewState() === 'success'"
+    modalFooter
+  >
+    @switch (viewState()) {
+      @case ('scanning') {
+        <button type="button" class="qr-scanner__btn-cancel" (click)="cancel()">Cancel</button>
+      }
+      @case ('submitting') {
+        <button type="button" class="qr-scanner__btn-cancel" disabled>Processing…</button>
+      }
+      @case ('success') {
+        <button type="button" class="qr-scanner__btn-done" (click)="closeDialog()">Done</button>
+      }
+      @case ('location-blocked') {
+        <button type="button" class="qr-scanner__btn-cancel" (click)="cancel()">Cancel</button>
+        <button type="button" class="qr-scanner__btn-retry" (click)="retryLocation()">
+          Try again
+        </button>
+      }
+      @case ('error') {
+        <button type="button" class="qr-scanner__btn-cancel" (click)="cancel()">Cancel</button>
+        <button type="button" class="qr-scanner__btn-retry" (click)="scanAgain()">
+          Scan again
+        </button>
+      }
+    }
+  </div>
+</app-modal-dialog>

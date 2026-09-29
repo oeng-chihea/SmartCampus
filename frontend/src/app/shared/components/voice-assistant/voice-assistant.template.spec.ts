@@ -6,6 +6,10 @@ const template = readFileSync(
   join(__dirname, 'voice-assistant.component.html'),
   'utf8',
 );
+const styles = readFileSync(
+  join(__dirname, 'voice-assistant.component.scss'),
+  'utf8',
+);
 
 describe('Voice assistant template', () => {
   it('exposes a code-drawn talking person driven by live speech, with no media or transcripts', () => {
@@ -33,5 +37,13 @@ describe('Voice assistant template', () => {
     expect(template).not.toContain('voice-assistant__panel');
     expect(template).not.toContain('idleClip');
     expect(template).not.toContain('speakClip');
+  });
+
+  it('uses a smaller character footprint on phone widths', () => {
+    expect(styles).toContain('@media (max-width: 720px)');
+    expect(styles).toContain('height: 96px;');
+    expect(styles).toContain('width: 82px;');
+    expect(styles).toContain('height: 144px;');
+    expect(styles).toContain('width: 122px;');
   });
 });

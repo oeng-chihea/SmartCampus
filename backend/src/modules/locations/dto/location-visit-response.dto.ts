@@ -1,4 +1,4 @@
-import { AttendanceStatus } from '../../../common/constants/status.constant';
+import { AttendanceLocationStatus } from '../../../common/constants/status.constant';
 
 /** One student scan / mark-present at a campus zone. */
 export interface LocationVisitResponseDto {
@@ -11,7 +11,8 @@ export interface LocationVisitResponseDto {
   room: string;
   session: string;
   sessionId: string;
-  status: AttendanceStatus;
+  /** Null only for legacy scans that predate reliable geofence status. */
+  status: AttendanceLocationStatus | null;
   recordedAt: string;
   distanceMeters: number | null;
   /** Student device GPS at scan / mark-present. Null on older rows. */
@@ -25,7 +26,7 @@ export interface LocationVisitResponseDto {
 
 export interface LocationVisitMetricsDto {
   total: number;
-  present: number;
+  inside: number;
   outsideLocation: number;
 }
 
@@ -33,5 +34,5 @@ export interface LocationVisitPageResponseDto {
   visits: LocationVisitResponseDto[];
   metrics: LocationVisitMetricsDto;
   buildingOptions: string[];
-  statusOptions: AttendanceStatus[];
+  statusOptions: AttendanceLocationStatus[];
 }

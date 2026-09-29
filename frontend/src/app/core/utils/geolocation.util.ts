@@ -8,12 +8,44 @@ export interface DeviceCoordinates {
   timestampMs?: number;
 }
 
+/**
+ * Converts nullable coordinates stored on an attendance record into the
+ * device-coordinate shape consumed by the scan map.
+ *
+ * Invalid values are treated as missing so an incomplete API row cannot
+ * render a misleading map pin. GPS accuracy is optional because older rows
+ * may not have captured it.
+ */
+export function toDeviceCoordinates(
+  latitude: number | null | undefined,
+  longitude: number | null | undefined,
+  accuracyMeters: number | null | undefined,
+): DeviceCoordinates | null {
+  if (
+    latitude == null ||
+    longitude == null ||
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    longitude < -180 ||
+    longitude > 180
+  ) {
+    return null;
+  }
+
+  return {
+    latitude,
+    longitude,
+    accuracyMeters:
+      accuracyMeters != null && Number.isFinite(accuracyMeters) && accuracyMeters >= 0
+        ? Math.round(accuracyMeters)
+        : null,
+  };
+}
+
 export type GeolocationFailureReason =
-  | 'insecure'
-  | 'denied'
-  | 'unavailable'
-  | 'timeout'
-  | 'unsupported';
+  'insecure' | 'denied' | 'unavailable' | 'timeout' | 'unsupported';
 
 export type GeolocationReadResult =
   | { ok: true; coords: DeviceCoordinates }
@@ -53,6 +85,7 @@ export function getCurrentCoordinates(
   return new Promise((resolve) => {
     let settled = false;
     let best: DeviceCoordinates | null = null;
+    let lastFailureReason: GeolocationFailureReason | null = null;
     let watchId: number | null = null;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
@@ -82,6 +115,7 @@ export function getCurrentCoordinates(
 
     const fail = (error?: GeolocationPositionError) => {
       const reason = reasonFromPositionError(error);
+      lastFailureReason = reason;
       if (reason === 'denied') {
         finish({ ok: false, reason: 'denied', coords: best ?? undefined });
         return;
@@ -92,7 +126,7 @@ export function getCurrentCoordinates(
     };
 
     timeoutId = setTimeout(() => {
-      finish(finishFromBest(best, 'timeout'));
+      finish(finishFromBest(best, lastFailureReason ?? 'timeout'));
     }, timeoutMs);
 
     geo.getCurrentPosition(consider, fail, options);
@@ -109,9 +143,7 @@ export function getCurrentCoordinates(
  * Live GPS feed for the scan map. Returns a stop function.
  * Emits every new reading so the pin can move.
  */
-export function watchDeviceLocation(
-  onChange: (result: GeolocationReadResult) => void,
-): () => void {
+export function watchDeviceLocation(onChange: (result: GeolocationReadResult) => void): () => void {
   if (typeof window !== 'undefined' && window.isSecureContext === false) {
     onChange({ ok: false, reason: 'insecure' });
     return () => undefined;

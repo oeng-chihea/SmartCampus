@@ -5,141 +5,154 @@
 }
 
 .student-form-card {
-  animation: slide-up 560ms ease both;
-  background: var(--color-brand-deep);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
-  color: #ffffff;
+  display: grid;
+  gap: 18px;
   min-width: 0;
-  padding: clamp(16px, 2vw, 20px);
   width: 100%;
 }
 
-.student-form-card__header p,
-.student-form-card__header h2 {
+.student-form-card__description {
+  color: var(--color-muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
   margin: 0;
 }
 
-.student-form-card__header p {
-  color: var(--color-brand-muted);
-  font-size: 0.7rem;
+.student-form-card__description abbr,
+.student-form-card label abbr {
+  color: var(--color-danger-strong);
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  text-decoration: none;
 }
 
-.student-form-card__header h2 {
-  color: #ffffff;
-  font-size: 1.08rem;
-  font-weight: 700;
-  margin-top: 4px;
+.student-form-card__error {
+  background: var(--color-danger-faint);
+  border: 1px solid var(--color-danger-soft);
+  border-radius: var(--radius-sm);
+  color: var(--color-danger-strong);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  margin: 0;
+  padding: 11px 12px;
 }
 
-.student-form-card__header span {
-  color: rgba(255, 255, 255, 0.72);
-  display: block;
-  font-size: 0.82rem;
-  line-height: 1.5;
-  margin-top: 8px;
-  max-width: 72ch;
-}
-
-.student-form-card form {
-  display: grid;
-  gap: 12px;
-  margin-top: 16px;
+.student-form-card__notice {
+  background: var(--color-brand-faint);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-brand-deep);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  margin: 0;
+  padding: 11px 12px;
 }
 
 .student-form-card__grid {
   display: grid;
-  gap: 12px;
+  gap: 16px 18px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.student-form-card label {
-  color: rgba(255, 255, 255, 0.78);
-  display: grid;
-  font-size: 0.8rem;
-  font-weight: 600;
-  gap: 6px;
-}
-
-.student-form-card input,
-.student-form-card select,
-.student-form-card button {
-  border-radius: var(--radius-sm);
-  font: inherit;
-  min-height: 42px;
   min-width: 0;
+}
+
+.student-form-card__grid > label,
+.student-form-card__field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.student-form-card__grid > label,
+.student-form-card__field > label {
+  color: var(--color-brand-deep);
+  font-size: 0.84rem;
+  font-weight: 650;
+}
+
+.student-form-card input {
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-slate);
+  font: inherit;
+  min-height: 44px;
+  min-width: 0;
+  padding: 0 12px;
   width: 100%;
 }
 
-.student-form-card input,
-.student-form-card select {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #ffffff;
-  padding: 0 12px;
+.student-form-card input::placeholder {
+  color: var(--color-muted);
+  opacity: 0.8;
 }
 
-.student-form-card input:focus,
-.student-form-card select:focus {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: var(--color-brand-muted);
-  outline: 0;
+.student-form-card input[readonly] {
+  background: var(--surface-muted);
+  color: var(--color-muted);
+  cursor: not-allowed;
 }
 
-.student-form-card option {
-  color: var(--color-brand-deep);
+.student-form-card input:focus-visible {
+  border-color: var(--color-brand);
+  box-shadow: var(--focus-ring);
+  outline: none;
 }
 
 .student-form-card__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
 }
 
-.student-form-card button {
+.student-form-card__actions button {
   border: 0;
-  color: #ffffff;
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  font: inherit;
   font-weight: 700;
   min-height: 42px;
   padding: 0 18px;
-  width: auto;
+}
+
+.student-form-card__actions button:focus-visible {
+  box-shadow: var(--focus-ring);
+  outline: none;
 }
 
 .student-form-card .student-form-card__submit {
   background: var(--color-brand);
+  color: #ffffff;
 }
 
 .student-form-card .student-form-card__submit:hover {
-  background: #22c55e;
+  background: var(--color-brand-strong);
 }
 
 .student-form-card .student-form-card__cancel {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.85);
+  background: var(--surface-muted);
+  color: var(--color-brand-deep);
 }
 
 .student-form-card .student-form-card__cancel:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-brand-faint);
+}
+
+.student-form-card__actions button:disabled,
+.student-form-card input:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 @media (max-width: 640px) {
   .student-form-card__grid {
     grid-template-columns: 1fr;
   }
-}
 
-@keyframes slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
+  .student-form-card__actions {
+    flex-direction: column-reverse;
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  .student-form-card__actions button {
+    width: 100%;
   }
 }

@@ -16,7 +16,7 @@ function samplePage(
         location: 'Building A, Room 201',
         recordedAt: '2026-08-20T02:00:00.000Z',
         submittedAt: '2026-08-20T02:00:00.000Z',
-        status: 'Present',
+        status: 'Inside',
         attendanceStatus: 'Present',
         distanceMeters: 12,
         latitude: 11.54795,
@@ -33,7 +33,7 @@ function samplePage(
         location: 'Building A, Room 201',
         recordedAt: '2026-08-20T02:05:00.000Z',
         submittedAt: '2026-08-20T02:05:00.000Z',
-        status: 'Absent',
+        status: null,
         attendanceStatus: 'Absent',
         distanceMeters: null,
         latitude: null,
@@ -48,7 +48,8 @@ function samplePage(
       absent: 1,
       outsideLocation: 0,
     },
-    statusOptions: ['Present', 'Absent', 'Outside Location'],
+    statusOptions: ['Inside', 'Outside Location'],
+    attendanceStatusOptions: ['Present', 'Absent'],
     ...overrides,
   };
 }
@@ -69,6 +70,11 @@ describe('AdminRecordsState', () => {
       'Absent',
     ]);
     expect(cards.map((card) => card.value)).toEqual(['4', '1', '2']);
+    expect(cards.map((card) => card.icon)).toEqual([
+      'present',
+      'locations',
+      'attendance',
+    ]);
   });
 
   it('keeps attendance status on rows and fills it when the API omits it', () => {
@@ -95,6 +101,11 @@ describe('AdminRecordsState', () => {
       'all',
       'inside',
       'outside',
+    ]);
+    expect(state.filters().statusOptions.map((option) => option.label)).toEqual([
+      'All statuses',
+      'Inside',
+      'Outside Location',
     ]);
     expect(
       state.filters().attendanceStatusOptions.map((option) => option.value),

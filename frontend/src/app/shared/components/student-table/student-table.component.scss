@@ -90,8 +90,8 @@
     minmax(80px, 0.65fr)
     minmax(56px, 0.38fr)
     minmax(72px, 0.42fr)
-    minmax(72px, 0.42fr)
-    minmax(108px, 0.55fr);
+    minmax(108px, 0.55fr)
+    minmax(84px, 0.32fr);
   min-width: 0;
   padding: 12px 14px;
   width: 100%;
@@ -142,9 +142,11 @@
 }
 
 .student-table__status-cell,
-.student-table__action-cell {
+.student-table__action-cell,
+.student-table__delete-cell {
+  align-items: center;
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   min-width: 0;
 }
 
@@ -240,6 +242,78 @@
   border-radius: var(--radius-sm);
 }
 
+.student-delete-button {
+  align-items: center;
+  background: var(--color-danger-faint);
+  border: 1px solid var(--color-danger-soft);
+  border-radius: var(--radius-sm);
+  color: var(--color-danger-strong);
+  cursor: pointer;
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  padding: 0;
+  width: 34px;
+}
+
+.student-table__actions {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.student-edit-button {
+  align-items: center;
+  background: var(--color-brand-faint);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-brand-strong);
+  cursor: pointer;
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  padding: 0;
+  width: 34px;
+}
+
+.student-edit-button:hover:not(:disabled) {
+  background: var(--color-brand-soft);
+}
+
+.student-edit-button:focus-visible {
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+.student-edit-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.student-edit-button svg {
+  height: 18px;
+  width: 18px;
+}
+
+.student-delete-button:hover:not(:disabled) {
+  background: var(--color-danger-soft);
+}
+
+.student-delete-button:focus-visible {
+  box-shadow: var(--focus-ring-danger);
+  outline: none;
+}
+
+.student-delete-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.student-delete-button svg {
+  height: 18px;
+  width: 18px;
+}
+
 @container (max-width: 860px) {
   .student-table__row {
     grid-template-columns:
@@ -247,8 +321,8 @@
       minmax(72px, 0.55fr)
       minmax(52px, 0.35fr)
       minmax(68px, 0.4fr)
-      minmax(68px, 0.4fr)
-      minmax(100px, 0.55fr);
+      minmax(100px, 0.55fr)
+      minmax(84px, 0.32fr);
   }
 }
 
@@ -306,7 +380,8 @@
   }
 
   .student-table__status-cell,
-  .student-table__action-cell {
+  .student-table__action-cell,
+  .student-table__delete-cell {
     justify-content: flex-start;
   }
 }

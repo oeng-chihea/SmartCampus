@@ -1,4 +1,4 @@
-import { AttendanceStatus } from './attendance.model';
+import { AttendanceLocationStatus } from './attendance.model';
 import { StatCard } from '../shared/components/stat-card/stat-card.model';
 
 /** Monthly attendance analysis point (Jan → Dec). Chart series is Present / Absent. */
@@ -20,7 +20,7 @@ export interface RecentScan {
   location: string;
   submittedAt: string;
   recordedAt: string;
-  status: AttendanceStatus;
+  status: AttendanceLocationStatus | null;
   distanceMeters: number | null;
 }
 

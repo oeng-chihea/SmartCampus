@@ -100,9 +100,9 @@ export async function buildAttendanceExcel(
     {
       title: 'Counts (matching this export)',
       rows: [
-        ['Present', page.metrics.present],
+        ['Attendance present', page.metrics.present],
         ['Outside Location', page.metrics.outsideLocation],
-        ['Absent', page.metrics.absent],
+        ['Attendance absent', page.metrics.absent],
       ],
     },
   ]);

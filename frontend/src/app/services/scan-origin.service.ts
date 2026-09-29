@@ -3,9 +3,8 @@ import { environment } from '../../environments/environment';
 import { resolveAppOrigin } from '../core/utils/qr-scan.util';
 
 /**
- * Origin encoded into attendance QR images.
- * Uses the public site URL (configured appBaseUrl, otherwise this tab's URL).
- * Does not look up the laptop's campus Wi-Fi IP.
+ * Resolves the configured public origin for legacy scan-link integrations.
+ * It is retained for compatibility; new QR images contain only raw payloads.
  */
 @Injectable({ providedIn: 'root' })
 export class ScanOriginService {

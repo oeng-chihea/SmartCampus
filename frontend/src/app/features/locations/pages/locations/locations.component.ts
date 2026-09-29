@@ -1,27 +1,26 @@
 import { Component, OnDestroy, OnInit, inject, signal, viewChild } from '@angular/core';
-import { formatAttendanceDateTime, formatAttendanceDateTimeLabel } from '../../../../core/utils/date.util';
+import {
+  formatAttendanceDateTime,
+  formatAttendanceDateTimeLabel,
+} from '../../../../core/utils/date.util';
 import {
   distanceBadgeVariant,
   formatCampusLocationLabel,
   formatDistanceMeters,
   formatGeofenceStatus,
+  formatScanAccuracy,
   formatScanCoordinates,
   formatScannedAtCell,
   formatScannedAtPlace,
   geofenceBadgeVariant,
 } from '../../../../core/utils/format.util';
-import {
-  LocationFilterState,
-  LocationVisit,
-} from '../../../../models/location.model';
+import { DeviceCoordinates, toDeviceCoordinates } from '../../../../core/utils/geolocation.util';
+import { LocationFilterState, LocationVisit } from '../../../../models/location.model';
 import {
   formatLocationVoiceSummary,
   VOICE_RECORD_DETAIL_HINT,
 } from '../../../../core/utils/voice-record-summary.util';
-import {
-  describeMatches,
-  matchVisibleRows,
-} from '../../../../core/utils/voice-row-match.util';
+import { describeMatches, matchVisibleRows } from '../../../../core/utils/voice-row-match.util';
 import {
   VoiceControlArgs,
   VoiceSelectArgs,
@@ -30,6 +29,7 @@ import {
 import { VoicePageRegistry } from '../../../../services/voice-page-registry.service';
 import { LocationFilterComponent } from '../../../../shared/components/location-filter/location-filter.component';
 import { ModalDialogComponent } from '../../../../shared/components/modal-dialog/modal-dialog.component';
+import { ScanMapComponent } from '../../../../shared/components/scan-map/scan-map.component';
 import { StatCardComponent } from '../../../../shared/components/stat-card/stat-card.component';
 import { TableComponent } from '../../../../shared/components/table/table.component';
 import { TableColumn } from '../../../../shared/components/table/table.model';
@@ -45,7 +45,13 @@ import { LocationsPageState } from './locations.state';
  */
 @Component({
   selector: 'app-locations',
-  imports: [StatCardComponent, LocationFilterComponent, TableComponent, ModalDialogComponent],
+  imports: [
+    StatCardComponent,
+    LocationFilterComponent,
+    TableComponent,
+    ModalDialogComponent,
+    ScanMapComponent,
+  ],
   templateUrl: './locations.component.html',
   styleUrl: './locations.component.scss',
   providers: [LocationsPageState, LocationsPageFlow],
@@ -57,8 +63,7 @@ export class LocationsComponent implements OnInit, OnDestroy {
   private readonly filter = viewChild(LocationFilterComponent);
 
   readonly title = 'Locations';
-  readonly subtitle =
-    'Areas students visited when they scanned a QR or marked present.';
+  readonly subtitle = 'Areas students visited when they marked present.';
 
   /** Row opened in the shared detail dialog. */
   readonly selectedVisit = signal<LocationVisit | null>(null);
@@ -103,7 +108,7 @@ export class LocationsComponent implements OnInit, OnDestroy {
           row.scannedLocation,
           row.latitude,
           row.longitude,
-          undefined,
+          row.accuracyMeters,
           formatCampusLocationLabel(row.building, row.room) || row.locationName,
         ),
     },
@@ -230,12 +235,14 @@ export class LocationsComponent implements OnInit, OnDestroy {
   }
 
   private normalizeVisitStatus(value?: string): string | undefined {
-    const raw = String(value ?? '').trim().toLowerCase();
+    const raw = String(value ?? '')
+      .trim()
+      .toLowerCase();
     if (!raw) {
       return undefined;
     }
     if (raw === 'present' || raw === 'inside') {
-      return 'Present';
+      return 'Inside';
     }
     if (raw.includes('outside')) {
       return 'Outside Location';
@@ -270,6 +277,14 @@ export class LocationsComponent implements OnInit, OnDestroy {
     return formatScanCoordinates(visit.latitude, visit.longitude);
   }
 
+  accuracyLabel(visit: LocationVisit): string {
+    return formatScanAccuracy(visit.accuracyMeters) ?? '—';
+  }
+
+  scanDevice(visit: LocationVisit): DeviceCoordinates | null {
+    return toDeviceCoordinates(visit.latitude, visit.longitude, visit.accuracyMeters);
+  }
+
   scannedAtLabel(visit: LocationVisit): string {
     return formatScannedAtPlace(
       visit.scannedLocation,
@@ -277,7 +292,7 @@ export class LocationsComponent implements OnInit, OnDestroy {
     );
   }
 
-  locationStatusLabel(status: string): string {
+  locationStatusLabel(status: string | null): string {
     return formatGeofenceStatus(status);
   }
 
@@ -289,7 +304,7 @@ export class LocationsComponent implements OnInit, OnDestroy {
     return formatAttendanceDateTimeLabel(visit.recordedAt);
   }
 
-  statusClass(status: string): string {
+  statusClass(status: string | null): string {
     return `record-detail__badge record-detail__badge--${geofenceBadgeVariant(status)}`;
   }
 }

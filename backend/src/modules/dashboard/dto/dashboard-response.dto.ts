@@ -1,4 +1,4 @@
-import { AttendanceStatus } from '../../../common/constants/status.constant';
+import { AttendanceLocationStatus } from '../../../common/constants/status.constant';
 
 export interface DashboardStatCardDto {
   label: string;
@@ -24,7 +24,7 @@ export interface RecentScanDto {
   location: string;
   submittedAt: string;
   recordedAt: string;
-  status: AttendanceStatus;
+  status: AttendanceLocationStatus | null;
   distanceMeters: number | null;
 }
 

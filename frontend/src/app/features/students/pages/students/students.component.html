@@ -25,35 +25,105 @@
         type="button"
         class="students-page__add"
         [attr.aria-expanded]="showForm()"
-        (click)="showForm.set(!showForm())"
+        aria-haspopup="dialog"
+        [disabled]="creatingStudent() || savingStudent()"
+        (click)="openStudentForm()"
       >
-        {{ showForm() ? 'Close form' : 'Add student account' }}
+        Add student account
       </button>
     </div>
 
-    @if (showForm()) {
-      <app-student-form-card
-        [courseOptions]="formCourseOptions()"
-        (create)="onStudentCreated($event)"
-        (cancel)="showForm.set(false)"
-      />
-    }
-
     @if (loading()) {
       <p class="students-page__empty">Loading students…</p>
-    } @else if (students().length === 0) {
+    } @else if (directorySummary().totalStudents === 0) {
       <p class="students-page__empty">
         No students yet. Add the first student account above.
       </p>
-    } @else if (visibleStudents().length === 0) {
+    } @else if (students().length === 0) {
       <p class="students-page__empty">
         No students match these filters. Try another class or status.
       </p>
     } @else {
       <app-student-table
-        [students]="visibleStudents()"
+        [students]="students()"
+        [deletingStudentId]="deletingStudentId()"
         (loginToggle)="onLoginToggle($event)"
+        (studentEdit)="openStudentEdit($event)"
+        (studentDelete)="requestStudentDeletion($event)"
       />
     }
   </section>
 </section>
+
+@if (showForm()) {
+  <app-modal-dialog
+    eyebrow="Student directory"
+    [title]="studentToEdit() ? 'Edit student account' : 'Add student account'"
+    [closeAriaLabel]="studentToEdit() ? 'Close edit student dialog' : 'Close add student account dialog'"
+    size="lg"
+    [spacious]="true"
+    [lockDismiss]="true"
+    [closeDisabled]="creatingStudent() || savingStudent()"
+    (closed)="closeStudentForm()"
+  >
+    <app-student-form-card
+      [courseOptions]="courses()"
+      [student]="studentToEdit()"
+      [errorMessage]="studentFormError()"
+      [submitting]="creatingStudent() || savingStudent()"
+      (create)="onStudentCreated($event)"
+      (update)="onStudentUpdated($event)"
+      (valueChanged)="clearStudentFormError()"
+      (cancel)="closeStudentForm()"
+    />
+  </app-modal-dialog>
+}
+
+@if (studentToDelete(); as student) {
+  <app-modal-dialog
+    eyebrow="Student directory"
+    title="Delete student account?"
+    closeAriaLabel="Close delete student confirmation"
+    size="md"
+    [spacious]="false"
+    [lockDismiss]="!!deletingStudentId()"
+    [closeDisabled]="!!deletingStudentId()"
+    (closed)="cancelStudentDeletion()"
+  >
+    <div class="student-delete-dialog">
+      <p>
+        Delete the profile and login account for <strong>{{ student.name }}</strong>? Attendance
+        history will be kept.
+      </p>
+      <dl>
+        <div>
+          <dt>Student ID</dt>
+          <dd>{{ student.studentId }}</dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd>{{ student.email }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="student-delete-dialog__actions" modalFooter>
+      <button
+        type="button"
+        class="student-delete-dialog__cancel"
+        [disabled]="!!deletingStudentId()"
+        (click)="cancelStudentDeletion()"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="student-delete-dialog__confirm"
+        [disabled]="!!deletingStudentId()"
+        (click)="confirmStudentDeletion()"
+      >
+        {{ deletingStudentId() ? 'Deleting…' : 'Delete account' }}
+      </button>
+    </div>
+  </app-modal-dialog>
+}

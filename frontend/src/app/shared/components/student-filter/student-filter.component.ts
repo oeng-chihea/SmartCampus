@@ -57,6 +57,10 @@ export class StudentFilterComponent implements OnDestroy {
   }
 
   submit(): void {
+    if (this.searchTimer) {
+      clearTimeout(this.searchTimer);
+      this.searchTimer = null;
+    }
     this.apply.emit({
       search: this.search(),
       course: this.course(),

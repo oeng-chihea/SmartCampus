@@ -214,7 +214,7 @@ function controlPageViewTool(role: UserRole): CampusVoiceFunctionDeclaration {
         status_filter: {
           type: 'string',
           description:
-            'Optional status filter. Attendance location: inside, outside, all. Attendance check-in: Present, Absent. Location visits: Present, Outside Location. Sessions: Open, Closed.',
+            'Optional status filter. Attendance location: inside, outside, all. Attendance check-in: Present, Absent. Location visits: Inside, Outside Location. Sessions: Open, Closed.',
         },
         attendance_status: {
           type: 'string',

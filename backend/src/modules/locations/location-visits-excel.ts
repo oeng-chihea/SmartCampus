@@ -86,7 +86,7 @@ export async function buildLocationVisitsExcel(
       title: 'Visit totals (all visits)',
       rows: [
         ['Total visits', page.metrics.total],
-        ['Present', page.metrics.present],
+        ['Inside', page.metrics.inside],
         ['Outside Location', page.metrics.outsideLocation],
       ],
     },

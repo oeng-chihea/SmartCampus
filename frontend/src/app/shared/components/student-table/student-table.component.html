@@ -14,9 +14,9 @@
         <span role="columnheader">Student</span>
         <span role="columnheader">Class</span>
         <span role="columnheader">Year</span>
-        <span role="columnheader">Attendance</span>
         <span role="columnheader">Status</span>
         <span role="columnheader">Login access</span>
+        <span role="columnheader">Actions</span>
       </div>
 
       @for (student of students(); track student.studentId) {
@@ -27,7 +27,6 @@
           </div>
           <span role="cell" data-label="Class">{{ student.course }}</span>
           <span role="cell" data-label="Year">{{ student.year }}</span>
-          <span role="cell" data-label="Attendance">{{ student.attendanceRate }}%</span>
           <div class="student-table__status-cell" role="cell" data-label="Status">
             <span [class]="'student-status status-' + student.status.toLowerCase()">
               {{ student.status }}
@@ -56,6 +55,47 @@
                 {{ student.hasAccount ? (student.loginEnabled ? 'Active' : 'Inactive') : 'No account' }}
               </span>
             </button>
+          </div>
+          <div class="student-table__delete-cell" role="cell" data-label="Actions">
+            <div class="student-table__actions">
+              <button
+                type="button"
+                class="student-edit-button"
+                aria-haspopup="dialog"
+                [disabled]="deletingStudentId() === student.studentId"
+                [attr.title]="'Edit account for ' + student.name"
+                [attr.aria-label]="'Edit account for ' + student.name + ' (' + student.studentId + ')'"
+                (click)="onStudentEdit(student)"
+              >
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path
+                    d="m12.8 4.2 3 3M4 16l3.1-.6L16 6.5a1.8 1.8 0 0 0-2.5-2.5L4.6 12.9 4 16Z"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="student-delete-button"
+                [disabled]="deletingStudentId() === student.studentId"
+                [attr.title]="'Delete account for ' + student.name"
+                [attr.aria-label]="'Delete account for ' + student.name + ' (' + student.studentId + ')'"
+                (click)="onStudentDelete(student)"
+              >
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path
+                    d="M4.5 6h11m-9.5 0 .7 10h7.6l.7-10M8 6V4.5h4V6m-3.25 3v4.5m2.5-4.5v4.5"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       }

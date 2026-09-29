@@ -32,6 +32,7 @@
   } @else {
     <div
       class="data-table"
+      [class.data-table--sticky-first-column]="stickyFirstColumn()"
       role="table"
       [attr.aria-label]="tableAriaLabel()"
       [style.--table-columns]="gridTemplate()"
@@ -76,6 +77,7 @@
                     [class.data-table__cell--start]="isStartAligned(column)"
                     [class.data-table__cell--end]="isEndAligned(column)"
                     [class.data-table__cell--center]="isCenterAligned(column)"
+                    [class.data-table__cell--hide-mobile]="column.hideOnMobile"
                     [class]="column.cellClass || null"
                   >
                     @if (primaryValue(column, row); as primary) {
@@ -107,6 +109,7 @@
                     [class.data-table__cell--start]="isStartAligned(column)"
                     [class.data-table__cell--end]="isEndAligned(column)"
                     [class.data-table__cell--center]="isCenterAligned(column)"
+                    [class.data-table__cell--hide-mobile]="column.hideOnMobile"
                     [class]="column.cellClass || null"
                   >
                     <span [class]="badgeClass(column, row)">{{ badgeLabel(column, row) }}</span>
@@ -120,6 +123,7 @@
                     [class.data-table__cell--start]="isStartAligned(column)"
                     [class.data-table__cell--end]="isEndAligned(column)"
                     [class.data-table__cell--center]="isCenterAligned(column)"
+                    [class.data-table__cell--hide-mobile]="column.hideOnMobile"
                     [class]="column.cellClass || null"
                   >
                     @if (visibleActions(column, row); as actions) {
@@ -144,10 +148,26 @@
                     [class.data-table__cell--start]="isStartAligned(column)"
                     [class.data-table__cell--end]="isEndAligned(column)"
                     [class.data-table__cell--center]="isCenterAligned(column)"
+                    [class.data-table__cell--hide-mobile]="column.hideOnMobile"
                     [class]="column.cellClass || null"
                   >{{ textValue(column, row) }}</span>
                 }
               }
+            }
+
+            @if (interactive()) {
+              <div class="data-table__row-action-hint" aria-hidden="true">
+                <span>View details</span>
+                <svg viewBox="0 0 16 16" fill="none" class="data-table__chevron" aria-hidden="true">
+                  <path
+                    d="M6 3.5 10.5 8 6 12.5"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
             }
           </div>
         }

@@ -1,11 +1,18 @@
-export function formatDate(value: string | Date, locale = 'en-US'): string {
-  return new Intl.DateTimeFormat(locale).format(new Date(value));
+export function formatDate(value: string | Date): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '—';
+  }
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**
  * Compact record stamp used across Sessions, Attendance, Locations,
- * and student history: `8-16-26-11:04Pm`
- * (no leading zeros on month/day; hyphen between date and time; Pm/Am suffix)
+ * and student history: `2026-08-16-11:04Pm`
+ * (ISO YYYY-MM-DD date; hyphen between date and time; Pm/Am suffix)
  */
 export function formatSessionOpened(value: string | Date): string {
   const date = new Date(value);
@@ -17,7 +24,7 @@ export function formatSessionOpened(value: string | Date): string {
 
 /**
  * Attendance history Time cell — same instant as `formatSessionOpened`,
- * split for display: `Aug 16, 2026` / `11:05 PM`.
+ * split for display: `2026-08-16` / `11:05Pm`.
  */
 export function formatAttendanceDateTime(value: string | Date): {
   title: string;
@@ -27,24 +34,19 @@ export function formatAttendanceDateTime(value: string | Date): {
   if (Number.isNaN(date.getTime())) {
     return { title: '—' };
   }
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
   return {
-    title: new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(date),
-    subtitle: new Intl.DateTimeFormat('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    }).format(date),
+    title: `${year}-${month}-${day}`,
+    subtitle: formatClockTime(date),
   };
 }
 
-/** One-line detail label: `Aug 16, 2026 · 11:05 PM`. */
+/** One-line detail label in ISO format: `2026-08-16-11:05Pm`. */
 export function formatAttendanceDateTimeLabel(value: string | Date): string {
-  const parts = formatAttendanceDateTime(value);
-  return parts.subtitle ? `${parts.title} · ${parts.subtitle}` : parts.title;
+  const label = formatSessionOpened(value);
+  return label || '—';
 }
 
 /** Dashboard recent-scan stamp: `Today, 11:30 PM` or `Aug 20, 8:12 PM`. */
@@ -202,10 +204,10 @@ export function defaultDueTimeLocal(leadMinutes = 30, now: Date = new Date()): s
 }
 
 function formatCompactDateTime(date: Date): string {
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const year = String(date.getFullYear()).slice(-2);
-  return `${month}-${day}-${year}-${formatClockTime(date)}`;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}-${formatClockTime(date)}`;
 }
 
 function formatClockTime(date: Date): string {

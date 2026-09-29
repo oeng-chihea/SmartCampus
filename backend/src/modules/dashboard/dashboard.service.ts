@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ATTENDANCE_STATUS } from '../../common/constants/status.constant';
+import {
+  ATTENDANCE_LOCATION_STATUS,
+  ATTENDANCE_STATUS,
+} from '../../common/constants/status.constant';
 import { USER_ROLES } from '../../common/constants/roles.constant';
 import { SESSION_STATUS } from '../../common/constants/session.constant';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
@@ -39,8 +42,6 @@ interface StatusTally {
   present: number;
   /** Attendance status Absent (no scan by due time). */
   absent: number;
-  /** Location status: scanned inside the geofence. */
-  insidePresent: number;
   /** Location status: scanned outside the geofence. */
   outsideLocation: number;
 }
@@ -86,8 +87,8 @@ export class DashboardService {
         },
         {
           label: 'Present today',
-          value: formatCount(today.insidePresent),
-          helper: 'Valid scans inside approved areas',
+          value: formatCount(today.present),
+          helper: 'Attendance marked before the due time',
           icon: 'present',
           tone: 'green',
         },
@@ -147,7 +148,7 @@ export function pickRecentScans(
   limit = RECENT_SCAN_LIMIT,
 ): RecentScanDto[] {
   return records
-    .filter((row) => row.status !== ATTENDANCE_STATUS.absent)
+    .filter((row) => row.attendanceStatus !== ATTENDANCE_STATUS.absent)
     .slice(0, limit)
     .map(toRecentScan);
 }
@@ -170,7 +171,6 @@ function tally(rows: AttendanceRecordResponseDto[]): StatusTally {
   const counts: StatusTally = {
     present: 0,
     absent: 0,
-    insidePresent: 0,
     outsideLocation: 0,
   };
   for (const row of rows) {
@@ -180,9 +180,7 @@ function tally(rows: AttendanceRecordResponseDto[]): StatusTally {
       counts.present += 1;
     }
 
-    if (row.status === ATTENDANCE_STATUS.present) {
-      counts.insidePresent += 1;
-    } else if (row.status === ATTENDANCE_STATUS.outsideLocation) {
+    if (row.status === ATTENDANCE_LOCATION_STATUS.outsideLocation) {
       counts.outsideLocation += 1;
     }
   }

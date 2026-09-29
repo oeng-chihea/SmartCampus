@@ -15,6 +15,19 @@ export interface Student {
   hasAccount?: boolean;
 }
 
+export interface StudentDirectorySummary {
+  totalStudents: number;
+  activeScanners: number;
+  loginEnabledCount: number;
+  needsReview: number;
+}
+
+export interface StudentDirectoryResponse {
+  students: Student[];
+  courses: string[];
+  summary: StudentDirectorySummary;
+}
+
 /** Payload for the teacher “Add student account” form (creates profile + login). */
 export interface CreateStudentRequest {
   studentId: string;
@@ -23,6 +36,15 @@ export interface CreateStudentRequest {
   course: string;
   year: string;
   password: string;
+}
+
+/** Profile fields that teachers may edit for a student account. */
+export interface UpdateStudentRequest {
+  studentId: string;
+  name: string;
+  email: string;
+  course: string;
+  year: string;
 }
 
 /** UI-only option lists the Students toolbar renders. */

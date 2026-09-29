@@ -112,6 +112,12 @@
   color: var(--color-muted);
 }
 
+.status-empty {
+  background: var(--color-brand-faint);
+  border: 1px solid var(--border-subtle);
+  color: var(--color-muted);
+}
+
 .status-outside-location,
 .status-outside {
   background: var(--color-danger-faint);

@@ -102,6 +102,17 @@
   transform: translateY(0) scale(0.99);
 }
 
+.students-page__add:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.students-page__add:disabled:hover {
+  background: var(--color-brand);
+  box-shadow: none;
+  transform: none;
+}
+
 .students-page__alert {
   animation: fade-in 300ms ease both;
   min-width: 0;
@@ -113,6 +124,86 @@
   margin: 0;
   padding: 24px 4px;
   text-align: center;
+}
+
+.student-delete-dialog {
+  color: var(--color-slate);
+  display: grid;
+  gap: 18px;
+  line-height: 1.55;
+}
+
+.student-delete-dialog p {
+  margin: 0;
+}
+
+.student-delete-dialog strong {
+  color: var(--color-brand-deep);
+}
+
+.student-delete-dialog dl {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+}
+
+.student-delete-dialog dl > div {
+  display: grid;
+  gap: 3px;
+}
+
+.student-delete-dialog dt {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.student-delete-dialog dd {
+  color: var(--color-brand-deep);
+  font-weight: 600;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.student-delete-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.student-delete-dialog__actions button {
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  min-height: 42px;
+  padding: 0 16px;
+}
+
+.student-delete-dialog__actions button:focus-visible {
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+.student-delete-dialog__cancel {
+  background: var(--surface-muted);
+  color: var(--color-brand-deep);
+}
+
+.student-delete-dialog__confirm {
+  background: var(--color-danger-strong);
+  color: #ffffff;
+}
+
+.student-delete-dialog__actions button:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 @keyframes fade-in {

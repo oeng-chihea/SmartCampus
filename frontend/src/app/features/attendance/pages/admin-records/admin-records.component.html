@@ -23,25 +23,150 @@
     <div class="attendance-page__toolbar">
       <app-attendance-filter [filters]="state.filters()" (apply)="onFilterApply($event)" />
     </div>
-    <app-table
-      eyebrow="Attendance records"
-      title="Student attendance log"
-      [countLabel]="state.records().length + ' records'"
-      tableAriaLabel="Attendance scan records"
-      [columns]="attendanceColumns"
-      [rows]="state.records()"
-      [loading]="state.loading()"
-      loadingMessage="Loading attendance records from API…"
-      [showExport]="true"
-      [exporting]="state.exporting()"
-      (exportClick)="onExport()"
-      [comfortable]="true"
-      [interactive]="true"
-      [activeRowId]="selectedRecord()?.id ?? null"
-      (rowSelect)="onRecordSelect($event)"
-      emptyTitle="No records match your filters"
-      emptyMessage="Try another student ID, session, or attendance status."
-    />
+    <section
+      class="attendance-page__session-panel"
+      aria-label="Attendance records grouped by session"
+    >
+      <header class="attendance-page__records-header">
+        <div>
+          <p class="attendance-page__eyebrow">Attendance records</p>
+          <h2>Attendance by session</h2>
+          <p class="attendance-page__count">
+            {{ sessionGroups().length }}
+            {{ sessionGroups().length === 1 ? 'session' : 'sessions' }}
+            · {{ state.records().length }} attendance records
+          </p>
+        </div>
+        <button
+          type="button"
+          class="attendance-page__export"
+          [disabled]="state.exporting()"
+          [attr.aria-busy]="state.exporting()"
+          (click)="onExport()"
+        >
+          {{ state.exporting() ? 'Exporting…' : 'Export' }}
+        </button>
+      </header>
+
+      @if (state.loading()) {
+        <p class="attendance-page__loading" role="status">
+          Loading attendance records from API…
+        </p>
+      } @else if (sessionGroups().length === 0) {
+        <div class="attendance-page__empty" role="status">
+          <strong>No records match your filters</strong>
+          <p>Try another student ID, session, or attendance status.</p>
+        </div>
+      } @else {
+        <div class="attendance-session-list">
+          @for (group of sessionGroups(); track group.sessionId; let first = $first) {
+            <details class="attendance-session" [open]="first">
+              <summary class="attendance-session__summary">
+                <span class="attendance-session__chevron" aria-hidden="true"></span>
+                <span class="attendance-session__info">
+                  <strong>{{ group.session }}</strong>
+                  <span>{{ sessionDateLabel(group) }} · {{ group.location }}</span>
+                </span>
+                <span class="attendance-session__counts">
+                  @if (group.presentCount > 0) {
+                    <span class="attendance-session__count attendance-session__count--present">
+                      {{ group.presentCount }} present
+                    </span>
+                  }
+                  @if (group.absentCount > 0) {
+                    <span class="attendance-session__count attendance-session__count--absent">
+                      {{ group.absentCount }} absent
+                    </span>
+                  }
+                </span>
+              </summary>
+
+              <p class="attendance-session__scroll-hint">
+                Scroll horizontally to view all attendance fields.
+              </p>
+              <div
+                class="attendance-session__table-wrap"
+                role="region"
+                [attr.aria-label]="'Attendance details for ' + group.session"
+                tabindex="0"
+              >
+                <table class="attendance-session__table">
+                  <caption class="attendance-session__sr-only">
+                    Attendance records for {{ group.session }}
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Student</th>
+                      <th scope="col">Session</th>
+                      <th scope="col">Location</th>
+                      <th scope="col">Scanned at</th>
+                      <th scope="col">Time</th>
+                      <th scope="col">Distance</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Attendance status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (record of group.records; track record.id) {
+                      <tr
+                        class="attendance-session__row"
+                        tabindex="0"
+                        [attr.aria-label]="
+                          'View attendance details for ' +
+                          record.student +
+                          ', ' +
+                          record.studentId
+                        "
+                        (click)="onRecordSelect(record)"
+                        (keydown)="onRecordKeydown($event, record)"
+                      >
+                        <td>
+                          <div class="attendance-session__student">
+                            <strong>{{ record.student }}</strong>
+                            <span>{{ record.studentId }}</span>
+                          </div>
+                        </td>
+                        <td>{{ record.session }}</td>
+                        <td>{{ record.location }}</td>
+                        <td>
+                          <span
+                            class="attendance-session__scan-place"
+                            [class.attendance-session__scan-place--empty]="
+                              record.attendanceStatus === 'Absent'
+                            "
+                          >
+                            {{ scannedAtLabel(record) }}
+                          </span>
+                        </td>
+                        <td>
+                          @if (attendanceTime(record); as time) {
+                            <span>{{ time.title }}</span>
+                            @if (time.subtitle) {
+                              <span class="attendance-session__secondary">{{ time.subtitle }}</span>
+                            }
+                          }
+                        </td>
+                        <td>{{ distanceLabel(record) }}</td>
+                        <td>
+                          <span [class]="statusBadgeClass(record.status)">
+                            {{ locationStatusLabel(record.status) }}
+                          </span>
+                        </td>
+                        <td>
+                          <span [class]="statusBadgeClass(record.attendanceStatus)">
+                            {{ record.attendanceStatus }}
+                          </span>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          }
+        </div>
+      }
+    </section>
   </section>
 </section>
 
@@ -74,11 +199,25 @@
       </div>
       <div class="record-detail__item record-detail__item--wide">
         <dt>Scanned at</dt>
-        <dd>{{ scannedAtLabel(record) }}</dd>
+        <dd>
+          @if (googleMapsUrl(record); as mapsUrl) {
+            <a
+              class="record-detail__maps-link"
+              [href]="mapsUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span>{{ scannedAtLabel(record) }}</span>
+              <span class="record-detail__maps-link-action">View on Google Maps</span>
+            </a>
+          } @else {
+            {{ scannedAtLabel(record) }}
+          }
+        </dd>
       </div>
       <div class="record-detail__item">
-        <dt>Coordinates</dt>
-        <dd>{{ coordinatesLabel(record) }}</dd>
+        <dt>Accuracy</dt>
+        <dd>{{ accuracyLabel(record) }}</dd>
       </div>
       <div class="record-detail__item">
         <dt>Distance</dt>
@@ -87,18 +226,27 @@
       <div class="record-detail__item">
         <dt>Status</dt>
         <dd>
-          <span [class]="statusClass(record.status)">{{ locationStatusLabel(record.status) }}</span>
+          <span [class]="statusBadgeClass(record.status)">
+            {{ locationStatusLabel(record.status) }}
+          </span>
         </dd>
       </div>
       <div class="record-detail__item">
         <dt>Attendance status</dt>
         <dd>
-          <span [class]="statusClass(record.attendanceStatus)">{{
-            record.attendanceStatus
-          }}</span>
+          <span [class]="statusBadgeClass(record.attendanceStatus)">
+            {{ record.attendanceStatus }}
+          </span>
         </dd>
       </div>
     </dl>
+    <section class="record-detail__map" aria-label="GPS scan location">
+      @if (scanDevice(record); as device) {
+        <app-scan-map class="scan-map--borderless" [device]="device" />
+      } @else {
+        <p class="record-detail__map-empty">No GPS coordinates were captured for this record.</p>
+      }
+    </section>
     <div class="record-detail__actions" modalFooter>
       <button type="button" class="record-detail__close" (click)="closeRecordDetail()">
         Close

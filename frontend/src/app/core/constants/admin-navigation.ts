@@ -16,6 +16,7 @@ export const ADMIN_NAVIGATION: AdminNavItem[] = [
   { label: 'Dashboard', icon: 'dashboard', path: '/dashboard' },
   { label: 'Students', icon: 'students', path: '/students' },
   { label: 'Attendance', icon: 'attendance', path: '/attendance' },
-  { label: 'Locations', icon: 'locations', path: '/locations' },
+  // Temporarily hidden with the page route; preserve this entry for re-enabling.
+  // { label: 'Locations', icon: 'locations', path: '/locations' },
   { label: 'Sessions', icon: 'sessions', path: '/sessions' },
 ];

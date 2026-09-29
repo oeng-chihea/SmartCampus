@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   buildStudentFilters,
   buildStudentMetrics,
-  filterStudents,
 } from '../core/utils/student-stats.util';
 import { Student } from '../models/student.model';
 
@@ -61,23 +60,5 @@ describe('student-stats util', () => {
   it('returns only the "All classes" option when there are no students', () => {
     const filters = buildStudentFilters([]);
     expect(filters.courseOptions).toEqual([{ value: 'all', label: 'All classes' }]);
-  });
-
-  it('filters the directory by class, status, and search', () => {
-    expect(
-      filterStudents(sample, { search: '', course: 'SE401', status: 'all' }).map(
-        (row) => row.studentId,
-      ),
-    ).toEqual(['SC-1001']);
-    expect(
-      filterStudents(sample, { search: 'another', course: 'all', status: 'all' }).map(
-        (row) => row.studentId,
-      ),
-    ).toEqual(['SC-1002']);
-    expect(
-      filterStudents(sample, { search: '', course: 'all', status: 'Review' }).map(
-        (row) => row.studentId,
-      ),
-    ).toEqual(['SC-1002']);
   });
 });

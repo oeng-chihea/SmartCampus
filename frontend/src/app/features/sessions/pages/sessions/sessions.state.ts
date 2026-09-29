@@ -43,8 +43,6 @@ export class SessionsPageState {
   readonly selectedSessionId = signal<string | null>(null);
   readonly qr = signal<SessionQrResponse | null>(null);
   readonly qrDataUrl = signal<string | null>(null);
-  /** Deep-link encoded into the QR (public site URL). */
-  readonly scanUrl = signal<string | null>(null);
 
   // ── Dialog form (ngModel; plain fields) ───────────────────
   title = '';
@@ -113,7 +111,7 @@ export class SessionsPageState {
     this.fieldErrors.set({});
   }
 
-  /** Prefer Building A, Room 201 (KIT Phnom Penh) when it is still Active. */
+  /** Prefer KIT-Building A when it is still Active. */
   private defaultLocationId(): string {
     const rows = this.locations();
     const preferred = rows.find(
@@ -253,10 +251,9 @@ export class SessionsPageState {
     this.qrLoading.set(true);
   }
 
-  setQrResult(qr: SessionQrResponse, dataUrl: string, scanUrl: string): void {
+  setQrResult(qr: SessionQrResponse, dataUrl: string): void {
     this.qr.set(qr);
     this.qrDataUrl.set(dataUrl);
-    this.scanUrl.set(scanUrl);
   }
 
   endQrLoad(): void {
@@ -268,7 +265,6 @@ export class SessionsPageState {
     this.selectedSessionId.set(null);
     this.qr.set(null);
     this.qrDataUrl.set(null);
-    this.scanUrl.set(null);
   }
 
   /** After reload: drop QR if selected session is missing or closed. */

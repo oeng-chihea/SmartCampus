@@ -1,6 +1,6 @@
-/** Geofence status label. Stored `Present` means inside the zone. */
-export function formatGeofenceStatus(status: string): string {
-  return status === 'Present' ? 'Inside' : status;
+/** Geofence status label. Absent records have no location result. */
+export function formatGeofenceStatus(status: string | null | undefined): string {
+  return status?.trim() || '—';
 }
 
 /**

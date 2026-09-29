@@ -1,17 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getCurrentCoordinates, watchDeviceLocation } from './geolocation.util';
+import {
+  getCurrentCoordinates,
+  toDeviceCoordinates,
+  watchDeviceLocation,
+} from './geolocation.util';
 
 const FIXED_TIMESTAMP = 1_723_795_860_000;
 
 function stubGeolocation(impl: {
-  getCurrentPosition: (
-    success: PositionCallback,
-    error?: PositionErrorCallback,
-  ) => void;
-  watchPosition?: (
-    success: PositionCallback,
-    error?: PositionErrorCallback,
-  ) => number;
+  getCurrentPosition: (success: PositionCallback, error?: PositionErrorCallback) => void;
+  watchPosition?: (success: PositionCallback, error?: PositionErrorCallback) => number;
   clearWatch?: (id: number) => void;
 }): void {
   Object.defineProperty(globalThis.navigator, 'geolocation', {
@@ -20,11 +18,7 @@ function stubGeolocation(impl: {
   });
 }
 
-function position(
-  latitude: number,
-  longitude: number,
-  accuracy?: number,
-): GeolocationPosition {
+function position(latitude: number, longitude: number, accuracy?: number): GeolocationPosition {
   return {
     coords: { latitude, longitude, accuracy },
     timestamp: FIXED_TIMESTAMP,
@@ -35,6 +29,31 @@ describe('geolocation.util', () => {
   afterEach(() => {
     Reflect.deleteProperty(globalThis.navigator, 'geolocation');
     vi.useRealTimers();
+  });
+
+  describe('toDeviceCoordinates', () => {
+    it('converts a stored scan position into map coordinates', () => {
+      expect(toDeviceCoordinates(11.528348, 104.923057, 16)).toEqual({
+        latitude: 11.528348,
+        longitude: 104.923057,
+        accuracyMeters: 16,
+      });
+    });
+
+    it('rejects incomplete or invalid positions so the UI cannot draw a false pin', () => {
+      expect(toDeviceCoordinates(null, 104.923057, 16)).toBeNull();
+      expect(toDeviceCoordinates(11.528348, Number.NaN, 16)).toBeNull();
+      expect(toDeviceCoordinates(91, 104.923057, 16)).toBeNull();
+      expect(toDeviceCoordinates(11.528348, 181, 16)).toBeNull();
+    });
+
+    it('omits invalid accuracy while keeping a valid position usable', () => {
+      expect(toDeviceCoordinates(11.528348, 104.923057, -1)).toEqual({
+        latitude: 11.528348,
+        longitude: 104.923057,
+        accuracyMeters: null,
+      });
+    });
   });
 
   it('resolves coordinates on success when watchPosition is unavailable', async () => {
@@ -105,6 +124,30 @@ describe('geolocation.util', () => {
       ok: false,
       reason: 'timeout',
     });
+  });
+
+  it('preserves position-unavailable errors when the provider cannot return a fix', async () => {
+    vi.useFakeTimers();
+    const clearWatch = vi.fn();
+    stubGeolocation({
+      getCurrentPosition: (_success, error) => {
+        error?.({ code: 2, message: 'position unavailable' } as GeolocationPositionError);
+      },
+      watchPosition: (_success, error) => {
+        error?.({ code: 2, message: 'position unavailable' } as GeolocationPositionError);
+        return 11;
+      },
+      clearWatch,
+    });
+
+    const pending = getCurrentCoordinates(5_000);
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    await expect(pending).resolves.toEqual({
+      ok: false,
+      reason: 'unavailable',
+    });
+    expect(clearWatch).toHaveBeenCalledWith(11);
   });
 
   it('reports unsupported when geolocation is missing', async () => {

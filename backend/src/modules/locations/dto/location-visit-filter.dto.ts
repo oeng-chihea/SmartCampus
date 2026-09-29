@@ -1,5 +1,8 @@
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
-import { ATTENDANCE_STATUS } from '../../../common/constants/status.constant';
+import {
+  ATTENDANCE_LOCATION_STATUS,
+} from '../../../common/constants/status.constant';
+import type { AttendanceLocationStatus } from '../../../common/constants/status.constant';
 
 /**
  * Filter payload for POST /locations/visits.
@@ -18,6 +21,6 @@ export class LocationVisitFilterDto {
   building?: string;
 
   @IsOptional()
-  @IsIn(Object.values(ATTENDANCE_STATUS))
-  status?: string;
+  @IsIn(Object.values(ATTENDANCE_LOCATION_STATUS))
+  status?: AttendanceLocationStatus;
 }

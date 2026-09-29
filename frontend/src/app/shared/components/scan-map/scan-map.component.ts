@@ -33,6 +33,7 @@ export class ScanMapComponent implements AfterViewInit, OnDestroy {
   private accuracyCircle: L.Circle | null = null;
   private deviceMarker: L.CircleMarker | null = null;
   private resizeObserver: ResizeObserver | null = null;
+  private lastFitKey: string | null = null;
 
   constructor() {
     effect(() => {
@@ -49,13 +50,13 @@ export class ScanMapComponent implements AfterViewInit, OnDestroy {
     }
 
     this.map = L.map(element, {
+      preferCanvas: true,
       zoomControl: true,
       attributionControl: true,
     }).setView(DEFAULT_CENTER, 16);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,
     }).addTo(this.map);
 
@@ -73,6 +74,13 @@ export class ScanMapComponent implements AfterViewInit, OnDestroy {
     this.resizeObserver = null;
     this.map?.remove();
     this.map = null;
+    this.lastFitKey = null;
+  }
+
+  mapAriaLabel(): string {
+    return this.zone()
+      ? 'Map of the recorded scan position and the class zone'
+      : 'Map of the recorded scan position';
   }
 
   private redraw(): void {
@@ -141,14 +149,29 @@ export class ScanMapComponent implements AfterViewInit, OnDestroy {
       this.accuracyCircle = null;
     }
 
-    this.fit(map, zone, device);
+    const fitKey = this.scanMapFitKey(zone, device);
+    if (fitKey !== this.lastFitKey) {
+      this.fit(map, zone, device);
+      this.lastFitKey = fitKey;
+    }
   }
 
-  private fit(
-    map: L.Map,
+  /**
+   * Changes only when the map's bounds need to be recalculated. Device movement
+   * updates the marker but does not repeatedly move the user's viewport.
+   */
+  private scanMapFitKey(
     zone: GeoZone | null,
     device: DeviceCoordinates | null,
-  ): void {
+  ): string {
+    const deviceState = device ? 'device' : 'no-device';
+    if (!zone) {
+      return `no-zone:${deviceState}`;
+    }
+    return `zone:${zone.latitude}:${zone.longitude}:${zone.radiusMeters}:${deviceState}`;
+  }
+
+  private fit(map: L.Map, zone: GeoZone | null, device: DeviceCoordinates | null): void {
     const bounds = L.latLngBounds([]);
     if (zone) {
       bounds.extend([zone.latitude, zone.longitude]);

@@ -74,7 +74,7 @@
 
 .modal-dialog__header {
   align-items: flex-start;
-  border-bottom: 1px solid var(--modal-dialog-rule);
+  border-bottom: 2px solid var(--modal-dialog-rule);
   display: flex;
   gap: clamp(12px, 2vw, 20px);
   justify-content: space-between;
@@ -116,13 +116,20 @@
   height: 40px;
   justify-content: center;
   line-height: 1;
-  transition: background 140ms ease, border-color 140ms ease;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
   width: 40px;
 }
 
 .modal-dialog__close:hover {
   background: var(--color-brand-faint);
   border-color: var(--color-brand-muted);
+}
+
+.modal-dialog__close:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .modal-dialog__close:focus-visible {
@@ -147,16 +154,42 @@
   display: none;
 }
 
-.modal-dialog:has(.record-detail__actions) .modal-dialog__body {
-  padding-bottom: clamp(12px, 1.6vw, 16px);
+.modal-dialog:has(.record-detail__actions),
+.modal-dialog:has(.session-detail-dialog__actions),
+.modal-dialog:has([modalFooter]) {
+  .modal-dialog__body {
+    padding-bottom: clamp(12px, 1.6vw, 16px);
+  }
 }
 
-.modal-dialog__footer:has(.record-detail__actions) {
-  border-top: 1px solid var(--modal-dialog-rule);
+.modal-dialog__footer:has(.record-detail__actions),
+.modal-dialog__footer:has(.session-detail-dialog__actions),
+.modal-dialog__footer:has([modalFooter]) {
+  background: var(--surface, #ffffff);
+  border-top: 2px solid var(--modal-dialog-rule);
   flex: 0 0 auto;
   margin-top: auto;
   min-width: 0;
   padding: clamp(14px, 2vw, 18px) clamp(24px, 3.5vw, 36px) clamp(18px, 2.4vw, 24px);
+  position: relative;
+  z-index: 5;
+}
+
+.modal-dialog:has(.session-detail-dialog),
+.modal-dialog:has(.record-detail) {
+  overflow: hidden;
+
+  .modal-dialog__header {
+    flex: 0 0 auto;
+  }
+
+  .modal-dialog__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 @keyframes modal-dialog-in {
@@ -183,26 +216,46 @@
 }
 
 @media (max-width: 640px) {
+  .modal-dialog-backdrop {
+    align-items: flex-start;
+    padding: max(16px, env(safe-area-inset-top, 0px)) 12px
+      max(20px, env(safe-area-inset-bottom, 0px)) 12px;
+  }
+
   .modal-dialog,
   .modal-dialog--md,
   .modal-dialog--lg,
   .modal-dialog--xl {
-    max-height: min(94dvh, 720px);
-    max-width: calc(100vw - 24px);
+    max-height: calc(100dvh - max(28px, env(safe-area-inset-top, 0px)) - max(28px, env(safe-area-inset-bottom, 0px)));
+    max-width: calc(100vw - 20px);
     min-height: 0;
-    width: calc(100vw - 24px);
+    overflow: hidden;
+    width: calc(100vw - 20px);
+  }
+
+  .modal-dialog--spacious {
+    min-height: 0;
   }
 
   .modal-dialog__header {
-    padding: 18px 18px 14px;
+    flex: 0 0 auto;
+    padding: 16px 18px 14px;
   }
 
   .modal-dialog__body {
+    flex: 1 1 auto;
     gap: 14px;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
     padding: 16px 18px 20px;
   }
 
-  .modal-dialog__footer:has(.record-detail__actions) {
-    padding: 14px 18px 18px;
+  .modal-dialog__footer:has(.record-detail__actions),
+  .modal-dialog__footer:has(.session-detail-dialog__actions),
+  .modal-dialog__footer:has([modalFooter]) {
+    flex: 0 0 auto;
+    padding: 12px 18px max(14px, env(safe-area-inset-bottom, 0px));
   }
 }

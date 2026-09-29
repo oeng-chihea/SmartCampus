@@ -1,4 +1,7 @@
-import { ATTENDANCE_STATUS } from '../../common/constants/status.constant';
+import {
+  ATTENDANCE_LOCATION_STATUS,
+  ATTENDANCE_STATUS,
+} from '../../common/constants/status.constant';
 import { SESSION_STATUS } from '../../common/constants/session.constant';
 import { campusDateParts } from '../../common/utils/date.util';
 import { formatCampusLocationLabel } from '../../common/utils/format.util';
@@ -79,10 +82,12 @@ export function summarizeAttendance(
     absent: records.filter(
       (row) => row.attendanceStatus === ATTENDANCE_STATUS.absent,
     ).length,
-    inside: records.filter((row) => row.status === ATTENDANCE_STATUS.present)
+    inside: records.filter(
+      (row) => row.status === ATTENDANCE_LOCATION_STATUS.inside,
+    )
       .length,
     outside: records.filter(
-      (row) => row.status === ATTENDANCE_STATUS.outsideLocation,
+      (row) => row.status === ATTENDANCE_LOCATION_STATUS.outsideLocation,
     ).length,
     records,
   };
@@ -94,10 +99,12 @@ export function summarizeLocations(
 ): CampusVoiceLocationSummaryDto {
   return {
     total: visits.length,
-    inside: visits.filter((row) => row.status === ATTENDANCE_STATUS.present)
+    inside: visits.filter(
+      (row) => row.status === ATTENDANCE_LOCATION_STATUS.inside,
+    )
       .length,
     outside: visits.filter(
-      (row) => row.status === ATTENDANCE_STATUS.outsideLocation,
+      (row) => row.status === ATTENDANCE_LOCATION_STATUS.outsideLocation,
     ).length,
     visits,
     zones,
@@ -282,9 +289,9 @@ export function attendanceDetailLine(row: CampusVoiceAttendanceRowDto): string {
     row.session,
     row.location,
     row.attendanceStatus,
-    row.status === ATTENDANCE_STATUS.outsideLocation
+    row.status === ATTENDANCE_LOCATION_STATUS.outsideLocation
       ? 'outside the location'
-      : row.status === ATTENDANCE_STATUS.present
+      : row.status === ATTENDANCE_LOCATION_STATUS.inside
         ? 'inside the location'
         : '',
     speakDistance(row.distanceMeters),
@@ -301,9 +308,11 @@ export function visitDetailLine(row: CampusVoiceVisitRowDto): string {
     row.session,
     place,
     row.building,
-    row.status === ATTENDANCE_STATUS.outsideLocation
+    row.status === ATTENDANCE_LOCATION_STATUS.outsideLocation
       ? 'outside the location'
-      : 'inside the location',
+      : row.status === ATTENDANCE_LOCATION_STATUS.inside
+        ? 'inside the location'
+        : 'location status unavailable',
     speakDistance(row.distanceMeters),
     row.scannedLocation ? `scanned at ${row.scannedLocation}` : '',
     speakCampusTime(row.recordedAt),

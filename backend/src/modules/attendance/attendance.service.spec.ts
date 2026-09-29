@@ -205,7 +205,9 @@ describe('AttendanceService', () => {
         let searchNeedle: string | undefined;
         let sessionId: string | undefined;
         let status: string | undefined;
+        let checkInStatus: string | undefined;
         let excludeStatus: string | undefined;
+        let excludeAttendanceStatus: string | undefined;
         let rangeStart: Date | undefined;
         let rangeEnd: Date | undefined;
 
@@ -224,7 +226,16 @@ describe('AttendanceService', () => {
               if (status && row.status !== status) {
                 return false;
               }
+              if (checkInStatus && row.attendanceStatus !== checkInStatus) {
+                return false;
+              }
               if (excludeStatus && row.status === excludeStatus) {
+                return false;
+              }
+              if (
+                excludeAttendanceStatus &&
+                row.attendanceStatus === excludeAttendanceStatus
+              ) {
                 return false;
               }
               if (rangeStart && row.recordedAt < rangeStart) {
@@ -265,10 +276,10 @@ describe('AttendanceService', () => {
                 status = String(params.outsideStatus);
               }
               if (params?.checkInStatus) {
-                status = String(params.checkInStatus);
+                checkInStatus = String(params.checkInStatus);
               }
               if (params?.absentStatus) {
-                excludeStatus = String(params.absentStatus);
+                excludeAttendanceStatus = String(params.absentStatus);
               }
               if (params?.rangeStart) {
                 rangeStart = params.rangeStart as Date;
@@ -303,7 +314,11 @@ describe('AttendanceService', () => {
           criteria:
             | string
             | string[]
-            | { sessionId?: string; status?: string },
+            | {
+                sessionId?: string;
+                status?: string;
+                attendanceStatus?: string;
+              },
         ) => {
           if (typeof criteria === 'string' || Array.isArray(criteria)) {
             const idList = Array.isArray(criteria) ? criteria : [criteria];
@@ -316,7 +331,10 @@ describe('AttendanceService', () => {
               !criteria.sessionId || row.sessionId === criteria.sessionId;
             const statusMatch =
               !criteria.status || row.status === criteria.status;
-            return !(sessionMatch && statusMatch);
+            const attendanceStatusMatch =
+              !criteria.attendanceStatus ||
+              row.attendanceStatus === criteria.attendanceStatus;
+            return !(sessionMatch && statusMatch && attendanceStatusMatch);
           });
           return { affected: before - recordStore.length };
         },
@@ -449,7 +467,7 @@ describe('AttendanceService', () => {
     return { sessionId: created.id, payload: qr.payload };
   }
 
-  it('submits Present when before the due time and inside the geofence', async () => {
+  it('submits Inside location status and Present attendance status inside the geofence', async () => {
     const { payload } = await openSessionWithPayload(45);
     // LOC-001 is KIT Phnom Penh (11.5479313, 104.9405941), 200m radius.
     const record = await attendance.submit(
@@ -457,7 +475,8 @@ describe('AttendanceService', () => {
       student,
     );
 
-    expect(record.status).toBe('Present');
+    expect(record.status).toBe('Inside');
+    expect(record.attendanceStatus).toBe('Present');
     expect(record.student).toBe('Sok Dara');
     expect(record.studentId).toBe('SC-1024');
     expect(record.session).toBe('SE401 · Morning Lecture');
@@ -487,7 +506,7 @@ describe('AttendanceService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('submits Present with distance when GPS is inside the geofence', async () => {
+  it('stores Inside and Present independently when GPS is inside the geofence', async () => {
     const { payload } = await openSessionWithPayload(45);
     // LOC-001 is KIT Phnom Penh (11.5479313, 104.9405941), 200m radius.
     const record = await attendance.submit(
@@ -495,7 +514,8 @@ describe('AttendanceService', () => {
       student,
     );
 
-    expect(record.status).toBe('Present');
+    expect(record.status).toBe('Inside');
+    expect(record.attendanceStatus).toBe('Present');
     expect(record.distanceMeters).not.toBeNull();
     expect(record.distanceMeters as number).toBeLessThanOrEqual(200);
     expect(record.latitude).toBe(11.54795);
@@ -511,12 +531,13 @@ describe('AttendanceService', () => {
     );
 
     expect(record.status).toBe('Outside Location');
+    expect(record.attendanceStatus).toBe('Present');
     expect(record.distanceMeters as number).toBeGreaterThan(200);
     expect(record.latitude).toBe(11.6);
     expect(record.longitude).toBe(105.0);
   });
 
-  it('submits Present for a Galileo Street scan inside the 200 m KIT zone', async () => {
+  it('submits Inside for a Galileo Street scan inside the 200 m KIT zone', async () => {
     const { payload } = await openSessionWithPayload(45);
     // ~131 m south of the Maps pin — previously Outside Location at 80 m.
     const record = await attendance.submit(
@@ -529,7 +550,8 @@ describe('AttendanceService', () => {
       student,
     );
 
-    expect(record.status).toBe('Present');
+    expect(record.status).toBe('Inside');
+    expect(record.attendanceStatus).toBe('Present');
     expect(record.distanceMeters as number).toBeGreaterThan(100);
     expect(record.distanceMeters as number).toBeLessThanOrEqual(200);
   });
@@ -600,11 +622,8 @@ describe('AttendanceService', () => {
       absent: 0,
       outsideLocation: 0,
     });
-    expect(page.statusOptions).toEqual([
-      'Present',
-      'Absent',
-      'Outside Location',
-    ]);
+    expect(page.statusOptions).toEqual(['Inside', 'Outside Location']);
+    expect(page.attendanceStatusOptions).toEqual(['Present', 'Absent']);
   });
 
   it('lists only students who scanned while the session is still before due', async () => {
@@ -624,7 +643,7 @@ describe('AttendanceService', () => {
     expect(page.records).toHaveLength(1);
     expect(page.records[0]).toMatchObject({
       studentId: 'SC-1024',
-      status: 'Present',
+      status: 'Inside',
       attendanceStatus: 'Present',
     });
     expect(page.metrics).toMatchObject({ present: 1, absent: 0 });
@@ -649,11 +668,11 @@ describe('AttendanceService', () => {
     const scanner = page.records.find((row) => row.studentId === 'SC-1024');
     const missing = page.records.find((row) => row.studentId === 'SC-1001');
     expect(scanner).toMatchObject({
-      status: 'Present',
+      status: 'Inside',
       attendanceStatus: 'Present',
     });
     expect(missing).toMatchObject({
-      status: 'Absent',
+      status: null,
       attendanceStatus: 'Absent',
       student: 'Chihea',
       distanceMeters: null,
@@ -721,7 +740,8 @@ describe('AttendanceService', () => {
       session: 'SE401 · Morning Lecture',
       location: 'Building A, Room 201',
       recordedAt: new Date(),
-      status: 'Absent',
+      status: null,
+      attendanceStatus: 'Absent',
       distanceMeters: null,
       latitude: null,
       longitude: null,
@@ -779,7 +799,7 @@ describe('AttendanceService', () => {
 
     const mine = await attendance.findMine(student);
     expect(mine).toHaveLength(1);
-    expect(mine[0].status).toBe('Present');
+    expect(mine[0].status).toBe('Inside');
     expect(mine[0].attendanceStatus).toBe('Present');
 
     const otherMine = await attendance.findMine(otherStudent);
@@ -806,7 +826,7 @@ describe('AttendanceService', () => {
       afterDue,
     );
     expect(inside.records).toHaveLength(1);
-    expect(inside.records[0].status).toBe('Present');
+    expect(inside.records[0].status).toBe('Inside');
 
     const outside = await attendance.findAdminRecords(
       { status: 'outside' },
@@ -834,6 +854,42 @@ describe('AttendanceService', () => {
       true,
     );
     expect(absents.records.length).toBeGreaterThan(0);
+  });
+
+  it('keeps an Outside Location scan in the Present attendance filter', async () => {
+    const { payload } = await openSessionWithPayload(45);
+    await attendance.submit(
+      {
+        payload,
+        latitude: 11.54795,
+        longitude: 104.94061,
+        accuracyMeters: 18,
+      },
+      student,
+    );
+    await attendance.submit(
+      {
+        payload,
+        latitude: 11.6,
+        longitude: 105.0,
+        accuracyMeters: 20,
+      },
+      otherStudent,
+    );
+
+    const present = await attendance.findAdminRecords(
+      { attendanceStatus: 'Present' },
+      teacher,
+    );
+
+    expect(present.records).toHaveLength(2);
+    expect(present.records.map((row) => row.status).sort()).toEqual([
+      'Inside',
+      'Outside Location',
+    ]);
+    expect(
+      present.records.every((row) => row.attendanceStatus === 'Present'),
+    ).toBe(true);
   });
 
   it('exports filtered attendance records as an xlsx workbook', async () => {

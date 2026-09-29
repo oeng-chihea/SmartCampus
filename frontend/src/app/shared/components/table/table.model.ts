@@ -38,6 +38,8 @@ export interface TableColumn<T = unknown> {
   align?: 'start' | 'center' | 'end';
   /** Extra class on the header and every body cell (spacing hooks). */
   cellClass?: string;
+  /** When true, hides this field from compact mobile cards (retained on desktop). */
+  hideOnMobile?: boolean;
   /** Plain text / badge label. */
   value?: (row: T) => string | number | null | undefined;
   /** Title + optional subtitle / chip (primary cell). */

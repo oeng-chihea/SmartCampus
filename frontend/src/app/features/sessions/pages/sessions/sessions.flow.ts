@@ -1,11 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import * as QRCode from 'qrcode';
 import { buildDueAtFromLocalDateTime } from '../../../../core/utils/date.util';
-import { buildAttendanceScanUrl } from '../../../../core/utils/qr-scan.util';
 import { FieldErrors } from '../../../../models/alert.model';
 import { AttendanceSession } from '../../../../models/session.model';
 import { AlertService } from '../../../../services/alert.service';
-import { ScanOriginService } from '../../../../services/scan-origin.service';
 import { SessionService } from '../../../../services/session.service';
 import { SessionsPageState } from './sessions.state';
 
@@ -17,7 +15,6 @@ import { SessionsPageState } from './sessions.state';
 export class SessionsPageFlow {
   private readonly state = inject(SessionsPageState);
   private readonly sessionService = inject(SessionService);
-  private readonly scanOrigin = inject(ScanOriginService);
   private readonly alerts = inject(AlertService);
 
   async reload(): Promise<void> {
@@ -146,9 +143,8 @@ export class SessionsPageFlow {
     this.state.beginQrLoad(sessionId);
     try {
       const qr = await this.sessionService.getQr(sessionId);
-      // Deep-link URL so iPhone Camera can open /student/scan?payload=...
-      const { dataUrl, scanUrl } = await this.qrFromPayload(qr.payload);
-      this.state.setQrResult(qr, dataUrl, scanUrl);
+      const dataUrl = await this.qrFromPayload(qr.payload);
+      this.state.setQrResult(qr, dataUrl);
       this.state.startQrRefresh(() => {
         void this.refreshQrQuiet(sessionId);
       });
@@ -235,12 +231,8 @@ export class SessionsPageFlow {
       return;
     }
     try {
-      const origin = await this.scanOrigin.resolve();
-      const link = buildAttendanceScanUrl(payload, origin);
-      await navigator.clipboard.writeText(link);
-      this.state.setPageSuccess(
-        'Scan link copied. Students can open it (or scan the QR) to mark present.',
-      );
+      await navigator.clipboard.writeText(payload);
+      this.state.setPageSuccess('Attendance code copied.');
     } catch {
       this.state.setPageError('Could not copy to clipboard.');
     }
@@ -338,24 +330,19 @@ export class SessionsPageFlow {
     }
     try {
       const qr = await this.sessionService.getQr(sessionId);
-      const { dataUrl, scanUrl } = await this.qrFromPayload(qr.payload);
-      this.state.setQrResult(qr, dataUrl, scanUrl);
+      const dataUrl = await this.qrFromPayload(qr.payload);
+      this.state.setQrResult(qr, dataUrl);
     } catch {
       this.state.clearQrPanel();
     }
   }
 
-  /** Encode the public site URL (not a campus Wi-Fi IP) into the QR image. */
-  private async qrFromPayload(
-    rawPayload: string,
-  ): Promise<{ dataUrl: string; scanUrl: string }> {
-    const origin = await this.scanOrigin.resolve();
-    const scanUrl = buildAttendanceScanUrl(rawPayload, origin);
-    const dataUrl = await QRCode.toDataURL(scanUrl, {
+  /** Encode only the temporary attendance payload into the QR image. */
+  private async qrFromPayload(rawPayload: string): Promise<string> {
+    return QRCode.toDataURL(rawPayload, {
       width: 240,
       margin: 2,
       color: { dark: '#14532d', light: '#ffffff' },
     });
-    return { dataUrl, scanUrl };
   }
 }

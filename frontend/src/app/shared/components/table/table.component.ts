@@ -50,6 +50,8 @@ export class TableComponent<T = unknown> {
    * Used by attendance history and location visit tables.
    */
   readonly comfortable = input(false);
+  /** Keep the first column visible during horizontal scrolling by default. */
+  readonly stickyFirstColumn = input(true);
   /** Loading banner above / instead of body. */
   readonly loading = input(false);
   readonly loadingMessage = input('Loading…');

@@ -31,6 +31,9 @@ describe('campus voice tools', () => {
         enum: expect.arrayContaining(['toggle_login', 'open_add_student']),
       }),
     );
+    expect(
+      (act?.parametersJsonSchema.properties['action'] as { enum: string[] }).enum,
+    ).toContain('show_qr');
 
     const readRecords = tools.find((tool) => tool.name === 'read_campus_records');
     expect(readRecords?.parametersJsonSchema.required).toBeUndefined();
@@ -107,6 +110,7 @@ describe('campus voice instruction', () => {
     expect(teacher).toContain('Do not call it at session start');
     expect(teacher).toContain('Do not call filter to answer data questions');
     expect(teacher).toContain('Product workflow');
+    expect(teacher).toContain('show QR');
     expect(teacher).toContain('Read names, student IDs, buildings, rooms, distances');
     expect(teacher).toContain(
       'Do not speak, greet, or call tools until the user talks',
@@ -140,6 +144,7 @@ describe('campus voice instruction', () => {
     expect(student).toContain('Do not call the tool once per class');
     expect(student).toContain('stop_voice_conversation');
     expect(student).toContain('currently on the Mark attendance page');
+    expect(student).not.toContain('scan the teacher QR');
     expect(student).not.toContain('two short warm sentences');
     expect(student).not.toContain(
       'Do not speak, greet, or call tools until the user talks',

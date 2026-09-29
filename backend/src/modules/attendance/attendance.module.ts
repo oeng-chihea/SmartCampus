@@ -22,7 +22,10 @@ import { ReverseGeocodeService } from './reverse-geocode.service';
     LocationsModule,
   ],
   controllers: [AttendanceController],
-  providers: [AttendanceService, ReverseGeocodeService],
+  providers: [
+    AttendanceService,
+    ReverseGeocodeService,
+  ],
   exports: [AttendanceService],
 })
 export class AttendanceModule {}

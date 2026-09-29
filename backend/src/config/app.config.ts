@@ -12,9 +12,4 @@ export default registerAs('app', () => ({
     process.env.CORS_ORIGINS,
     process.env.PUBLIC_APP_URL,
   ),
-  /**
-   * Public frontend URL encoded into teacher QR when the API is on another host
-   * (for example a Render web service). Example: https://smart-campus.onrender.com
-   */
-  publicAppUrl: String(process.env.PUBLIC_APP_URL ?? '').trim(),
 }));

@@ -1,11 +1,8 @@
-<div
-  class="modal-dialog-backdrop"
-  role="presentation"
-  (click)="onBackdropClick($event)"
->
+<div class="modal-dialog-backdrop" role="presentation" (click)="onBackdropClick($event)">
   <div
     #dialogPanel
     class="modal-dialog"
+    tabindex="-1"
     [class.modal-dialog--md]="size() === 'md'"
     [class.modal-dialog--lg]="size() === 'lg'"
     [class.modal-dialog--xl]="size() === 'xl'"
@@ -23,9 +20,11 @@
         <h2 [id]="titleId" class="modal-dialog__title">{{ title() }}</h2>
       </div>
       <button
+        #closeButton
         type="button"
         class="modal-dialog__close"
         [attr.aria-label]="closeAriaLabel()"
+        [disabled]="closeDisabled()"
         (click)="close()"
       >
         ×

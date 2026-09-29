@@ -6,16 +6,16 @@ export function toTitleCase(value: string): string {
     .join(' ');
 }
 
-/**
- * Geofence status shown in tables and record detail.
- * Stored `Present` means inside the zone; attendance check-in stays Present.
- */
-export function formatGeofenceStatus(status: string): string {
-  return status === 'Present' ? 'Inside' : status;
+/** Geofence status shown in tables and record detail. */
+export function formatGeofenceStatus(status: string | null | undefined): string {
+  return status?.trim() || '—';
 }
 
-export function geofenceBadgeVariant(status: string): string {
-  return formatGeofenceStatus(status).toLowerCase().replace(/\s+/g, '-');
+export function geofenceBadgeVariant(
+  status: string | null | undefined,
+): string {
+  const label = formatGeofenceStatus(status);
+  return label === '—' ? 'empty' : label.toLowerCase().replace(/\s+/g, '-');
 }
 
 /** Place name for Scanned at. Never falls back to raw coordinates. */
@@ -32,6 +32,28 @@ export function formatScannedAtPlace(
     return fallback;
   }
   return '—';
+}
+
+/** Google Maps link for an exact scan point; invalid or missing GPS returns no link. */
+export function buildGoogleMapsUrl(
+  latitude: number | null | undefined,
+  longitude: number | null | undefined,
+): string | null {
+  if (
+    latitude == null ||
+    longitude == null ||
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    longitude < -180 ||
+    longitude > 180
+  ) {
+    return null;
+  }
+
+  const query = encodeURIComponent(`${latitude},${longitude}`);
+  return `https://www.google.com/maps/search/?api=1&query=${query}`;
 }
 
 /**

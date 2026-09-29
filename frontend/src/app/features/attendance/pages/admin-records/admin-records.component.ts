@@ -1,25 +1,19 @@
-import { Component, OnDestroy, OnInit, inject, signal, viewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import {
   formatAttendanceDateTime,
   formatAttendanceDateTimeLabel,
 } from '../../../../core/utils/date.util';
 import {
-  distanceBadgeVariant,
+  buildGoogleMapsUrl,
   formatDistanceMeters,
   formatGeofenceStatus,
-  formatScanCoordinates,
-  formatScannedAtCell,
+  formatScanAccuracy,
   formatScannedAtPlace,
   geofenceBadgeVariant,
 } from '../../../../core/utils/format.util';
-import {
-  AttendanceFilterState,
-  AttendanceRecord,
-} from '../../../../models/attendance.model';
-import {
-  describeMatches,
-  matchVisibleRows,
-} from '../../../../core/utils/voice-row-match.util';
+import { DeviceCoordinates, toDeviceCoordinates } from '../../../../core/utils/geolocation.util';
+import { AttendanceFilterState, AttendanceRecord } from '../../../../models/attendance.model';
+import { describeMatches, matchVisibleRows } from '../../../../core/utils/voice-row-match.util';
 import {
   formatAttendanceVoiceSummary,
   summarizeAttendanceRecords,
@@ -34,10 +28,19 @@ import { VoicePageRegistry } from '../../../../services/voice-page-registry.serv
 import { AttendanceFilterComponent } from '../../../../shared/components/attendance-filter/attendance-filter.component';
 import { ModalDialogComponent } from '../../../../shared/components/modal-dialog/modal-dialog.component';
 import { StatCardComponent } from '../../../../shared/components/stat-card/stat-card.component';
-import { TableComponent } from '../../../../shared/components/table/table.component';
-import { TableColumn } from '../../../../shared/components/table/table.model';
+import { ScanMapComponent } from '../../../../shared/components/scan-map/scan-map.component';
 import { AdminRecordsFlow } from './admin-records.flow';
 import { AdminRecordsState } from './admin-records.state';
+
+interface AttendanceSessionGroup {
+  sessionId: string;
+  session: string;
+  location: string;
+  recordedAt: string;
+  records: AttendanceRecord[];
+  presentCount: number;
+  absentCount: number;
+}
 
 /**
  * Thin UI shell for the Admin attendance records page.
@@ -46,15 +49,14 @@ import { AdminRecordsState } from './admin-records.state';
  * - Flow   → `admin-records.flow.ts`   (API + orchestration)
  * - View   → this file + html/scss
  * - Filter toolbar → shared `app-attendance-filter`
- * - Scan log → shared `app-table`
  */
 @Component({
   selector: 'app-admin-records',
   imports: [
     StatCardComponent,
     AttendanceFilterComponent,
-    TableComponent,
     ModalDialogComponent,
+    ScanMapComponent,
   ],
   templateUrl: './admin-records.component.html',
   styleUrl: './admin-records.component.scss',
@@ -70,77 +72,43 @@ export class AdminRecordsComponent implements OnInit, OnDestroy {
   /** Row opened in the shared detail dialog. */
   readonly selectedRecord = signal<AttendanceRecord | null>(null);
 
-  /** Attendance scan-log columns (titles owned by this page). */
-  readonly attendanceColumns: TableColumn<AttendanceRecord>[] = [
-    {
-      key: 'student',
-      header: 'Student',
-      type: 'primary',
-      width: 'minmax(7rem, 0.85fr)',
-      primary: (row) => ({ title: row.student, subtitle: row.studentId }),
-    },
-    {
-      key: 'session',
-      header: 'Session',
-      width: 'minmax(6.5rem, 0.75fr)',
-      value: (row) => row.session,
-    },
-    {
-      key: 'location',
-      header: 'Location',
-      width: 'minmax(0, 0.65fr)',
-      value: (row) => row.location,
-    },
-    {
-      key: 'scannedAt',
-      header: 'Scanned at',
-      type: 'primary',
-      width: 'minmax(16rem, 2.5fr)',
-      cellClass: 'data-table__cell--scanned-at',
-      primary: (row) =>
-        formatScannedAtCell(
-          row.scannedLocation,
-          row.latitude,
-          row.longitude,
-          undefined,
-          row.location,
-        ),
-    },
-    {
-      key: 'time',
-      header: 'Time',
-      type: 'primary',
-      width: 'minmax(7.25rem, 1.05fr)',
-      primary: (row) => formatAttendanceDateTime(row.recordedAt),
-    },
-    {
-      key: 'distance',
-      header: 'Distance',
-      type: 'badge',
-      width: 'minmax(5.75rem, 0.8fr)',
-      align: 'start',
-      value: (row) => formatDistanceMeters(row.distanceMeters),
-      badgeVariant: (row) => distanceBadgeVariant(row.distanceMeters),
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      type: 'badge',
-      width: 'minmax(9.5rem, 0.95fr)',
-      align: 'start',
-      value: (row) => formatGeofenceStatus(row.status),
-      badgeVariant: (row) => geofenceBadgeVariant(row.status),
-    },
-    {
-      key: 'attendanceStatus',
-      header: 'Attendance status',
-      type: 'badge',
-      width: 'minmax(8.75rem, 0.9fr)',
-      align: 'start',
-      value: (row) => row.attendanceStatus,
-      badgeVariant: (row) => row.attendanceStatus.toLowerCase(),
-    },
-  ];
+  /** Group the visible records by session ID so repeated titles stay separate. */
+  readonly sessionGroups = computed<AttendanceSessionGroup[]>(() => {
+    const groups = new Map<string, AttendanceSessionGroup>();
+
+    for (const record of this.state.records()) {
+      let group = groups.get(record.sessionId);
+      if (!group) {
+        group = {
+          sessionId: record.sessionId,
+          session: record.session,
+          location: record.location,
+          recordedAt: record.recordedAt,
+          records: [],
+          presentCount: 0,
+          absentCount: 0,
+        };
+        groups.set(record.sessionId, group);
+      }
+
+      group.records.push(record);
+      if (record.attendanceStatus === 'Absent') {
+        group.absentCount += 1;
+      } else {
+        group.presentCount += 1;
+      }
+    }
+
+    for (const group of groups.values()) {
+      group.records.sort(
+        (left, right) =>
+          left.student.localeCompare(right.student) ||
+          left.studentId.localeCompare(right.studentId),
+      );
+    }
+
+    return Array.from(groups.values());
+  });
 
   ngOnInit(): void {
     this.voicePages.register({
@@ -152,7 +120,7 @@ export class AdminRecordsComponent implements OnInit, OnDestroy {
       act: () =>
         Promise.resolve({
           ok: false,
-          message: 'Attendance has no row buttons. Search, filter, or export instead.',
+          message: 'I can’t perform attendance actions. Search, filter, or export instead.',
         }),
       confirm: () =>
         Promise.resolve({ ok: false, message: 'Nothing is waiting for confirmation.' }),
@@ -213,9 +181,7 @@ export class AdminRecordsComponent implements OnInit, OnDestroy {
   }
 
   private voiceStatusMessage(): string {
-    return formatAttendanceVoiceSummary(
-      summarizeAttendanceRecords(this.state.records()),
-    );
+    return formatAttendanceVoiceSummary(summarizeAttendanceRecords(this.state.records()));
   }
 
   private async voiceSelect(args: VoiceSelectArgs): Promise<VoiceToolResult> {
@@ -247,7 +213,9 @@ export class AdminRecordsComponent implements OnInit, OnDestroy {
   }
 
   private normalizeLocationStatus(value?: string): string | undefined {
-    const raw = String(value ?? '').trim().toLowerCase();
+    const raw = String(value ?? '')
+      .trim()
+      .toLowerCase();
     if (!raw) {
       return undefined;
     }
@@ -261,6 +229,18 @@ export class AdminRecordsComponent implements OnInit, OnDestroy {
     void this.flow.applyFilters(filters);
   }
 
+  sessionDateLabel(group: AttendanceSessionGroup): string {
+    return formatAttendanceDateTime(group.recordedAt).title;
+  }
+
+  attendanceTime(record: AttendanceRecord): { title: string; subtitle?: string } {
+    return formatAttendanceDateTime(record.recordedAt);
+  }
+
+  statusBadgeClass(status: string | null): string {
+    return `attendance-status-badge attendance-status-badge--${geofenceBadgeVariant(status)}`;
+  }
+
   onExport(): void {
     void this.flow.exportExcel();
   }
@@ -269,19 +249,37 @@ export class AdminRecordsComponent implements OnInit, OnDestroy {
     this.selectedRecord.set(record);
   }
 
+  onRecordKeydown(event: KeyboardEvent, record: AttendanceRecord): void {
+    if (event.key === 'Enter' || event.key === ' ' || event.code === 'Space') {
+      event.preventDefault();
+      this.onRecordSelect(record);
+    }
+  }
+
   closeRecordDetail(): void {
     this.selectedRecord.set(null);
   }
 
-  coordinatesLabel(record: AttendanceRecord): string {
-    return formatScanCoordinates(record.latitude, record.longitude);
+  accuracyLabel(record: AttendanceRecord): string {
+    return formatScanAccuracy(record.accuracyMeters) ?? '—';
+  }
+
+  scanDevice(record: AttendanceRecord): DeviceCoordinates | null {
+    return toDeviceCoordinates(record.latitude, record.longitude, record.accuracyMeters);
   }
 
   scannedAtLabel(record: AttendanceRecord): string {
+    if (record.attendanceStatus === 'Absent') {
+      return 'No scan';
+    }
     return formatScannedAtPlace(record.scannedLocation, record.location);
   }
 
-  locationStatusLabel(status: string): string {
+  googleMapsUrl(record: AttendanceRecord): string | null {
+    return buildGoogleMapsUrl(record.latitude, record.longitude);
+  }
+
+  locationStatusLabel(status: string | null): string {
     return formatGeofenceStatus(status);
   }
 
@@ -291,9 +289,5 @@ export class AdminRecordsComponent implements OnInit, OnDestroy {
 
   recordedLabel(record: AttendanceRecord): string {
     return formatAttendanceDateTimeLabel(record.recordedAt);
-  }
-
-  statusClass(status: string): string {
-    return `record-detail__badge record-detail__badge--${geofenceBadgeVariant(status)}`;
   }
 }

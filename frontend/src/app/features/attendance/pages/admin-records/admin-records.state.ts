@@ -19,7 +19,7 @@ const DATE_OPTIONS: SelectOption[] = [
 const LOCATION_STATUS_OPTIONS: SelectOption[] = [
   { value: 'all', label: 'All statuses' },
   { value: 'inside', label: 'Inside' },
-  { value: 'outside', label: 'Outside' },
+  { value: 'outside', label: 'Outside Location' },
 ];
 
 const ATTENDANCE_STATUS_OPTIONS: SelectOption[] = [
@@ -104,7 +104,7 @@ export class AdminRecordsState {
         ...row,
         attendanceStatus:
           row.attendanceStatus ??
-          (row.status === 'Absent' ? 'Absent' : 'Present'),
+          (row.status === null ? 'Absent' : 'Present'),
       })),
     );
     this.metrics.set(this.buildMetrics(page.metrics));
@@ -115,7 +115,7 @@ export class AdminRecordsState {
       {
         label: 'Present',
         value: String(metrics.present),
-        helper: 'Scanned on time inside zone',
+        helper: 'Attendance marked before the due time',
         icon: 'present',
         tone: 'green',
       },
@@ -123,7 +123,7 @@ export class AdminRecordsState {
         label: 'Outside Location',
         value: String(metrics.outsideLocation ?? 0),
         helper: 'Scanned on time, outside geofence',
-        icon: 'late',
+        icon: 'locations',
         tone: 'amber',
       },
       {

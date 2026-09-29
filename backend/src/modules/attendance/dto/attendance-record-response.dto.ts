@@ -1,6 +1,6 @@
 import {
+  AttendanceLocationStatus,
   AttendanceCheckInStatus,
-  AttendanceStatus,
 } from '../../../common/constants/status.constant';
 
 export interface AttendanceRecordResponseDto {
@@ -12,10 +12,11 @@ export interface AttendanceRecordResponseDto {
   location: string;
   recordedAt: string;
   submittedAt: string;
-  status: AttendanceStatus;
+  /** Geofence result: Inside / Outside Location. Null when absent. */
+  status: AttendanceLocationStatus | null;
   /**
    * Present = student scanned / marked present (including Outside Location).
-   * Absent = no scan by due time or session close.
+   * Absent = no scan by the session due time.
    */
   attendanceStatus: AttendanceCheckInStatus;
   /**

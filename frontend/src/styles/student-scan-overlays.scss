@@ -1,0 +1,412 @@
+/* Large phones / small tablets (landscape phone, narrow iPad) */
+@media (min-width: 640px) and (max-width: 767px) {
+  .student-scan__session-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    grid-template-columns: none;
+    width: 100%;
+  }
+
+  .student-scan__session-item-wrap {
+    width: 100%;
+  }
+
+  .student-scan__card--session {
+    align-items: center;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    grid-template-rows: none;
+    height: auto;
+    justify-content: space-between;
+    padding: 14px 16px;
+  }
+
+  .student-scan__card-head {
+    flex: 1 1 200px;
+  }
+
+  .student-scan__session-meta {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    grid-template-columns: none;
+  }
+
+  .student-scan__session-item {
+    align-items: center;
+    background: var(--surface-muted, #f8fafc);
+    border: 1px solid var(--border-subtle);
+    border-radius: 999px;
+    display: inline-flex;
+    flex-direction: row;
+    gap: 6px;
+    padding: 4px 10px;
+  }
+
+  .student-scan__card-action {
+    display: flex;
+    flex-direction: row;
+    flex-shrink: 0;
+    gap: 8px;
+    margin-top: 0;
+    width: auto;
+  }
+
+  .student-scan__btn--details,
+  .student-scan__btn--present {
+    min-height: 42px;
+    width: auto;
+  }
+
+  .student-scan__qr {
+    width: 160px;
+  }
+}
+
+/* iPad portrait / tablets: 2 cards per horizontal row */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .student-scan__content {
+    max-width: 100%;
+  }
+
+  .student-scan__session-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .student-scan__qr {
+    width: 150px;
+  }
+
+  .student-scan__qr-note {
+    font-size: 0.95rem;
+    max-width: 14rem;
+  }
+
+  .student-scan__session-title {
+    font-size: 0.98rem;
+  }
+}
+
+/* iPad landscape / small laptop: 2 cards per row, more room */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .student-scan__session-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .student-scan__qr {
+    width: 168px;
+  }
+}
+
+/* Desktop: up to 3 cards per horizontal row when many sessions open */
+@media (min-width: 1200px) {
+  .student-scan__session-list {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 18px;
+  }
+
+  .student-scan__qr {
+    width: 176px;
+  }
+
+  .student-scan__qr-note {
+    font-size: 1.05rem;
+  }
+}
+
+/* Very narrow phones */
+@media (max-width: 380px) {
+  .student-scan__top {
+    padding: 12px 12px;
+  }
+
+  .student-scan__top h1 {
+    font-size: 1.25rem;
+  }
+
+  .student-scan__card--session {
+    padding: 12px;
+  }
+
+  .student-scan__btn--present {
+    min-height: 46px;
+    font-size: 0.92rem;
+  }
+}
+
+app-modal-dialog.student-scan__detail-dialog {
+  .record-detail {
+    display: grid;
+    gap: 16px 28px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+  }
+
+  .record-detail__item {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .record-detail__item--wide {
+    grid-column: 1 / -1;
+  }
+
+  .record-detail dt {
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin: 0;
+    text-transform: uppercase;
+  }
+
+  .record-detail dd {
+    color: var(--color-brand-deep);
+    font-size: 0.95rem;
+    font-weight: 650;
+    line-height: 1.45;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .record-detail__badge {
+    border-radius: var(--radius-pill);
+    display: inline-flex;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    white-space: nowrap;
+  }
+
+  .record-detail__badge--present,
+  .record-detail__badge--inside {
+    background: var(--color-brand-soft);
+    color: var(--color-brand-strong);
+  }
+
+  .record-detail__badge--late {
+    background: var(--color-brand-muted);
+    color: var(--color-brand-deep);
+  }
+
+  .record-detail__badge--absent {
+    background: var(--color-brand-faint);
+    border: 1px solid var(--border-subtle);
+    color: var(--color-muted);
+  }
+
+  .record-detail__badge--empty {
+    background: var(--color-brand-faint);
+    border: 1px solid var(--border-subtle);
+    color: var(--color-muted);
+  }
+
+  .record-detail__badge--outside-location,
+  .record-detail__badge--outside {
+    background: var(--color-danger-faint);
+    border: 1px solid var(--color-danger-soft);
+    color: var(--color-danger-strong);
+  }
+
+  .record-detail__actions {
+    display: flex;
+    justify-content: flex-end;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .record-detail__close {
+    background: var(--color-brand);
+    border: 0;
+    border-radius: var(--radius-sm);
+    color: #ffffff;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+    min-height: 38px;
+    padding: 0 16px;
+  }
+
+  .record-detail__close:focus-visible {
+    box-shadow: var(--focus-ring);
+    outline: none;
+  }
+
+  @media (max-width: 640px) {
+    .record-detail {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ── Session Detail Modal Dialog ────────────────────────────── */
+  .session-detail-dialog__overview {
+    align-items: center;
+    background: var(--surface-muted, #f8fafc);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    justify-content: space-between;
+    padding: 10px 14px;
+  }
+
+  .session-detail-dialog__badges {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .session-detail-dialog__instructor {
+    color: var(--color-muted);
+    font-size: 0.86rem;
+    margin: 0;
+
+    strong {
+      color: var(--color-brand-deep);
+      font-weight: 700;
+    }
+  }
+
+  .session-detail-dialog__meta-grid {
+    display: grid;
+    gap: 10px 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+  }
+
+  .session-detail-dialog__meta-item {
+    background: #fff;
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    display: grid;
+    gap: 3px;
+    padding: 9px 12px;
+
+    dt {
+      color: var(--color-muted);
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      margin: 0;
+      text-transform: uppercase;
+    }
+
+    dd {
+      color: var(--color-brand-deep);
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .session-detail-dialog__visuals {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .session-detail-dialog__qr-card,
+  .session-detail-dialog__map-card {
+    background: #fff;
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .session-detail-dialog__card-title {
+    color: var(--color-brand-deep);
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    margin: 0;
+    text-transform: uppercase;
+  }
+
+  .session-detail-dialog__hint {
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    line-height: 1.4;
+    margin: 2px 0 0;
+  }
+
+  .session-detail-dialog__actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+    width: 100%;
+
+    .student-scan__btn {
+      min-height: 44px;
+      padding: 0 20px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .session-detail-dialog {
+      gap: 12px;
+    }
+
+    .session-detail-dialog__overview {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 6px;
+      padding: 10px 12px;
+    }
+
+    .session-detail-dialog__meta-grid {
+      gap: 8px;
+      grid-template-columns: 1fr;
+    }
+
+    .session-detail-dialog__meta-item {
+      padding: 8px 10px;
+    }
+
+    .session-detail-dialog__visuals {
+      gap: 12px;
+      grid-template-columns: 1fr;
+    }
+
+    .session-detail-dialog__qr-card,
+    .session-detail-dialog__map-card {
+      padding: 10px;
+    }
+
+    .session-detail-dialog__qr-card .student-scan__qr {
+      width: 136px;
+    }
+
+    .session-detail-dialog__map-card .student-scan__map-wrap {
+      height: 160px;
+    }
+
+    .session-detail-dialog__actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+
+      .student-scan__btn {
+        min-height: 44px;
+        width: 100%;
+      }
+    }
+  }
+}

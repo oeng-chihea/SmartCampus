@@ -1,4 +1,4 @@
-import { AttendanceStatus } from './attendance.model';
+import { AttendanceLocationStatus } from './attendance.model';
 import { SelectOption } from '../shared/components/select-dropdown/select-dropdown.model';
 import { StatCard } from '../shared/components/stat-card/stat-card.model';
 
@@ -35,10 +35,10 @@ export interface LocationFilterState {
 export interface LocationVisitFilterRequest {
   search?: string;
   building?: string;
-  status?: AttendanceStatus;
+  status?: AttendanceLocationStatus;
 }
 
-/** One student QR / Mark present visit at a campus zone. */
+/** One student Mark present visit at a campus zone. */
 export interface LocationVisit {
   id: string;
   student: string;
@@ -49,7 +49,8 @@ export interface LocationVisit {
   room: string;
   session: string;
   sessionId: string;
-  status: AttendanceStatus;
+  /** Null only for legacy scans that predate reliable geofence status. */
+  status: AttendanceLocationStatus | null;
   recordedAt: string;
   distanceMeters: number | null;
   /** Student device GPS at scan / mark-present. Null on older rows. */
@@ -63,7 +64,7 @@ export interface LocationVisit {
 
 export interface LocationVisitMetrics {
   total: number;
-  present: number;
+  inside: number;
   outsideLocation: number;
 }
 
@@ -72,7 +73,7 @@ export interface LocationVisitPage {
   visits: LocationVisit[];
   metrics: LocationVisitMetrics;
   buildingOptions: string[];
-  statusOptions: AttendanceStatus[];
+  statusOptions: AttendanceLocationStatus[];
 }
 
 export interface LocationManagement {
@@ -82,4 +83,3 @@ export interface LocationManagement {
   filters: LocationFilters;
   locations: CampusLocation[];
 }
-

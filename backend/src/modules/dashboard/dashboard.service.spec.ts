@@ -78,7 +78,7 @@ describe('buildMonthlyTrend', () => {
         scan({ id: 'out', status: 'Outside Location', attendanceStatus: 'Present' }),
         scan({
           id: 'abs',
-          status: 'Absent',
+          status: null,
           attendanceStatus: 'Absent',
           distanceMeters: null,
         }),
@@ -94,10 +94,10 @@ describe('buildMonthlyTrend', () => {
   it('uses scanned / expected so absents pull the monthly rate down', () => {
     const trend = buildMonthlyTrend(
       [
-        scan({ id: 'p', status: 'Present', attendanceStatus: 'Present' }),
+        scan({ id: 'p', status: 'Inside', attendanceStatus: 'Present' }),
         scan({
           id: 'a',
-          status: 'Absent',
+          status: null,
           attendanceStatus: 'Absent',
           distanceMeters: null,
         }),
@@ -113,10 +113,10 @@ describe('buildMonthlyTrend', () => {
 describe('pickRecentScans', () => {
   it('keeps the newest scans and drops Absent rows', () => {
     const recent = pickRecentScans([
-      scan({ id: 's1', status: 'Present', attendanceStatus: 'Present' }),
+      scan({ id: 's1', status: 'Inside', attendanceStatus: 'Present' }),
       scan({
         id: 'abs',
-        status: 'Absent',
+        status: null,
         attendanceStatus: 'Absent',
         distanceMeters: null,
       }),
@@ -139,13 +139,14 @@ describe('DashboardService', () => {
         scan({ id: 's1' }),
         scan({
           id: 'abs',
-          status: 'Absent',
+          status: null,
           attendanceStatus: 'Absent',
           distanceMeters: null,
         }),
       ],
       metrics: { present: 0, late: 0, absent: 1, outsideLocation: 1 },
-      statusOptions: ['Present', 'Absent', 'Outside Location'],
+      statusOptions: ['Inside', 'Outside Location'],
+      attendanceStatusOptions: ['Present', 'Absent'],
     }));
     studentCount = jest.fn(async () => 3);
     sessionCount = jest.fn(async () => 2);
@@ -165,7 +166,7 @@ describe('DashboardService', () => {
     expect(page.trendYear).toBe(2026);
     expect(page.summaryCards[0].value).toBe('3');
     expect(page.summaryCards[1].label).toBe('Present today');
-    expect(page.summaryCards[1].value).toBe('0');
+    expect(page.summaryCards[1].value).toBe('1');
     expect(page.summaryCards[2].value).toBe('50%');
     expect(page.summaryCards[3].value).toBe('2');
     expect(page.monthlyTrend).toHaveLength(12);

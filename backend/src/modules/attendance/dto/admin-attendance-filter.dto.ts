@@ -22,7 +22,7 @@ export class AdminAttendanceFilterDto {
   @MaxLength(64)
   sessionId?: string;
 
-  /** Geofence: inside (Present) or outside (Outside Location). */
+  /** Geofence: inside or outside (Outside Location). */
   @IsOptional()
   @IsIn([...ADMIN_LOCATION_STATUS_FILTERS])
   status?: (typeof ADMIN_LOCATION_STATUS_FILTERS)[number];

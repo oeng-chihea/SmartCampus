@@ -7,7 +7,7 @@ import {
 import { AttendanceRecord } from '../../../../models/attendance.model';
 import { OpenLiveSessionCard } from '../../../../models/session.model';
 
-/** Shown when student tries to mark/scan after the session due time. */
+/** Shown when a student tries to mark/scan after the session due time. */
 export interface DueBlockedNotice {
   sessionTitle: string;
   dueAt: string | null;
@@ -44,6 +44,9 @@ export class StudentScanPageState {
   /** Non-null while the location-permission blocked confirm dialog is open. */
   readonly locationBlocked = signal<LocationBlockedNotice | null>(null);
 
+  /** True while the in-app camera QR scanner dialog is open. */
+  readonly scannerOpen = signal<boolean>(false);
+
   /** Latest live GPS fix for the Leaflet map + Turf preview. */
   readonly deviceFix = signal<DeviceCoordinates | null>(null);
   readonly deviceFixReason = signal<GeolocationFailureReason | null>(null);
@@ -78,7 +81,7 @@ export class StudentScanPageState {
 
   submitSucceeded(record: AttendanceRecord): void {
     this.success.set(
-      `You’re marked ${formatGeofenceStatus(record.status)} for “${record.session}”.`,
+      `You’re marked ${record.attendanceStatus} (${formatGeofenceStatus(record.status)}) for “${record.session}”.`,
     );
     this.myRecords.update((rows) => [
       record,
@@ -125,6 +128,15 @@ export class StudentScanPageState {
 
   closeLocationBlocked(): void {
     this.locationBlocked.set(null);
+  }
+
+  openScanner(): void {
+    this.scannerOpen.set(true);
+    this.error.set(null);
+  }
+
+  closeScanner(): void {
+    this.scannerOpen.set(false);
   }
 
   setDeviceFix(coords: DeviceCoordinates): void {

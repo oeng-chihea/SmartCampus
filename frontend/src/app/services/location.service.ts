@@ -31,7 +31,7 @@ export class LocationService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
 
-  /** Full zone catalog — used by Sessions create, not the Locations page. */
+  /** Active KIT building catalog — used by Sessions create, not the Locations page. */
   listLocations(): Promise<CampusLocation[]> {
     return firstValueFrom(
       this.http.get<CampusLocation[]>(this.url(API_ENDPOINTS.locations), {
@@ -41,7 +41,7 @@ export class LocationService {
   }
 
   /**
-   * Student visits recorded when a student scans a QR or marks present.
+   * Student visits recorded when a student marks present.
    * Search / building / status are applied on the server.
    */
   queryVisits(

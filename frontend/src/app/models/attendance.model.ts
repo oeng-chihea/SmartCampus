@@ -1,9 +1,9 @@
 import { SelectOption } from '../shared/components/select-dropdown/select-dropdown.model';
 
-/** FR-06 attendance statuses */
-export type AttendanceStatus = 'Present' | 'Late' | 'Absent' | 'Outside Location';
+/** Geofence result stored on an attendance record. */
+export type AttendanceLocationStatus = 'Inside' | 'Outside Location';
 
-/** Did the student check in on time? Present includes Outside Location scans. */
+/** Attendance check-in result stored independently from the geofence result. */
 export type AttendanceCheckInStatus = 'Present' | 'Absent';
 
 /** Geofence filter values sent as `status` on POST /attendance/admin. */
@@ -19,8 +19,9 @@ export interface AttendanceRecord {
   location: string;
   recordedAt: string;
   submittedAt: string;
-  status: AttendanceStatus;
-  /** Present = scanned on time; Absent = no scan by due / close. */
+  /** Inside / Outside Location. Null when the student did not check in. */
+  status: AttendanceLocationStatus | null;
+  /** Present = scanned; Absent = no scan by the session due time. */
   attendanceStatus: AttendanceCheckInStatus;
   distanceMeters: number | null;
   /** Device GPS at submit time. Null on rows saved before GPS was stored. */
@@ -33,7 +34,7 @@ export interface AttendanceRecord {
 }
 
 /**
- * Student scan submit — full QR payload from the teacher screen, plus an
+ * Student manual check-in — full temporary attendance payload from the live session, plus an
  * optional device GPS fix used for the geofence check (FR-02). Coordinates
  * are omitted when the browser denies/lacks geolocation.
  */
@@ -44,7 +45,7 @@ export interface SubmitAttendanceRequest {
   accuracyMeters?: number;
 }
 
-/** Preview after QR decode — does not create a record. */
+/** Preview after attendance payload validation — does not create a record. */
 export interface AttendancePreview {
   sessionId: string;
   title: string;
@@ -59,6 +60,7 @@ export type StudentScanStep = 'scan' | 'preview' | 'result';
 /** Counts returned by the backend for the summary cards (FR-06). */
 export interface AttendanceMetrics {
   present: number;
+  /** @deprecated Attendance status now has only Present and Absent. */
   late: number;
   absent: number;
   outsideLocation: number;
@@ -68,7 +70,8 @@ export interface AttendanceMetrics {
 export interface AdminAttendanceResponse {
   records: AttendanceRecord[];
   metrics: AttendanceMetrics;
-  statusOptions: AttendanceStatus[];
+  statusOptions: AttendanceLocationStatus[];
+  attendanceStatusOptions: AttendanceCheckInStatus[];
 }
 
 /**

@@ -41,11 +41,13 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./routes/admin-attendance.routes').then((module) => module.adminAttendanceRoutes),
       },
-      {
-        path: 'locations',
-        loadChildren: () =>
-          import('./routes/locations.routes').then((module) => module.locationsRoutes),
-      },
+      // Temporarily hidden. Keep the route and page implementation available
+      // in source, but do not register the Locations page in the application.
+      // {
+      //   path: 'locations',
+      //   loadChildren: () =>
+      //     import('./routes/locations.routes').then((module) => module.locationsRoutes),
+      // },
       {
         path: 'sessions',
         loadChildren: () =>

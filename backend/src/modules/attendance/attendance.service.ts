@@ -10,9 +10,11 @@ import { FindOptionsWhere, In, IsNull, Not, Repository } from 'typeorm';
 import { QR_PAYLOAD_PREFIX } from '../../common/constants/session.constant';
 import {
   ADMIN_ATTENDANCE_STATUS_OPTIONS,
+  ADMIN_LOCATION_STATUS_OPTIONS,
+  ATTENDANCE_LOCATION_STATUS,
   ATTENDANCE_STATUS,
   AttendanceCheckInStatus,
-  AttendanceStatus,
+  AttendanceLocationStatus,
 } from '../../common/constants/status.constant';
 import { USER_ROLES } from '../../common/constants/roles.constant';
 import { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
@@ -47,7 +49,7 @@ interface ParsedPayload {
 }
 
 /**
- * Attendance records persisted in MySQL after QR validation.
+ * Attendance records persisted in MySQL after attendance-token validation.
  */
 @Injectable()
 export class AttendanceService {
@@ -131,6 +133,7 @@ export class AttendanceService {
       location: session.locationName,
       recordedAt: now,
       status,
+      attendanceStatus: ATTENDANCE_STATUS.present,
       distanceMeters,
       latitude: dto.latitude as number,
       longitude: dto.longitude as number,
@@ -167,7 +170,7 @@ export class AttendanceService {
       order: { recordedAt: 'DESC' },
     });
     const scans = rows.filter(
-      (row) => row.status !== ATTENDANCE_STATUS.absent,
+      (row) => this.toAttendanceStatus(row) !== ATTENDANCE_STATUS.absent,
     );
 
     if (scans.length === 0) {
@@ -224,21 +227,21 @@ export class AttendanceService {
 
     if (dto.status === 'inside') {
       qb.andWhere('record.status = :insideStatus', {
-        insideStatus: ATTENDANCE_STATUS.present,
+        insideStatus: ATTENDANCE_LOCATION_STATUS.inside,
       });
     } else if (dto.status === 'outside') {
       qb.andWhere('record.status = :outsideStatus', {
-        outsideStatus: ATTENDANCE_STATUS.outsideLocation,
+        outsideStatus: ATTENDANCE_LOCATION_STATUS.outsideLocation,
       });
     }
 
     if (dto.attendanceStatus === ATTENDANCE_STATUS.absent) {
-      qb.andWhere('record.status = :checkInStatus', {
+      qb.andWhere('record.attendance_status = :checkInStatus', {
         checkInStatus: ATTENDANCE_STATUS.absent,
       });
     } else if (dto.attendanceStatus === ATTENDANCE_STATUS.present) {
-      qb.andWhere('record.status != :absentStatus', {
-        absentStatus: ATTENDANCE_STATUS.absent,
+      qb.andWhere('record.attendance_status = :checkInStatus', {
+        checkInStatus: ATTENDANCE_STATUS.present,
       });
     }
 
@@ -263,7 +266,8 @@ export class AttendanceService {
     return {
       records: rows.map((row) => this.toResponse(row)),
       metrics: this.buildAdminMetrics(rows),
-      statusOptions: ADMIN_ATTENDANCE_STATUS_OPTIONS,
+      statusOptions: ADMIN_LOCATION_STATUS_OPTIONS,
+      attendanceStatusOptions: ADMIN_ATTENDANCE_STATUS_OPTIONS,
     };
   }
 
@@ -334,7 +338,7 @@ export class AttendanceService {
   private async clearPrematureAbsents(session: SessionEntity): Promise<void> {
     await this.records.delete({
       sessionId: session.id,
-      status: ATTENDANCE_STATUS.absent,
+      attendanceStatus: ATTENDANCE_STATUS.absent,
     });
     if (session.absentsFinalized) {
       session.absentsFinalized = false;
@@ -370,7 +374,8 @@ export class AttendanceService {
             session: session.title,
             location: session.locationName,
             recordedAt,
-            status: ATTENDANCE_STATUS.absent,
+            status: null,
+            attendanceStatus: ATTENDANCE_STATUS.absent,
             distanceMeters: null,
             latitude: null,
             longitude: null,
@@ -416,23 +421,25 @@ export class AttendanceService {
     return { start: weekStart, end: new Date(weekStart.getTime() + 7 * dayMs) };
   }
 
-  private buildAdminMetrics(rows: AttendanceRecordEntity[]): AdminAttendanceMetricsDto {
-    return {
-      present: this.countStatus(rows, ATTENDANCE_STATUS.present),
-      late: this.countStatus(rows, ATTENDANCE_STATUS.late),
-      absent: this.countStatus(rows, ATTENDANCE_STATUS.absent),
-      outsideLocation: this.countStatus(
-        rows,
-        ATTENDANCE_STATUS.outsideLocation,
-      ),
-    };
-  }
-
-  private countStatus(
+  private buildAdminMetrics(
     rows: AttendanceRecordEntity[],
-    status: AttendanceStatus,
-  ): number {
-    return rows.reduce((total, row) => total + (row.status === status ? 1 : 0), 0);
+  ): AdminAttendanceMetricsDto {
+    return {
+      present: rows.filter(
+        (row) => this.toAttendanceStatus(row) === ATTENDANCE_STATUS.present,
+      ).length,
+      // Kept for response compatibility; attendance is intentionally only
+      // Present / Absent in the separated model.
+      late: 0,
+      absent: rows.filter(
+        (row) => this.toAttendanceStatus(row) === ATTENDANCE_STATUS.absent,
+      ).length,
+      outsideLocation: rows.filter(
+        (row) =>
+          this.toLocationStatus(row.status) ===
+          ATTENDANCE_LOCATION_STATUS.outsideLocation,
+      ).length,
+    };
   }
 
   /**
@@ -454,14 +461,14 @@ export class AttendanceService {
    * the session's location radius via the Haversine formula. Coordinates
    * are guaranteed present here — `requireCoordinates` runs first.
    *
-   * - Within `radiusMeters` → Present.
+   * - Within `radiusMeters` → Inside.
    * - Outside `radiusMeters` → Outside Location (still recorded — visible to
    *   admins/teachers on the attendance log — not rejected).
    */
   private evaluateGeofence(
     dto: SubmitAttendanceDto,
     location: CampusLocationResponseDto,
-  ): { status: AttendanceStatus; distanceMeters: number } {
+  ): { status: AttendanceLocationStatus; distanceMeters: number } {
     const studentPoint: GeoCoordinates = {
       latitude: dto.latitude as number,
       longitude: dto.longitude as number,
@@ -482,8 +489,8 @@ export class AttendanceService {
 
     return {
       status: withinRadius
-        ? ATTENDANCE_STATUS.present
-        : ATTENDANCE_STATUS.outsideLocation,
+        ? ATTENDANCE_LOCATION_STATUS.inside
+        : ATTENDANCE_LOCATION_STATUS.outsideLocation,
       distanceMeters,
     };
   }
@@ -581,8 +588,8 @@ export class AttendanceService {
       location: record.location,
       recordedAt: iso,
       submittedAt: iso,
-      status: record.status as AttendanceStatus,
-      attendanceStatus: this.toCheckInStatus(record.status),
+      status: this.toLocationStatus(record.status),
+      attendanceStatus: this.toAttendanceStatus(record),
       distanceMeters: record.distanceMeters,
       latitude: record.latitude ?? null,
       longitude: record.longitude ?? null,
@@ -591,10 +598,36 @@ export class AttendanceService {
     };
   }
 
-  private toCheckInStatus(status: string): AttendanceCheckInStatus {
-    return status === ATTENDANCE_STATUS.absent
+  private toAttendanceStatus(
+    record: Pick<AttendanceRecordEntity, 'status' | 'attendanceStatus'>,
+  ): AttendanceCheckInStatus {
+    if (record.attendanceStatus === ATTENDANCE_STATUS.present) {
+      return ATTENDANCE_STATUS.present;
+    }
+    if (record.attendanceStatus === ATTENDANCE_STATUS.absent) {
+      return ATTENDANCE_STATUS.absent;
+    }
+
+    // Compatibility for rows written before attendance_status existed.
+    const legacyStatus = record.status as string | null;
+    return legacyStatus === 'Absent' || legacyStatus == null
       ? ATTENDANCE_STATUS.absent
       : ATTENDANCE_STATUS.present;
+  }
+
+  private toLocationStatus(
+    status: AttendanceRecordEntity['status'],
+  ): AttendanceLocationStatus | null {
+    switch (status as string | null) {
+      case ATTENDANCE_LOCATION_STATUS.inside:
+      case 'Present':
+        // `Present` was the old persisted value for an inside scan.
+        return ATTENDANCE_LOCATION_STATUS.inside;
+      case ATTENDANCE_LOCATION_STATUS.outsideLocation:
+        return ATTENDANCE_LOCATION_STATUS.outsideLocation;
+      default:
+        return null;
+    }
   }
 
   private nextRecordId(): string {

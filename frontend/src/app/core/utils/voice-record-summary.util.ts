@@ -13,7 +13,7 @@ export function summarizeAttendanceRecords(
     total: records.length,
     present: records.filter((row) => row.attendanceStatus === 'Present').length,
     absent: records.filter((row) => row.attendanceStatus === 'Absent').length,
-    inside: records.filter((row) => row.status === 'Present').length,
+    inside: records.filter((row) => row.status === 'Inside').length,
     outside: records.filter((row) => row.status === 'Outside Location').length,
   };
 }
@@ -30,7 +30,7 @@ export function formatAttendanceVoiceSummary(
 }
 
 export function formatLocationVoiceSummary(visits: LocationVisit[]): string {
-  const inside = visits.filter((row) => row.status === 'Present').length;
+  const inside = visits.filter((row) => row.status === 'Inside').length;
   const outside = visits.filter((row) => row.status === 'Outside Location').length;
   return `${visits.length} location visits visible: ${inside} inside, ${outside} outside.`;
 }

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildAttendanceScanUrl,
   extractAttendancePayload,
   isRawAttendancePayload,
   resolveAppOrigin,
@@ -14,13 +13,6 @@ describe('qr-scan.util', () => {
     expect(isRawAttendancePayload(RAW)).toBe(true);
     expect(isRawAttendancePayload('hello')).toBe(false);
     expect(isRawAttendancePayload('SMARTCAMPUS|only-two')).toBe(false);
-  });
-
-  it('builds a deep-link URL with the payload query', () => {
-    const url = buildAttendanceScanUrl(RAW, 'https://campus.example');
-    expect(url).toBe(
-      'https://campus.example/student/scan?payload=SMARTCAMPUS%7CSES-001%7Ctoken-abc',
-    );
   });
 
   it('prefers a configured public URL over the current tab', () => {

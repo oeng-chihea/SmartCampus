@@ -8,9 +8,20 @@ import { Student } from '../../../models/student.model';
 })
 export class StudentTableComponent {
   readonly students = input.required<Student[]>();
+  readonly deletingStudentId = input<string | null>(null);
   readonly loginToggle = output<string>();
+  readonly studentEdit = output<Student>();
+  readonly studentDelete = output<Student>();
 
   onToggle(studentId: string): void {
     this.loginToggle.emit(studentId);
+  }
+
+  onStudentDelete(student: Student): void {
+    this.studentDelete.emit(student);
+  }
+
+  onStudentEdit(student: Student): void {
+    this.studentEdit.emit(student);
   }
 }

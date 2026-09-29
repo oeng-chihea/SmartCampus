@@ -45,10 +45,35 @@
     <!-- Intro + primary actions -->
     <div class="student-scan__intro">
       <p class="student-scan__lead">
-        Tap <strong>Mark me present</strong> below to record your attendance for any live class
-        session.
+        Scan the teacher’s QR code with your camera or tap <strong>Mark me present</strong> below to
+        record your attendance.
       </p>
       <div class="student-scan__intro-actions">
+        <button
+          type="button"
+          class="student-scan__btn student-scan__btn--primary student-scan__btn--scan"
+          (click)="openScanner()"
+          [disabled]="state.loading()"
+          aria-label="Scan QR code using camera"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="student-scan__scan-icon"
+            aria-hidden="true"
+          >
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <path d="M7 17h.01M17 7h.01M7 7h.01M17 17h.01"/>
+          </svg>
+          Scan QR code
+        </button>
         <button
           type="button"
           class="student-scan__btn student-scan__btn--ghost student-scan__btn--refresh"
@@ -141,22 +166,32 @@
                   </div>
                 </header>
 
-                <div class="student-scan__qr-wrap">
-                  <img
-                    class="student-scan__qr"
-                    [src]="session.qrDataUrl"
-                    width="168"
-                    height="168"
-                    [alt]="'QR code for ' + session.title"
-                  />
-                  <p class="student-scan__qr-note">Scan this URL with Camera</p>
-                </div>
+                <div class="student-scan__session-desktop-details">
+                  <div class="student-scan__qr-wrap">
+                    <img
+                      class="student-scan__qr"
+                      [src]="session.qrDataUrl"
+                      width="168"
+                      height="168"
+                      loading="lazy"
+                      decoding="async"
+                      [alt]="'QR code for ' + session.title"
+                    />
+                    <p class="student-scan__qr-note">Attendance code</p>
+                  </div>
 
-                <div class="student-scan__map-wrap">
-                  <app-scan-map
-                    [zone]="sessionZone(session)"
-                    [device]="state.deviceFix()"
-                  />
+                  <div class="student-scan__map-wrap">
+                    @defer (on viewport) {
+                      <app-scan-map
+                        [zone]="sessionZone(session)"
+                        [device]="state.deviceFix()"
+                      />
+                    } @placeholder {
+                      <div class="student-scan__map-placeholder" aria-hidden="true">
+                        <span>Map loads when visible</span>
+                      </div>
+                    }
+                  </div>
                 </div>
 
                 <div class="student-scan__session-meta">
@@ -170,32 +205,49 @@
                   </div>
                 </div>
 
+                @if (alreadyDone(session.id)) {
+                  <div class="student-scan__done">
+                    <span class="student-scan__status-pill student-scan__status-pill--present">
+                      Already recorded
+                    </span>
+                    <p>You already marked attendance for this class.</p>
+                  </div>
+                } @else if (isPastDue(session)) {
+                  <div class="student-scan__done">
+                    <span class="student-scan__status-pill student-scan__status-pill--due">
+                      Due passed
+                    </span>
+                    <p>Due time has passed. Mark present is closed for this session.</p>
+                  </div>
+                }
+
                 <div class="student-scan__card-action">
-                  @if (alreadyDone(session.id)) {
-                    <div class="student-scan__done">
-                      <span class="student-scan__status-pill student-scan__status-pill--present">
-                        Already recorded
-                      </span>
-                      <p>You already marked attendance for this class.</p>
-                    </div>
-                  } @else if (isPastDue(session)) {
-                    <div class="student-scan__done">
-                      <span class="student-scan__status-pill student-scan__status-pill--due">
-                        Due passed
-                      </span>
-                      <p>Due time has passed. Mark present is closed for this session.</p>
-                      <button
-                        type="button"
-                        class="student-scan__btn student-scan__btn--present student-scan__btn--due"
-                        (click)="markPresent(session)"
-                      >
-                        Mark me present
-                      </button>
-                    </div>
-                  } @else {
+                  <button
+                    type="button"
+                    class="student-scan__btn student-scan__btn--details"
+                    (click)="openSessionDetail(session)"
+                    [attr.aria-label]="'View details for ' + session.title"
+                  >
+                    <svg
+                      class="student-scan__btn-icon"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <circle cx="10" cy="10" r="7.5" />
+                      <path d="M10 9v5M10 6.5h.01" />
+                    </svg>
+                    <span>View details</span>
+                  </button>
+                  @if (!alreadyDone(session.id)) {
                     <button
                       type="button"
                       class="student-scan__btn student-scan__btn--present"
+                      [class.student-scan__btn--due]="isPastDue(session)"
                       (click)="markPresent(session)"
                       [disabled]="state.submittingId() === session.id"
                     >
@@ -222,6 +274,7 @@
         [rows]="state.myRecords()"
         [loading]="state.loading()"
         loadingMessage="Loading your attendance…"
+        [stickyFirstColumn]="false"
         [comfortable]="true"
         [interactive]="true"
         [activeRowId]="selectedRecord()?.id ?? null"
@@ -232,17 +285,18 @@
     </section>
     </div>
 
-    <app-voice-assistant class="student-scan__voice" [autoStart]="true" />
+    <app-voice-assistant class="student-scan__voice" [autoStart]="false" />
   </div>
 </section>
 
 @if (selectedRecord(); as record) {
   <app-modal-dialog
+    class="student-scan__detail-dialog"
     eyebrow="My attendance"
     [title]="record.session"
     closeAriaLabel="Close attendance detail"
     size="lg"
-    [spacious]="true"
+    [spacious]="false"
     [lockDismiss]="false"
     (closed)="closeRecordDetail()"
   >
@@ -260,10 +314,6 @@
         <dd>{{ scannedAtLabel(record) }}</dd>
       </div>
       <div class="record-detail__item">
-        <dt>Coordinates</dt>
-        <dd>{{ coordinatesLabel(record) }}</dd>
-      </div>
-      <div class="record-detail__item">
         <dt>Accuracy</dt>
         <dd>{{ accuracyLabel(record) }}</dd>
       </div>
@@ -277,9 +327,128 @@
           <span [class]="statusClass(record.status)">{{ locationStatusLabel(record.status) }}</span>
         </dd>
       </div>
+      <div class="record-detail__item">
+        <dt>Attendance status</dt>
+        <dd>
+          <span [class]="statusClass(record.attendanceStatus)">{{ record.attendanceStatus }}</span>
+        </dd>
+      </div>
     </dl>
     <div class="record-detail__actions" modalFooter>
       <button type="button" class="record-detail__close" (click)="closeRecordDetail()">
+        Close
+      </button>
+    </div>
+  </app-modal-dialog>
+}
+
+@if (selectedSessionDetail(); as detailSession) {
+  <app-modal-dialog
+    class="student-scan__detail-dialog"
+    eyebrow="Session information"
+    [title]="detailSession.title"
+    closeAriaLabel="Close session details"
+    size="lg"
+    [spacious]="false"
+    [lockDismiss]="false"
+    (closed)="closeSessionDetail()"
+  >
+    <div class="session-detail-dialog">
+      <div class="session-detail-dialog__overview">
+        <div class="session-detail-dialog__badges">
+          <span class="student-scan__live">
+            <span class="student-scan__live-dot" aria-hidden="true"></span>
+            Live
+          </span>
+          @if (alreadyDone(detailSession.id)) {
+            <span class="student-scan__status-pill student-scan__status-pill--present">
+              Already recorded
+            </span>
+          } @else if (isPastDue(detailSession)) {
+            <span class="student-scan__status-pill student-scan__status-pill--due">
+              Due passed
+            </span>
+          } @else {
+            <span class="student-scan__status-pill student-scan__status-pill--open">
+              Open to mark
+            </span>
+          }
+        </div>
+        <p class="session-detail-dialog__instructor">
+          Teacher: <strong>{{ detailSession.teacherName }}</strong>
+        </p>
+      </div>
+
+      <dl class="session-detail-dialog__meta-grid">
+        <div class="session-detail-dialog__meta-item">
+          <dt>Location</dt>
+          <dd>{{ detailSession.locationName }}</dd>
+        </div>
+        <div class="session-detail-dialog__meta-item">
+          <dt>Due time</dt>
+          <dd>{{ formatDue(detailSession.dueAt) }}</dd>
+        </div>
+        <div class="session-detail-dialog__meta-item">
+          <dt>Started at</dt>
+          <dd>{{ openedAtLabel(detailSession.openedAt) }}</dd>
+        </div>
+        <div class="session-detail-dialog__meta-item">
+          <dt>Campus zone radius</dt>
+          <dd>{{ detailSession.radiusMeters }} meters</dd>
+        </div>
+      </dl>
+
+      <div class="session-detail-dialog__visuals">
+        <div class="session-detail-dialog__qr-card">
+          <h4 class="session-detail-dialog__card-title">Attendance QR code</h4>
+          <div class="student-scan__qr-wrap">
+            <img
+              class="student-scan__qr"
+              [src]="detailSession.qrDataUrl"
+              width="150"
+              height="150"
+              loading="lazy"
+              decoding="async"
+              [alt]="'QR code for ' + detailSession.title"
+            />
+            <p class="student-scan__qr-note">Attendance code</p>
+          </div>
+        </div>
+
+        <div class="session-detail-dialog__map-card">
+          <h4 class="session-detail-dialog__card-title">Campus Zone & Your Location</h4>
+          <div class="student-scan__map-wrap">
+            <app-scan-map
+              [zone]="sessionZone(detailSession)"
+              [device]="state.deviceFix()"
+            />
+          </div>
+          <p class="session-detail-dialog__hint">
+            You must be inside the {{ detailSession.radiusMeters }}m zone to mark attendance.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="session-detail-dialog__actions" modalFooter>
+      @if (!alreadyDone(detailSession.id) && !isPastDue(detailSession)) {
+        <button
+          type="button"
+          class="student-scan__btn student-scan__btn--present"
+          (click)="markPresent(detailSession)"
+          [disabled]="state.submittingId() === detailSession.id"
+        >
+          {{
+            state.submittingId() === detailSession.id ? 'Recording…' : 'Mark me present'
+          }}
+        </button>
+      }
+
+      <button
+        type="button"
+        class="student-scan__btn student-scan__btn--ghost"
+        (click)="closeSessionDetail()"
+      >
         Close
       </button>
     </div>
@@ -309,5 +478,13 @@
     cancelLabel="Cancel"
     (confirmed)="retryAfterLocationBlocked()"
     (cancelled)="dismissLocationBlocked()"
+  />
+}
+
+@if (state.scannerOpen()) {
+  <app-qr-scanner-dialog
+    [processScan]="processScanHandler"
+    (scanned)="onQrScanned($event)"
+    (cancelled)="closeScanner()"
   />
 }

@@ -1,65 +1,131 @@
-<section class="student-form-card" aria-labelledby="student-form-heading">
-  <header class="student-form-card__header">
-    <p>Quick action</p>
-    <h2 id="student-form-heading">Add student account</h2>
-    <span>
-      Creates the student profile and a login account (role: student) so the
-      student can sign in with their own credentials and scan attendance.
-    </span>
-  </header>
+<form
+  class="student-form-card"
+  [attr.aria-label]="editMode() ? 'Edit student profile' : 'Create a student profile and login account'"
+  (ngSubmit)="submit()"
+  ngNativeValidate
+>
+  <p class="student-form-card__description">
+    @if (editMode()) {
+      Update the student's profile. Changing the student ID also updates the linked account and
+      attendance history.
+    } @else {
+      Creates the student profile and a login account (role: student) so the student can sign in with
+      their own credentials and scan attendance. Fields marked with
+      <abbr title="required">*</abbr> are required.
+    }
+  </p>
 
-  <form (ngSubmit)="submit()" novalidate>
-    <div class="student-form-card__grid">
-      <label>
-        Full name
-        <input type="text" name="name" [(ngModel)]="name" required placeholder="Student full name" />
-      </label>
+  @if (errorMessage(); as error) {
+    <p class="student-form-card__error" role="alert">{{ error }}</p>
+  }
 
-      <label>
-        Student ID
-        <input type="text" name="studentId" [(ngModel)]="studentId" required placeholder="e.g. SC-1002" />
-      </label>
+  @if (validationNotice(); as notice) {
+    <p class="student-form-card__notice" role="status" aria-live="polite">{{ notice }}</p>
+  }
 
-      <label>
-        Email
-        <input type="email" name="email" [(ngModel)]="email" required placeholder="name@smartcampus.edu" />
-      </label>
+  <div class="student-form-card__grid">
+    <label>
+      <span>Full name <abbr title="required">*</abbr></span>
+      <input
+        type="text"
+        name="name"
+        [(ngModel)]="name"
+        (ngModelChange)="clearValidationNotice()"
+        required
+        autocomplete="name"
+        [disabled]="submitting()"
+        placeholder="Student full name"
+      />
+    </label>
 
-      <label>
-        Class
-        <select name="course" [(ngModel)]="course">
-          @if (courseOptions().length === 0) {
-            <option value="">No classes yet</option>
-          }
-          @for (course of courseOptions(); track course) {
-            <option [value]="course">{{ course }}</option>
-          }
-        </select>
-      </label>
+    <label>
+      <span>Student ID <abbr title="required">*</abbr></span>
+      <input
+        type="text"
+        name="studentId"
+        [(ngModel)]="studentId"
+        (ngModelChange)="clearValidationNotice()"
+        required
+        maxlength="32"
+        autocomplete="off"
+        [disabled]="submitting()"
+        placeholder="e.g. SC-1002"
+      />
+    </label>
 
-      <label>
-        Year
-        <input type="text" name="year" [(ngModel)]="year" required placeholder="e.g. Year 1" />
-      </label>
+    <label>
+      <span>Email <abbr title="required">*</abbr></span>
+      <input
+        type="email"
+        name="email"
+        [(ngModel)]="email"
+        (ngModelChange)="clearValidationNotice()"
+        required
+        autocomplete="email"
+        [disabled]="submitting()"
+        placeholder="name@smartcampus.edu"
+      />
+    </label>
 
+    <div class="student-form-card__field">
+      <label for="student-course">Class</label>
+      <app-select-dropdown
+        name="course"
+        inputId="student-course"
+        [(ngModel)]="course"
+        (ngModelChange)="clearValidationNotice()"
+        [options]="courseSelectOptions()"
+        [placeholder]="courseOptions().length === 0 ? 'No classes yet' : 'Select a class'"
+        [disabled]="submitting() || courseOptions().length === 0"
+      />
+    </div>
+
+    <label>
+      <span>Year <abbr title="required">*</abbr></span>
+      <input
+        type="text"
+        name="year"
+        [(ngModel)]="year"
+        (ngModelChange)="clearValidationNotice()"
+        required
+        autocomplete="off"
+        [disabled]="submitting()"
+        placeholder="e.g. Year 1"
+      />
+    </label>
+
+    @if (!editMode()) {
       <label>
-        Login password
+        <span>Login password <abbr title="required">*</abbr></span>
         <input
-          type="text"
+          type="password"
           name="password"
           [(ngModel)]="password"
           required
           minlength="6"
+          autocomplete="new-password"
+          [disabled]="submitting()"
           placeholder="Temporary password for the student"
         />
       </label>
-    </div>
+    }
+  </div>
 
-    <div class="student-form-card__actions">
-      <button type="button" class="student-form-card__cancel" (click)="cancel.emit()">
-        Cancel
-      </button>
-      <button type="submit" class="student-form-card__submit">Create account</button>
-    </div>
-  </form>
-</section>
+  <div class="student-form-card__actions">
+    <button
+      type="button"
+      class="student-form-card__cancel"
+      [disabled]="submitting()"
+      (click)="cancel.emit()"
+    >
+      Cancel
+    </button>
+    <button type="submit" class="student-form-card__submit" [disabled]="submitting()">
+      {{
+        submitting()
+          ? (editMode() ? 'Saving…' : 'Creating…')
+          : (editMode() ? 'Save changes' : 'Create account')
+      }}
+    </button>
+  </div>
+</form>

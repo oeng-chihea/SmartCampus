@@ -347,9 +347,15 @@
     padding: 12px;
   }
 
+  /* Keep the same character, but give phone content more breathing room. */
+  .voice-assistant__person {
+    height: 96px;
+    width: 82px;
+  }
+
   .voice-assistant.is-active .voice-assistant__person {
-    height: 168px;
-    width: 142px;
+    height: 144px;
+    width: 122px;
   }
 }
 

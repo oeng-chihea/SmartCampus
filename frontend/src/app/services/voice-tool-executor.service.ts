@@ -135,9 +135,12 @@ export class VoiceToolExecutor {
 
   async navigate(pageRaw: string): Promise<VoiceToolResult> {
     const page = pageRaw.trim().toLowerCase() as CampusVoicePage;
+    if (page === 'locations') {
+      return fail('The Locations page is currently unavailable.');
+    }
     if (!PAGE_PATH[page]) {
       return fail(
-        'I can open Dashboard, Students, Attendance, Locations, or Sessions.',
+        'I can open Dashboard, Students, Attendance, or Sessions.',
       );
     }
     if (this.auth.role() === 'student' && page !== 'scan') {
@@ -155,7 +158,7 @@ export class VoiceToolExecutor {
     if (!handler) {
       return {
         error: fail(
-          'Open Dashboard, Attendance, Locations, or Sessions first, then say the command again.',
+          'Open Dashboard, Attendance, or Sessions first, then say the command again.',
         ),
       };
     }

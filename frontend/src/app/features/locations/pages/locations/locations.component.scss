@@ -163,6 +163,25 @@
   overflow-wrap: anywhere;
 }
 
+.record-detail__map {
+  display: grid;
+  gap: 12px;
+  grid-column: 1 / -1;
+  margin-top: 2px;
+  padding-top: 2px;
+}
+
+.record-detail__map-empty {
+  background: var(--color-brand-faint);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  margin: 0;
+  padding: 12px;
+}
+
 .record-detail__badge {
   border-radius: var(--radius-pill);
   display: inline-flex;
@@ -184,6 +203,12 @@
 }
 
 .record-detail__badge--absent {
+  background: var(--color-brand-faint);
+  border: 1px solid var(--border-subtle);
+  color: var(--color-muted);
+}
+
+.record-detail__badge--empty {
   background: var(--color-brand-faint);
   border: 1px solid var(--border-subtle);
   color: var(--color-muted);

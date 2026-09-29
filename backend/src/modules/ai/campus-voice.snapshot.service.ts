@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { USER_ROLES } from '../../common/constants/roles.constant';
 import { SESSION_STATUS } from '../../common/constants/session.constant';
-import { ATTENDANCE_STATUS } from '../../common/constants/status.constant';
+import {
+  ATTENDANCE_LOCATION_STATUS,
+  ATTENDANCE_STATUS,
+} from '../../common/constants/status.constant';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { formatCampusLocationLabel } from '../../common/utils/format.util';
 import { AttendanceService } from '../attendance/attendance.service';
@@ -414,9 +417,9 @@ export class CampusVoiceSnapshotService {
       dto.building = building;
     }
     if (query.location_status === 'inside') {
-      dto.status = ATTENDANCE_STATUS.present;
+      dto.status = ATTENDANCE_LOCATION_STATUS.inside;
     } else if (query.location_status === 'outside') {
-      dto.status = ATTENDANCE_STATUS.outsideLocation;
+      dto.status = ATTENDANCE_LOCATION_STATUS.outsideLocation;
     }
 
     const [page, catalog] = await Promise.all([

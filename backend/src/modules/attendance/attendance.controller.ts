@@ -48,6 +48,7 @@ export class AttendanceController {
     return this.attendanceService.submit(body, user);
   }
 
+
   /** Authenticated student's own scan history (this server run). */
   @Get('me')
   @Roles(USER_ROLES.student)

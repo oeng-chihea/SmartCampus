@@ -10,7 +10,7 @@ import { UserEntity } from '../entities/user.entity';
 
 /**
  * Idempotent seed rows so login + locations work after a fresh schema sync.
- * Safe to run on every boot: skips existing primary keys.
+ * Safe to run on every boot: updates seeded rows and preserves counters.
  *
  * Student login accounts are NOT demo data — only the initial student
  * (Chihea) is seeded. Every other student account is created by a teacher
@@ -176,6 +176,8 @@ export class DemoSeeder implements OnModuleInit {
   }
 
   private async seedLocations(): Promise<void> {
+    await this.deactivateStaleSeedLocations();
+
     for (const seed of LOCATION_SEED) {
       const existing = await this.locations.findOne({ where: { id: seed.id } });
       if (existing) {
@@ -204,5 +206,29 @@ export class DemoSeeder implements OnModuleInit {
         }),
       );
     }
+  }
+
+  /**
+   * Keep retired seed rows available for historical sessions without exposing
+   * them as selectable locations for new sessions.
+   */
+  private async deactivateStaleSeedLocations(): Promise<void> {
+    const currentSeedIds = new Set(LOCATION_SEED.map((seed) => seed.id));
+    const staleRows = (await this.locations.find()).filter(
+      (location) =>
+        location.id.startsWith('LOC-') && !currentSeedIds.has(location.id),
+    );
+
+    if (staleRows.length === 0) {
+      return;
+    }
+
+    for (const row of staleRows) {
+      row.status = 'Inactive';
+    }
+    await this.locations.save(staleRows);
+    this.logger.log(
+      `Deactivated ${staleRows.length} retired campus location seed(s)`,
+    );
   }
 }

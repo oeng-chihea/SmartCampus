@@ -210,7 +210,10 @@ describe('SessionsService', () => {
               const before = attendanceStore.length;
               attendanceStore = attendanceStore.filter(
                 (row) =>
-                  !(row.sessionId === sessionId && row.status === 'Absent'),
+                  !(
+                    row.sessionId === sessionId &&
+                    row.attendanceStatus === 'Absent'
+                  ),
               );
               return { affected: before - attendanceStore.length };
             }
@@ -379,7 +382,8 @@ describe('SessionsService', () => {
         session: created.title,
         location: created.locationName,
         recordedAt: new Date(),
-        status: 'Present',
+        status: 'Inside',
+        attendanceStatus: 'Present',
         distanceMeters: null,
       },
       {
@@ -391,7 +395,8 @@ describe('SessionsService', () => {
         session: created.title,
         location: created.locationName,
         recordedAt: new Date(),
-        status: 'Present',
+        status: 'Inside',
+        attendanceStatus: 'Present',
         distanceMeters: null,
       },
       {
@@ -403,7 +408,8 @@ describe('SessionsService', () => {
         session: 'Keep me',
         location: 'Building A-Room 201',
         recordedAt: new Date(),
-        status: 'Present',
+        status: 'Inside',
+        attendanceStatus: 'Present',
         distanceMeters: null,
       },
     );
@@ -484,7 +490,7 @@ describe('SessionsService', () => {
     expect(live[0]).toMatchObject({
       title: 'Live map session',
       locationId: 'LOC-001',
-      locationName: 'Building A, Room 201',
+      locationName: 'KIT-Building A',
       latitude: 11.5479313,
       longitude: 104.9405941,
       radiusMeters: 200,
@@ -725,7 +731,8 @@ describe('SessionsService', () => {
         session: created.title,
         location: created.locationName,
         recordedAt: new Date(),
-        status: 'Present',
+        status: 'Inside',
+        attendanceStatus: 'Present',
         distanceMeters: 8,
       } as AttendanceRecordEntity,
       {
@@ -737,7 +744,8 @@ describe('SessionsService', () => {
         session: created.title,
         location: created.locationName,
         recordedAt: new Date(),
-        status: 'Absent',
+        status: null,
+        attendanceStatus: 'Absent',
         distanceMeters: null,
       } as AttendanceRecordEntity,
     );

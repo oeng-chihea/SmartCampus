@@ -5,6 +5,7 @@ import {
   defaultDueLocal,
   formatAttendanceDateTime,
   formatAttendanceDateTimeLabel,
+  formatDate,
   formatRecentScanTime,
   formatSessionDue,
   formatSessionOpened,
@@ -13,15 +14,25 @@ import {
   toLocalTimeInput,
 } from './date.util';
 
-describe('formatSessionOpened', () => {
-  it('uses a hyphen between date and time with no leading zeros', () => {
-    const date = new Date(2026, 7, 16, 23, 4, 0);
-    expect(formatSessionOpened(date)).toBe('8-16-26-11:04Pm');
+describe('formatDate', () => {
+  it('formats as ISO YYYY-MM-DD', () => {
+    expect(formatDate(new Date(2026, 8, 23))).toBe('2026-09-23');
   });
 
-  it('uses Am for morning hours and drops a leading month zero', () => {
+  it('renders a dash when invalid', () => {
+    expect(formatDate('invalid')).toBe('—');
+  });
+});
+
+describe('formatSessionOpened', () => {
+  it('formats as ISO YYYY-MM-DD with hyphenated time', () => {
+    const date = new Date(2026, 7, 16, 23, 4, 0);
+    expect(formatSessionOpened(date)).toBe('2026-08-16-11:04Pm');
+  });
+
+  it('pads single-digit month and day with leading zeros in ISO format', () => {
     const date = new Date(2026, 0, 8, 6, 32, 0);
-    expect(formatSessionOpened(date)).toBe('1-8-26-6:32Am');
+    expect(formatSessionOpened(date)).toBe('2026-01-08-6:32Am');
   });
 
   it('returns an empty string for invalid values', () => {
@@ -30,16 +41,16 @@ describe('formatSessionOpened', () => {
 });
 
 describe('formatAttendanceDateTime', () => {
-  it('splits the same instant into a readable date and clock', () => {
+  it('splits the same instant into a readable ISO date and clock', () => {
     const result = formatAttendanceDateTime(new Date(2026, 7, 16, 23, 5, 0));
-    expect(result.title).toBe('Aug 16, 2026');
-    expect(result.subtitle?.replace(/\s/g, ' ')).toBe('11:05 PM');
+    expect(result.title).toBe('2026-08-16');
+    expect(result.subtitle).toBe('11:05Pm');
   });
 
-  it('keeps morning hours on a 12-hour clock', () => {
+  it('keeps morning hours on a 12-hour clock with leading zero in month/day', () => {
     const result = formatAttendanceDateTime(new Date(2026, 0, 8, 6, 32, 0));
-    expect(result.title).toBe('Jan 8, 2026');
-    expect(result.subtitle?.replace(/\s/g, ' ')).toBe('6:32 AM');
+    expect(result.title).toBe('2026-01-08');
+    expect(result.subtitle).toBe('6:32Am');
   });
 
   it('falls back to an em dash when the value is invalid', () => {
@@ -48,9 +59,13 @@ describe('formatAttendanceDateTime', () => {
 });
 
 describe('formatAttendanceDateTimeLabel', () => {
-  it('joins the date and clock for the detail dialog', () => {
+  it('formats the date and clock in ISO format for detail dialogs', () => {
     const label = formatAttendanceDateTimeLabel(new Date(2026, 7, 16, 23, 5, 0));
-    expect(label.replace(/\s/g, ' ')).toBe('Aug 16, 2026 · 11:05 PM');
+    expect(label).toBe('2026-08-16-11:05Pm');
+  });
+
+  it('renders a dash when the value is invalid', () => {
+    expect(formatAttendanceDateTimeLabel('not-a-date')).toBe('—');
   });
 });
 
@@ -73,7 +88,7 @@ describe('formatRecentScanTime', () => {
 describe('formatSessionDue', () => {
   it('matches the opened stamp so a next-day due is readable', () => {
     const date = new Date(2026, 7, 17, 9, 30, 0);
-    expect(formatSessionDue(date)).toBe('8-17-26-9:30Am');
+    expect(formatSessionDue(date)).toBe('2026-08-17-9:30Am');
   });
 
   it('renders a dash when due is missing or invalid', () => {

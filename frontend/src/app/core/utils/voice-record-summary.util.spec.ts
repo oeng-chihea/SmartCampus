@@ -19,7 +19,7 @@ function record(
     location: 'Building A',
     recordedAt: '2026-08-20T02:00:00.000Z',
     submittedAt: '2026-08-20T02:00:00.000Z',
-    status: 'Present',
+    status: 'Inside',
     attendanceStatus: 'Present',
     distanceMeters: 8,
     latitude: 11.54,
@@ -33,7 +33,7 @@ function record(
 describe('voice record summary', () => {
   it('counts present, absent, inside, and outside without filtering the list', () => {
     const summary = summarizeAttendanceRecords([
-      record({ id: '1', status: 'Present', attendanceStatus: 'Present' }),
+      record({ id: '1', status: 'Inside', attendanceStatus: 'Present' }),
       record({
         id: '2',
         student: 'Dara',
@@ -43,7 +43,7 @@ describe('voice record summary', () => {
       record({
         id: '3',
         student: 'Sophea',
-        status: 'Absent',
+        status: null,
         attendanceStatus: 'Absent',
         distanceMeters: null,
         latitude: null,
@@ -90,7 +90,7 @@ describe('voice record summary', () => {
       room: '201',
       session: 'Morning',
       sessionId: 'ses-1',
-      status: 'Present',
+      status: 'Inside',
       recordedAt: '2026-08-20T02:00:00.000Z',
       distanceMeters: 12,
       latitude: 11.54,

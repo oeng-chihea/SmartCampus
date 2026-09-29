@@ -1,6 +1,6 @@
 import {
   Student,
-  StudentFilterState,
+  StudentDirectorySummary,
   StudentFilters,
 } from '../../models/student.model';
 import { SelectOption } from '../../shared/components/select-dropdown/select-dropdown.model';
@@ -16,30 +16,38 @@ const STATUS_OPTIONS: SelectOption[] = [
   { value: 'Inactive', label: 'Inactive' },
 ];
 
-/** Pure metric builder shared with the teacher Students page. */
-export function buildStudentMetrics(students: Student[]): StatCard[] {
-  const total = students.length;
-  const active = students.filter((student) => student.status === 'Active').length;
-  const review = students.filter((student) => student.status === 'Review').length;
+/** Build directory-wide cards from either a full list or API summary counts. */
+export function buildStudentMetrics(students: Student[]): StatCard[];
+export function buildStudentMetrics(summary: StudentDirectorySummary): StatCard[];
+export function buildStudentMetrics(
+  source: Student[] | StudentDirectorySummary,
+): StatCard[] {
+  const summary = Array.isArray(source)
+    ? {
+        totalStudents: source.length,
+        activeScanners: source.filter((student) => student.status === 'Active').length,
+        needsReview: source.filter((student) => student.status === 'Review').length,
+      }
+    : (source as StudentDirectorySummary);
 
   return [
     {
       label: 'Total students',
-      value: String(total),
+      value: String(summary.totalStudents),
       helper: 'Registered for attendance scanning',
       icon: 'students',
       tone: 'blue',
     },
     {
       label: 'Active scanners',
-      value: String(active),
+      value: String(summary.activeScanners),
       helper: 'Can submit attendance this term',
       icon: 'attendance',
       tone: 'green',
     },
-    { 
+    {
       label: 'Needs review',
-      value: String(review),
+      value: String(summary.needsReview),
       helper: 'Profile or attendance issues',
       icon: 'late',
       tone: 'amber',
@@ -47,39 +55,23 @@ export function buildStudentMetrics(students: Student[]): StatCard[] {
   ];
 }
 
-/** Filter options derived from the student directory. */
-export function buildStudentFilters(students: Student[]): StudentFilters {
-  const courses = new Set(students.map((student) => student.course).filter(Boolean));
+/** Build filter options from the full course list or a legacy student list. */
+export function buildStudentFilters(students: Student[]): StudentFilters;
+export function buildStudentFilters(courses: string[]): StudentFilters;
+export function buildStudentFilters(
+  source: Student[] | string[],
+): StudentFilters {
+  const courses = new Set(
+    source
+      .map((item) => (typeof item === 'string' ? item : item.course))
+      .filter(Boolean),
+  );
   return {
-    searchPlaceholder: 'Search student name or ID',
+    searchPlaceholder: 'Search student name, ID, or email',
     statusOptions: STATUS_OPTIONS,
     courseOptions: [
       ALL_CLASSES,
       ...[...courses].map((course) => ({ value: course, label: course })),
     ],
   };
-}
-
-/** Apply the Students toolbar to the directory list. */
-export function filterStudents(
-  students: Student[],
-  filters: StudentFilterState,
-): Student[] {
-  const query = filters.search.trim().toLowerCase();
-  return students.filter((student) => {
-    if (filters.course !== 'all' && student.course !== filters.course) {
-      return false;
-    }
-    if (filters.status !== 'all' && student.status !== filters.status) {
-      return false;
-    }
-    if (!query) {
-      return true;
-    }
-    return (
-      student.name.toLowerCase().includes(query) ||
-      student.studentId.toLowerCase().includes(query) ||
-      student.email.toLowerCase().includes(query)
-    );
-  });
 }

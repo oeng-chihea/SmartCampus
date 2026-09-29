@@ -48,7 +48,8 @@ describe('LocationsService', () => {
         session: 'SE401',
         location: 'Building A, Room 201',
         recordedAt: new Date('2026-08-14T09:15:00Z'),
-        status: 'Present',
+        status: 'Inside',
+        attendanceStatus: 'Present',
         distanceMeters: 12,
         latitude: 11.54795,
         longitude: 104.94061,
@@ -64,6 +65,7 @@ describe('LocationsService', () => {
         location: 'Building A, Room 201',
         recordedAt: new Date('2026-08-14T10:05:00Z'),
         status: 'Outside Location',
+        attendanceStatus: 'Present',
         distanceMeters: 140,
         latitude: 11.6,
         longitude: 105.0,
@@ -76,7 +78,8 @@ describe('LocationsService', () => {
         session: 'SE401 Lab',
         location: 'Building B, Room 105',
         recordedAt: new Date('2026-08-14T11:00:00Z'),
-        status: 'Present',
+        status: 'Inside',
+        attendanceStatus: 'Present',
         distanceMeters: 8,
         latitude: 11.54733,
         longitude: 104.93989,
@@ -86,7 +89,7 @@ describe('LocationsService', () => {
     const locationRepo = {
       find: jest.fn(
         async (options?: {
-          where?: { id?: unknown };
+          where?: { id?: unknown; status?: string };
           order?: { id?: 'ASC' | 'DESC'; building?: 'ASC' | 'DESC' };
           select?: { building?: boolean };
         }) => {
@@ -97,12 +100,17 @@ describe('LocationsService', () => {
             ids.length > 0
               ? store.filter((row) => ids.includes(row.id))
               : [...store];
+          const activeRows = options?.where?.status
+            ? rows.filter((row) => row.status === options.where?.status)
+            : rows;
           if (options?.order?.building) {
-            return rows.sort((left, right) =>
+            return activeRows.sort((left, right) =>
               left.building.localeCompare(right.building),
             );
           }
-          return rows.sort((left, right) => left.id.localeCompare(right.id));
+          return activeRows.sort((left, right) =>
+            left.id.localeCompare(right.id),
+          );
         },
       ),
       findOne: jest.fn(async ({ where }: { where: { id: string } }) =>
@@ -162,7 +170,8 @@ describe('LocationsService', () => {
         let searchNeedle: string | undefined;
         let building: string | undefined;
         let status: string | undefined;
-        let excludeStatus: string | undefined;
+        let attendanceStatus: string | undefined;
+        let excludeAttendanceStatus: string | undefined;
 
         const applyFilters = (): AttendanceRecordEntity[] => {
           return records
@@ -185,7 +194,16 @@ describe('LocationsService', () => {
               if (building && location.building !== building) {
                 return false;
               }
-              if (excludeStatus && row.status === excludeStatus) {
+              if (
+                excludeAttendanceStatus &&
+                row.attendanceStatus === excludeAttendanceStatus
+              ) {
+                return false;
+              }
+              if (
+                attendanceStatus &&
+                row.attendanceStatus !== attendanceStatus
+              ) {
                 return false;
               }
               if (status && row.status !== status) {
@@ -230,7 +248,10 @@ describe('LocationsService', () => {
                 status = params.status;
               }
               if (params?.absentStatus) {
-                excludeStatus = params.absentStatus;
+                excludeAttendanceStatus = params.absentStatus;
+              }
+              if (params?.presentStatus) {
+                attendanceStatus = params.presentStatus;
               }
               if (params?.needle) {
                 searchNeedle = String(params.needle).replace(/%/g, '');
@@ -247,16 +268,35 @@ describe('LocationsService', () => {
     service = new LocationsService(locationRepo, sessionRepo, recordRepo);
   });
 
-  it('returns seeded campus locations', async () => {
+  it('returns only the three KIT building locations', async () => {
+    store.push({
+      id: 'LOC-legacy',
+      name: 'Legacy Building',
+      building: 'Legacy Building',
+      room: '',
+      radiusMeters: 100,
+      latitude: 11.5,
+      longitude: 104.9,
+      status: 'Inactive',
+      sessionsUsing: 0,
+    } as LocationEntity);
     const locations = await service.findAll();
-    expect(locations.length).toBeGreaterThanOrEqual(6);
-    expect(locations.some((location) => location.id === 'LOC-001')).toBe(true);
+    expect(locations).toHaveLength(3);
+    expect(locations.map((location) => location.name)).toEqual([
+      'KIT-Building A',
+      'KIT-Building B',
+      'KIT-Building C',
+    ]);
+    expect(locations.every((location) => location.status === 'Active')).toBe(
+      true,
+    );
   });
 
   it('returns a single location by id', async () => {
     const location = await service.findOne('LOC-001');
-    expect(location.name).toContain('Building A');
-    expect(location.building).toBe('Building A');
+    expect(location.name).toBe('KIT-Building A');
+    expect(location.building).toBe('KIT-Building A');
+    expect(location.room).toBe('');
     expect(location.radiusMeters).toBe(200);
     expect(location.latitude).toBe(11.5479313);
     expect(location.longitude).toBe(104.9405941);
@@ -268,8 +308,8 @@ describe('LocationsService', () => {
     );
   });
 
-  it('rejects inactive locations for session hosting', async () => {
-    await expect(service.findActiveById('LOC-005')).rejects.toThrow(
+  it('rejects location ids that are no longer seeded', async () => {
+    await expect(service.findActiveById('LOC-004')).rejects.toThrow(
       NotFoundException,
     );
   });
@@ -287,11 +327,11 @@ describe('LocationsService', () => {
     expect(page.visits).toEqual([]);
     expect(page.metrics).toEqual({
       total: 0,
-      present: 0,
+      inside: 0,
       outsideLocation: 0,
     });
-    expect(page.buildingOptions).toContain('Building A');
-    expect(page.statusOptions).toEqual(['Present', 'Outside Location']);
+    expect(page.buildingOptions).toContain('KIT-Building A');
+    expect(page.statusOptions).toEqual(['Inside', 'Outside Location']);
   });
 
   it('lists student visits instead of the seeded zone catalog', async () => {
@@ -308,9 +348,9 @@ describe('LocationsService', () => {
     expect(chihea).toMatchObject({
       student: 'Chihea',
       studentId: 'SC-1001',
-      locationName: 'Building A, Room 201',
-      building: 'Building A',
-      status: 'Present',
+      locationName: 'KIT-Building A',
+      building: 'KIT-Building A',
+      status: 'Inside',
       latitude: 11.54795,
       longitude: 104.94061,
       scannedLocation:
@@ -318,7 +358,7 @@ describe('LocationsService', () => {
     });
     expect(page.metrics).toEqual({
       total: 2,
-      present: 2,
+      inside: 2,
       outsideLocation: 0,
     });
   });
@@ -331,7 +371,7 @@ describe('LocationsService', () => {
     ]);
     expect(page.metrics).toEqual({
       total: 2,
-      present: 2,
+      inside: 2,
       outsideLocation: 0,
     });
   });
@@ -349,7 +389,7 @@ describe('LocationsService', () => {
     ]);
 
     const byBuilding = await service.findVisits(
-      { building: 'Building B' },
+      { building: 'KIT-Building B' },
       teacher,
     );
     expect(byBuilding.visits).toHaveLength(1);
@@ -373,7 +413,8 @@ describe('LocationsService', () => {
       session: 'SE401',
       location: 'Building A, Room 201',
       recordedAt: new Date('2026-08-14T12:00:00Z'),
-      status: 'Absent',
+      status: null,
+      attendanceStatus: 'Absent',
       distanceMeters: null,
       latitude: null,
       longitude: null,
@@ -387,7 +428,7 @@ describe('LocationsService', () => {
   it('exports filtered visits as an xlsx workbook with full scanned-at text', async () => {
     const now = new Date(2026, 7, 20, 12, 0, 0);
     const file = await service.exportVisitsExcel(
-      { status: 'Present' },
+      { status: 'Inside' },
       teacher,
       now,
     );

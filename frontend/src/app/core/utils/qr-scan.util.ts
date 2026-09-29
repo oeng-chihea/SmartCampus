@@ -4,11 +4,9 @@
  * Backend still validates the raw token string:
  *   SMARTCAMPUS|<sessionId>|<token>
  *
- * Teacher QR images encode a deep link so the iPhone Camera app can open Safari:
- *   https://host/student/scan?payload=SMARTCAMPUS%7C...
+ * Teacher and student QR images encode the raw temporary attendance payload.
+ * Existing scanned text can still be normalized from a legacy deep-link URL.
  */
-
-import { environment } from '../../../environments/environment';
 
 export const QR_PAYLOAD_PREFIX = 'SMARTCAMPUS';
 
@@ -26,21 +24,6 @@ export function resolveAppOrigin(
   return String(windowOrigin ?? '')
     .trim()
     .replace(/\/$/, '');
-}
-
-/** Build the student deep-link URL encoded into teacher QR images. */
-export function buildAttendanceScanUrl(
-  rawPayload: string,
-  origin: string =
-    environment.appBaseUrl || (typeof window !== 'undefined' ? window.location.origin : ''),
-): string {
-  const base = origin || (typeof window !== 'undefined' ? window.location.origin : '');
-  if (!base) {
-    throw new Error('No app origin configured (set environment.appBaseUrl).');
-  }
-  const url = new URL(`${base.replace(/\/$/, '')}/student/scan`);
-  url.searchParams.set('payload', rawPayload);
-  return url.toString();
 }
 
 /**

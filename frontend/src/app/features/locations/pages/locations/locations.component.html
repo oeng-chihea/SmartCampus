@@ -20,10 +20,7 @@
 
   <section class="locations-page__workspace" aria-label="Student location visits">
     <div class="locations-page__toolbar">
-      <app-location-filter
-        [filters]="state.filterOptions()"
-        (apply)="onFilterApply($event)"
-      />
+      <app-location-filter [filters]="state.filterOptions()" (apply)="onFilterApply($event)" />
     </div>
     <app-table
       eyebrow="Location visits"
@@ -42,14 +39,12 @@
       [loading]="state.loading()"
       loadingMessage="Loading student location visits from API…"
       [emptyTitle]="
-        state.hasActiveFilters()
-          ? 'No visits match your filters'
-          : 'No student visits recorded yet'
+        state.hasActiveFilters() ? 'No visits match your filters' : 'No student visits recorded yet'
       "
       [emptyMessage]="
         state.hasActiveFilters()
           ? 'Try another student, building, or status.'
-          : 'When a student scans a QR or marks present, the area they visited will appear here.'
+          : 'When a student marks present, the area they visited will appear here.'
       "
     />
   </section>
@@ -91,6 +86,10 @@
         <dd>{{ coordinatesLabel(visit) }}</dd>
       </div>
       <div class="record-detail__item">
+        <dt>Accuracy</dt>
+        <dd>{{ accuracyLabel(visit) }}</dd>
+      </div>
+      <div class="record-detail__item">
         <dt>Time</dt>
         <dd>{{ recordedLabel(visit) }}</dd>
       </div>
@@ -105,10 +104,15 @@
         </dd>
       </div>
     </dl>
+    <section class="record-detail__map" aria-label="GPS scan location">
+      @if (scanDevice(visit); as device) {
+        <app-scan-map class="scan-map--borderless" [device]="device" />
+      } @else {
+        <p class="record-detail__map-empty">No GPS coordinates were captured for this visit.</p>
+      }
+    </section>
     <div class="record-detail__actions" modalFooter>
-      <button type="button" class="record-detail__close" (click)="closeVisitDetail()">
-        Close
-      </button>
+      <button type="button" class="record-detail__close" (click)="closeVisitDetail()">Close</button>
     </div>
   </app-modal-dialog>
 }

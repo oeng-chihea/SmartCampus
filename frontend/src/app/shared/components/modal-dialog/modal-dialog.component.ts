@@ -3,6 +3,7 @@ import {
   DestroyRef,
   ElementRef,
   HostListener,
+  AfterViewInit,
   OnInit,
   inject,
   input,
@@ -28,11 +29,12 @@ import {
   templateUrl: './modal-dialog.component.html',
   styleUrl: './modal-dialog.component.scss',
 })
-export class ModalDialogComponent implements OnInit {
+export class ModalDialogComponent implements OnInit, AfterViewInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly host = inject(ElementRef<HTMLElement>);
 
   private readonly panelRef = viewChild<ElementRef<HTMLElement>>('dialogPanel');
+  private readonly closeButtonRef = viewChild<ElementRef<HTMLButtonElement>>('closeButton');
 
   /** Small uppercase label above the title (e.g. "New session"). */
   readonly eyebrow = input<string>('');
@@ -49,13 +51,16 @@ export class ModalDialogComponent implements OnInit {
    */
   readonly lockDismiss = input(true);
 
+  /** When true, the header close button is disabled while an operation is in flight. */
+  readonly closeDisabled = input(false);
+
   /** Panel width preset — md ~560px, lg ~720px, xl ~960px. */
   readonly size = input<'md' | 'lg' | 'xl'>('lg');
 
   /** Optional min-height on the panel so short forms still feel spacious. */
   readonly spacious = input(true);
 
-  /** Emitted when the user closes via × (always) or backdrop/Escape (if not locked). */
+  /** Emitted when the user closes via × or backdrop/Escape (when dismissal is allowed). */
   readonly closed = output<void>();
 
   /** Stable id for aria-labelledby (unique per instance). */
@@ -63,12 +68,16 @@ export class ModalDialogComponent implements OnInit {
 
   private static nextTitleId = 0;
   private shakeToken = 0;
+  private previouslyFocusedElement: HTMLElement | null = null;
 
   constructor() {
     this.titleId = `modal-dialog-title-${ModalDialogComponent.nextTitleId++}`;
   }
 
   ngOnInit(): void {
+    this.previouslyFocusedElement =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
     // Escape ancestor transform/filter containing blocks (e.g. fade-in cards).
     // After move, Angular's default detach looks at the *original* parent and
     // can leave an orphan node on <body> — always remove ourselves on destroy.
@@ -85,10 +94,23 @@ export class ModalDialogComponent implements OnInit {
       if (hostEl.isConnected) {
         hostEl.remove();
       }
+      this.previouslyFocusedElement?.focus({ preventScroll: true });
+    });
+  }
+
+  ngAfterViewInit(): void {
+    queueMicrotask(() => {
+      const target = this.closeDisabled()
+        ? this.panelRef()?.nativeElement
+        : this.closeButtonRef()?.nativeElement;
+      target?.focus({ preventScroll: true });
     });
   }
 
   close(): void {
+    if (this.closeDisabled()) {
+      return;
+    }
     this.cancelShake();
     this.closed.emit();
   }
@@ -111,6 +133,45 @@ export class ModalDialogComponent implements OnInit {
       return;
     }
     this.close();
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onTab(event: KeyboardEvent): void {
+    if (event.key !== 'Tab') {
+      return;
+    }
+
+    const panel = this.panelRef()?.nativeElement;
+    if (!panel) {
+      return;
+    }
+
+    const focusable = Array.from(
+      panel.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    if (focusable.length === 0) {
+      event.preventDefault();
+      panel.focus({ preventScroll: true });
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+    if (!active || !panel.contains(active) || !focusable.includes(active as HTMLElement)) {
+      event.preventDefault();
+      first?.focus({ preventScroll: true });
+      return;
+    }
+    if (event.shiftKey && active === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   /**

@@ -1,3 +1,8 @@
+import {
+  AttendanceCheckInStatus,
+  AttendanceLocationStatus,
+} from '../../../common/constants/status.constant';
+
 export interface CampusVoiceAttendanceRowDto {
   student: string;
   studentId: string;
@@ -6,8 +11,8 @@ export interface CampusVoiceAttendanceRowDto {
   location: string;
   scannedLocation: string | null;
   recordedAt: string;
-  status: string;
-  attendanceStatus: string;
+  status: AttendanceLocationStatus | null;
+  attendanceStatus: AttendanceCheckInStatus;
   distanceMeters: number | null;
 }
 
@@ -20,7 +25,7 @@ export interface CampusVoiceVisitRowDto {
   room: string;
   scannedLocation: string | null;
   recordedAt: string;
-  status: string;
+  status: AttendanceLocationStatus | null;
   distanceMeters: number | null;
 }
 
@@ -80,7 +85,7 @@ export interface CampusVoiceRecentScanDto {
   studentId: string;
   session: string;
   location: string;
-  status: string;
+  status: AttendanceLocationStatus | null;
   distanceMeters: number | null;
   recordedAt: string;
 }

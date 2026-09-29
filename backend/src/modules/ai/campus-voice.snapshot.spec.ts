@@ -1,4 +1,7 @@
-import { ATTENDANCE_STATUS } from '../../common/constants/status.constant';
+import {
+  ATTENDANCE_LOCATION_STATUS,
+  ATTENDANCE_STATUS,
+} from '../../common/constants/status.constant';
 import {
   formatCampusVoiceSummary,
   formatStudentVoiceSummary,
@@ -18,7 +21,7 @@ function attendanceRow(
     location: 'Building A-Room 201',
     scannedLocation: 'KIT',
     recordedAt: '2026-08-20T02:00:00.000Z',
-    status: ATTENDANCE_STATUS.present,
+    status: ATTENDANCE_LOCATION_STATUS.inside,
     attendanceStatus: ATTENDANCE_STATUS.present,
     distanceMeters: 12,
     ...overrides,
@@ -42,7 +45,7 @@ describe('campus voice snapshot', () => {
       attendanceRow({
         student: 'Dara',
         studentId: 'SC-1002',
-        status: ATTENDANCE_STATUS.outsideLocation,
+        status: ATTENDANCE_LOCATION_STATUS.outsideLocation,
         attendanceStatus: ATTENDANCE_STATUS.present,
         distanceMeters: 3046,
         scannedLocation: 'Street 2011',
@@ -50,7 +53,7 @@ describe('campus voice snapshot', () => {
       attendanceRow({
         student: 'Sophea',
         studentId: 'SC-1003',
-        status: ATTENDANCE_STATUS.absent,
+        status: null,
         attendanceStatus: ATTENDANCE_STATUS.absent,
         distanceMeters: null,
         scannedLocation: null,
@@ -81,7 +84,7 @@ describe('campus voice snapshot', () => {
             studentId: 'SC-1001',
             session: 'Morning',
             location: 'Building A-Room 201',
-            status: ATTENDANCE_STATUS.present,
+            status: ATTENDANCE_LOCATION_STATUS.inside,
             distanceMeters: 12,
             recordedAt: '2026-08-20T02:00:00.000Z',
           },
@@ -102,7 +105,7 @@ describe('campus voice snapshot', () => {
             room: '201',
             scannedLocation: 'KIT',
             recordedAt: '2026-08-20T02:00:00.000Z',
-            status: ATTENDANCE_STATUS.present,
+            status: ATTENDANCE_LOCATION_STATUS.inside,
             distanceMeters: 12,
           },
         ],

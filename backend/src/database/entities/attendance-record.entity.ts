@@ -5,6 +5,10 @@ import {
   PrimaryColumn,
   Unique,
 } from 'typeorm';
+import {
+  AttendanceLocationStatus,
+  AttendanceStatus,
+} from '../../common/constants/status.constant';
 
 @Entity('attendance_records')
 @Unique('UQ_attendance_student_session', ['studentId', 'sessionId'])
@@ -34,9 +38,18 @@ export class AttendanceRecordEntity {
   @Column({ name: 'recorded_at', type: 'datetime' })
   recordedAt!: Date;
 
-  /** Present | Late | Absent | Outside Location */
-  @Column({ type: 'varchar', length: 32 })
-  status!: string;
+  /** Inside | Outside Location. Null when no attendance check-in occurred. */
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  status!: AttendanceLocationStatus | null;
+
+  /** Present | Absent. Nullable for rows created before the status split. */
+  @Column({
+    name: 'attendance_status',
+    type: 'varchar',
+    length: 16,
+    nullable: true,
+  })
+  attendanceStatus!: AttendanceStatus | null;
 
   @Column({ name: 'distance_meters', type: 'double', nullable: true })
   distanceMeters!: number | null;

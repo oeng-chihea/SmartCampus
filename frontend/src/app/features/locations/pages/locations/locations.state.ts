@@ -30,7 +30,7 @@ const EMPTY_FILTERS: LocationFilters = {
   buildingOptions: [ALL_BUILDINGS],
   statusOptions: [
     ALL_STATUSES,
-    { value: 'Present', label: 'Inside' },
+    { value: 'Inside', label: 'Inside' },
     { value: 'Outside Location', label: 'Outside Location' },
   ],
 };
@@ -61,12 +61,12 @@ export class LocationsPageState {
   private readonly filterState = signal<LocationFilterState>(DEFAULT_FILTERS);
   private readonly apiBuildingOptions = signal<string[]>([]);
   private readonly apiStatusOptions = signal<string[]>([
-    'Present',
+    'Inside',
     'Outside Location',
   ]);
   private readonly visitMetrics = signal<LocationVisitMetrics>({
     total: 0,
-    present: 0,
+    inside: 0,
     outsideLocation: 0,
   });
 
@@ -149,7 +149,7 @@ export class LocationsPageState {
       },
       {
         label: 'Inside',
-        value: String(metrics.present),
+        value: String(metrics.inside),
         helper: 'Inside the session geofence',
         icon: 'present',
         tone: 'blue',

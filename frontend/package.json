@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve --host 0.0.0.0 --port 4200 --ssl",
+    "start": "ng serve",
     "serve:lan": "ng serve --host 0.0.0.0 --port 4200 --ssl",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
@@ -25,6 +25,7 @@
     "@turf/circle": "^7.4.0",
     "@turf/distance": "^7.4.0",
     "@turf/helpers": "^7.4.0",
+    "jsqr": "^1.4.0",
     "leaflet": "^1.9.4",
     "qrcode": "^1.5.4",
     "rxjs": "~7.8.0",

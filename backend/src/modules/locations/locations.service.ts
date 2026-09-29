@@ -2,8 +2,9 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import {
+  ATTENDANCE_LOCATION_STATUS,
   ATTENDANCE_STATUS,
-  AttendanceStatus,
+  AttendanceLocationStatus,
 } from '../../common/constants/status.constant';
 import { USER_ROLES } from '../../common/constants/roles.constant';
 import { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
@@ -22,9 +23,9 @@ import {
 } from './dto/location-visit-response.dto';
 
 /** Statuses a student scan / mark-present can produce on this page. */
-const VISIT_STATUS_OPTIONS: AttendanceStatus[] = [
-  ATTENDANCE_STATUS.present,
-  ATTENDANCE_STATUS.outsideLocation,
+const VISIT_STATUS_OPTIONS: AttendanceLocationStatus[] = [
+  ATTENDANCE_LOCATION_STATUS.inside,
+  ATTENDANCE_LOCATION_STATUS.outsideLocation,
 ];
 
 /**
@@ -41,8 +42,12 @@ export class LocationsService {
     private readonly records: Repository<AttendanceRecordEntity>,
   ) {}
 
+  /** Active KIT building catalog used by the session picker. */
   async findAll(): Promise<CampusLocationResponseDto[]> {
-    const rows = await this.locations.find({ order: { id: 'ASC' } });
+    const rows = await this.locations.find({
+      where: { status: 'Active' },
+      order: { id: 'ASC' },
+    });
     return rows.map((row) => this.toResponse(row));
   }
 
@@ -79,7 +84,7 @@ export class LocationsService {
 
   /**
    * Student visit log for the Locations page.
-   * Rows come from attendance_records (QR / Mark present), joined to the
+   * Rows come from attendance_records (manual Mark present), joined to the
    * session's campus zone for building / area name. Filters run in SQL.
    * Metrics and building options ignore the current filter so cards and
    * dropdowns stay stable when a filter narrows the table.
@@ -125,8 +130,8 @@ export class LocationsService {
         'location.id = session.location_id',
       )
       .orderBy('record.recorded_at', 'DESC')
-      .andWhere('record.status != :absentStatus', {
-        absentStatus: ATTENDANCE_STATUS.absent,
+      .andWhere('record.attendance_status = :presentStatus', {
+        presentStatus: ATTENDANCE_STATUS.present,
       });
 
     if (dto.search?.trim()) {
@@ -210,7 +215,7 @@ export class LocationsService {
       room: location.room,
       session: row.session,
       sessionId: row.sessionId,
-      status: row.status as AttendanceStatus,
+      status: row.status as AttendanceLocationStatus | null,
       recordedAt: toIsoDate(row.recordedAt),
       distanceMeters: row.distanceMeters,
       latitude: row.latitude ?? null,
@@ -225,16 +230,19 @@ export class LocationsService {
   ): LocationVisitMetricsDto {
     return {
       total: rows.length,
-      present: rows.filter((row) => row.status === ATTENDANCE_STATUS.present)
+      inside: rows.filter(
+        (row) => row.status === ATTENDANCE_LOCATION_STATUS.inside,
+      )
         .length,
       outsideLocation: rows.filter(
-        (row) => row.status === ATTENDANCE_STATUS.outsideLocation,
+        (row) => row.status === ATTENDANCE_LOCATION_STATUS.outsideLocation,
       ).length,
     };
   }
 
   private async listBuildingOptions(): Promise<string[]> {
     const rows = await this.locations.find({
+      where: { status: 'Active' },
       select: { building: true },
       order: { building: 'ASC' },
     });

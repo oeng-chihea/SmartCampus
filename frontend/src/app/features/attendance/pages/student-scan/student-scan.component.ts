@@ -3,6 +3,7 @@ import {
   formatAttendanceDateTime,
   formatAttendanceDateTimeLabel,
   formatSessionDue,
+  formatSessionOpened,
   isSessionPastDue,
 } from '../../../../core/utils/date.util';
 import { sessionToZone } from '../../../../core/utils/geofence.util';
@@ -12,8 +13,7 @@ import {
   formatDistanceMeters,
   formatGeofenceStatus,
   formatScanAccuracy,
-  formatScanCoordinates,
-  formatScannedAtCell,
+  formatScanAccuracyChip,
   formatScannedAtPlace,
   geofenceBadgeVariant,
 } from '../../../../core/utils/format.util';
@@ -39,6 +39,7 @@ import { VoiceLiveService } from '../../../../services/voice-live.service';
 import { VoicePageRegistry } from '../../../../services/voice-page-registry.service';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ModalDialogComponent } from '../../../../shared/components/modal-dialog/modal-dialog.component';
+import { QrScannerDialogComponent } from '../../../../shared/components/qr-scanner-dialog/qr-scanner-dialog.component';
 import { ScanMapComponent } from '../../../../shared/components/scan-map/scan-map.component';
 import { TableComponent } from '../../../../shared/components/table/table.component';
 import { TableColumn } from '../../../../shared/components/table/table.model';
@@ -54,7 +55,7 @@ import { StudentScanPageState } from './student-scan.state';
 
 /**
  * Student attendance page.
- * Mark present via the button, or via the teacher-QR deep link (iPhone Camera).
+ * Mark present via the button after the page verifies the device location.
  * History uses shared `app-table` (no separate last-record hero card).
  */
 @Component({
@@ -62,6 +63,7 @@ import { StudentScanPageState } from './student-scan.state';
   imports: [
     ConfirmDialogComponent,
     ModalDialogComponent,
+    QrScannerDialogComponent,
     ScanMapComponent,
     TableComponent,
     VoiceAssistantComponent,
@@ -91,6 +93,9 @@ export class StudentScanComponent implements OnInit, OnDestroy {
   /** Row opened in the shared detail dialog. */
   readonly selectedRecord = signal<AttendanceRecord | null>(null);
 
+  /** Session opened in the live session detail dialog. */
+  readonly selectedSessionDetail = signal<OpenLiveSessionCard | null>(null);
+
   /** My attendance columns — titles owned by this page. */
   readonly attendanceColumns: TableColumn<AttendanceRecord>[] = [
     {
@@ -98,7 +103,12 @@ export class StudentScanComponent implements OnInit, OnDestroy {
       header: 'Session',
       type: 'primary',
       width: 'minmax(8rem, 1.2fr)',
-      primary: (row) => ({ title: row.session, subtitle: row.id }),
+      primary: (row) => ({
+        title: row.session,
+        subtitle: row.id,
+        titleAttr: row.session,
+        truncate: true,
+      }),
     },
     {
       key: 'location',
@@ -112,14 +122,16 @@ export class StudentScanComponent implements OnInit, OnDestroy {
       type: 'primary',
       width: 'minmax(16rem, 2.5fr)',
       cellClass: 'data-table__cell--scanned-at',
-      primary: (row) =>
-        formatScannedAtCell(
-          row.scannedLocation,
-          row.latitude,
-          row.longitude,
-          row.accuracyMeters,
-          row.location,
-        ),
+      hideOnMobile: true,
+      primary: (row) => {
+        const place = formatScannedAtPlace(row.scannedLocation, row.location);
+        return {
+          title: place,
+          chip: formatScanAccuracyChip(row.accuracyMeters),
+          truncate: true,
+          titleAttr: place,
+        };
+      },
     },
     {
       key: 'time',
@@ -134,8 +146,18 @@ export class StudentScanComponent implements OnInit, OnDestroy {
       type: 'badge',
       width: 'minmax(9.5rem, 0.95fr)',
       align: 'start',
+      hideOnMobile: true,
       value: (row) => formatGeofenceStatus(row.status),
       badgeVariant: (row) => geofenceBadgeVariant(row.status),
+    },
+    {
+      key: 'attendanceStatus',
+      header: 'Attendance status',
+      type: 'badge',
+      width: 'minmax(9.5rem, 1fr)',
+      align: 'start',
+      value: (row) => row.attendanceStatus,
+      badgeVariant: (row) => row.attendanceStatus.toLowerCase(),
     },
   ];
 
@@ -163,6 +185,22 @@ export class StudentScanComponent implements OnInit, OnDestroy {
 
   markPresent(session: OpenLiveSessionCard): Promise<void> {
     return this.flow.markPresent(session);
+  }
+
+  openScanner(): void {
+    this.state.openScanner();
+  }
+
+  closeScanner(): void {
+    this.state.closeScanner();
+  }
+
+  readonly processScanHandler = (scannedText: string) =>
+    this.flow.processScannedQr(scannedText);
+
+  async onQrScanned(rawScannedText: string): Promise<void> {
+    await this.flow.submitScannedQr(rawScannedText);
+    this.state.closeScanner();
   }
 
   alreadyDone(sessionId: string): boolean {
@@ -217,19 +255,27 @@ export class StudentScanComponent implements OnInit, OnDestroy {
     this.selectedRecord.set(null);
   }
 
-  campusLabel(record: AttendanceRecord): string {
-    return formatCampusLocationLabel(record.location);
+  openSessionDetail(session: OpenLiveSessionCard): void {
+    this.selectedSessionDetail.set(session);
   }
 
-  coordinatesLabel(record: AttendanceRecord): string {
-    return formatScanCoordinates(record.latitude, record.longitude);
+  closeSessionDetail(): void {
+    this.selectedSessionDetail.set(null);
+  }
+
+  openedAtLabel(openedAt: string): string {
+    return formatSessionOpened(openedAt);
+  }
+
+  campusLabel(record: AttendanceRecord): string {
+    return formatCampusLocationLabel(record.location);
   }
 
   scannedAtLabel(record: AttendanceRecord): string {
     return formatScannedAtPlace(record.scannedLocation, record.location);
   }
 
-  locationStatusLabel(status: string): string {
+  locationStatusLabel(status: string | null): string {
     return formatGeofenceStatus(status);
   }
 
@@ -245,7 +291,7 @@ export class StudentScanComponent implements OnInit, OnDestroy {
     return formatAttendanceDateTimeLabel(record.recordedAt);
   }
 
-  statusClass(status: string): string {
+  statusClass(status: string | null): string {
     return `record-detail__badge record-detail__badge--${geofenceBadgeVariant(status)}`;
   }
 
