@@ -5,7 +5,7 @@ import { Injector, runInInjectionContext } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../../../../services/auth.service';
-import { DeviceCoordinates, GeolocationReadResult } from '../../../../core/utils/geolocation.util';
+import { DeviceCoordinates } from '../../../../core/utils/geolocation.util';
 import { StudentAttendanceService } from '../../../../services/student-attendance.service';
 import { AttendanceRecord } from '../../../../models/attendance.model';
 import { OpenLiveSessionCard } from '../../../../models/session.model';
@@ -14,21 +14,45 @@ import { locationBlockedMessage, StudentScanPageFlow } from './student-scan.flow
 
 const flowSource = readFileSync(join(__dirname, 'student-scan.flow.ts'), 'utf8');
 
-const { getCurrentCoordinatesMock, qrToDataUrlMock, watchDeviceLocationMock } = vi.hoisted(() => ({
-  getCurrentCoordinatesMock: vi.fn(),
+const { qrToDataUrlMock } = vi.hoisted(() => ({
   qrToDataUrlMock: vi.fn(),
-  watchDeviceLocationMock: vi.fn(),
-}));
-
-vi.mock('../../../../core/utils/geolocation.util', async () => ({
-  ...(await vi.importActual('../../../../core/utils/geolocation.util')),
-  getCurrentCoordinates: getCurrentCoordinatesMock,
-  watchDeviceLocation: watchDeviceLocationMock,
 }));
 
 vi.mock('qrcode', () => ({
   toDataURL: qrToDataUrlMock,
 }));
+
+/**
+ * Angular's unit-test runner cannot `vi.mock` relative modules, so GPS is faked at the
+ * browser boundary instead: the real geolocation util runs against this stub.
+ */
+const geolocation = {
+  getCurrentPosition: vi.fn(),
+  watchPosition: vi.fn(),
+  clearWatch: vi.fn(),
+};
+
+/** Next `getCurrentPosition` call succeeds with a fix at the given coordinates. */
+function gpsReturns(coords: { latitude: number; longitude: number; accuracyMeters: number }): void {
+  geolocation.getCurrentPosition.mockImplementation((success: PositionCallback) =>
+    success({
+      coords: {
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        accuracy: coords.accuracyMeters,
+      },
+      timestamp: Date.now(),
+    } as GeolocationPosition),
+  );
+}
+
+/** Next `getCurrentPosition` call fails; code 1 is the browser's "permission denied". */
+function gpsFails(code: 1 | 2 | 3): void {
+  geolocation.getCurrentPosition.mockImplementation(
+    (_success: PositionCallback, error?: PositionErrorCallback) =>
+      error?.({ code } as GeolocationPositionError),
+  );
+}
 
 function session(): OpenLiveSessionCard {
   return {
@@ -95,13 +119,20 @@ function flowWith(
 
 describe('StudentScanPageFlow GPS submission', () => {
   afterEach(() => {
-    getCurrentCoordinatesMock.mockReset();
     qrToDataUrlMock.mockReset();
-    watchDeviceLocationMock.mockReset();
+    geolocation.getCurrentPosition.mockReset();
+    geolocation.watchPosition.mockReset();
+    geolocation.clearWatch.mockReset();
+    Reflect.deleteProperty(globalThis.navigator, 'geolocation');
   });
 
   beforeEach(() => {
     qrToDataUrlMock.mockResolvedValue('data:image/png;base64,raw-qr');
+    geolocation.watchPosition.mockReturnValue(1);
+    Object.defineProperty(globalThis.navigator, 'geolocation', {
+      configurable: true,
+      value: geolocation,
+    });
   });
 
   it('renders and reuses a QR image for the raw attendance payload', async () => {
@@ -176,15 +207,7 @@ describe('StudentScanPageFlow GPS submission', () => {
     };
     const flow = flowWith(state, attendance);
 
-    watchDeviceLocationMock.mockReturnValue(() => undefined);
-    getCurrentCoordinatesMock.mockResolvedValue({
-      ok: true,
-      coords: {
-        latitude: 11.52797,
-        longitude: 104.922978,
-        accuracyMeters: 10,
-      },
-    });
+    gpsReturns({ latitude: 11.52797, longitude: 104.922978, accuracyMeters: 10 });
 
     try {
       await flow.init();
@@ -221,26 +244,29 @@ describe('StudentScanPageFlow GPS submission', () => {
       longitude: 104.922978,
       accuracyMeters: 10,
     };
-    const response: GeolocationReadResult = { ok: true, coords: fresh };
     const submit = vi.fn().mockResolvedValue(record());
     const attendance = { submit };
     const liveSession = session();
 
     state.setDeviceFix(stale);
     state.setOpenSessions([liveSession]);
-    getCurrentCoordinatesMock.mockResolvedValue(response);
+    gpsReturns({ ...fresh, accuracyMeters: 10 });
 
     await flowWith(state, attendance).markPresent(liveSession, { reload: false });
 
-    expect(getCurrentCoordinatesMock).toHaveBeenCalledTimes(1);
-    expect(getCurrentCoordinatesMock).toHaveBeenCalledWith(15_000);
+    expect(geolocation.getCurrentPosition).toHaveBeenCalledTimes(1);
+    expect(geolocation.getCurrentPosition).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.any(Function),
+      expect.objectContaining({ timeout: 15_000 }),
+    );
     expect(submit).toHaveBeenCalledWith({
       payload: liveSession.qr.payload,
       latitude: fresh.latitude,
       longitude: fresh.longitude,
       accuracyMeters: fresh.accuracyMeters,
     });
-    expect(state.deviceFix()).toEqual(fresh);
+    expect(state.deviceFix()).toMatchObject(fresh);
   });
 
   it('uses a recent live GPS fix without opening a second location request', async () => {
@@ -260,7 +286,7 @@ describe('StudentScanPageFlow GPS submission', () => {
 
     await flowWith(state, attendance).markPresent(liveSession, { reload: false });
 
-    expect(getCurrentCoordinatesMock).not.toHaveBeenCalled();
+    expect(geolocation.getCurrentPosition).not.toHaveBeenCalled();
     expect(submit).toHaveBeenCalledWith({
       payload: liveSession.qr.payload,
       latitude: recent.latitude,
@@ -362,10 +388,7 @@ describe('StudentScanPageFlow GPS submission', () => {
   it('processScannedQr returns location-blocked when device geolocation fails', async () => {
     const state = new StudentScanPageState();
     const live = session();
-    getCurrentCoordinatesMock.mockResolvedValueOnce({
-      ok: false,
-      reason: 'denied',
-    });
+    gpsFails(1);
     const submit = vi.fn();
     const attendance = { submit };
     const flow = flowWith(state, attendance);
