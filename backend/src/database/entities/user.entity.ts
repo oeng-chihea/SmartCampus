@@ -28,6 +28,14 @@ export class UserEntity {
   @Column({ name: 'student_id', type: 'varchar', length: 32, nullable: true })
   studentId!: string | null;
 
+  @Column({
+    name: 'password_changed_at',
+    type: 'datetime',
+    precision: 3,
+    nullable: true,
+  })
+  passwordChangedAt!: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 

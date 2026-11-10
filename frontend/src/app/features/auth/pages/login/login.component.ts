@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { AlertMessage, FieldErrors } from '../../../../models/alert.model';
@@ -22,7 +22,7 @@ const ROLE_COPY: Record<UserRole, { title: string; lead: string }> = {
 
 @Component({
   selector: 'app-login',
-  imports: [FormsModule, AlertComponent],
+  imports: [FormsModule, RouterLink, AlertComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
@@ -36,7 +36,11 @@ export class LoginComponent {
   password = '';
 
   /** Form-level banner (API failures, summary of field issues). */
-  readonly alert = signal<AlertMessage | null>(null);
+  readonly alert = signal<AlertMessage | null>(
+    this.route.snapshot.queryParamMap.get('reset') === 'done'
+      ? this.alerts.success('Password updated. Sign in with your new password.')
+      : null,
+  );
   /** Per-field validation messages (email / password). */
   readonly fieldErrors = signal<FieldErrors>({});
   readonly submitting = signal(false);

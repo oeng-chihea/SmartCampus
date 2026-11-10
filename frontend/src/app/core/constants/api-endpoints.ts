@@ -1,6 +1,8 @@
 export const API_ENDPOINTS = {
   auth: '/auth',
   authLogin: '/auth/login',
+  authForgotPassword: '/auth/forgot-password',
+  authResetPassword: '/auth/reset-password',
   users: '/users',
   students: '/students',
   studentById: (studentId: string) =>

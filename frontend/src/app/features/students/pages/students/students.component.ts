@@ -107,7 +107,7 @@ export class StudentsComponent implements OnDestroy {
     const requestId = ++this.loadRequestId;
     this.loading.set(true);
     try {
-      const directory = await this.studentService.listStudents(filters);
+      const directory = await this.studentService.listStudents(filters);  
       if (requestId !== this.loadRequestId) {
         return;
       }

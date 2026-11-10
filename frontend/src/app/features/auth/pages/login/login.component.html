@@ -54,6 +54,12 @@
         }
       </label>
 
+      @if (role === 'student') {
+        <a class="login-card__link login-card__link--end" routerLink="/auth/forgot-password">
+          Forgot password?
+        </a>
+      }
+
       @if (alert(); as formAlert) {
         <div class="login-card__alert-wrap">
           <app-alert [alert]="formAlert" />

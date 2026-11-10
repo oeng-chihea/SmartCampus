@@ -10,6 +10,19 @@ export const routes: Routes = [
     redirectTo: 'dashboard',
   },
   {
+    path: 'auth/reset-password',
+    component: AuthLayoutComponent,
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./features/auth/pages/reset-password/reset-password.component').then(
+            (module) => module.ResetPasswordComponent,
+          ),
+      },
+    ],
+  },
+  {
     path: 'auth',
     component: AuthLayoutComponent,
     canActivate: [guestGuard],

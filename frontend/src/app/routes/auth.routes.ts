@@ -30,6 +30,13 @@ export const authRoutes: Routes = [
     redirectTo: '/auth/student',
   },
   {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('../features/auth/pages/forgot-password/forgot-password.component').then(
+        (module) => module.ForgotPasswordComponent,
+      ),
+  },
+  {
     path: ':role',
     loadComponent: () =>
       import('../features/auth/pages/login/login.component').then(

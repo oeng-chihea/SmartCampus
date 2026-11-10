@@ -11,7 +11,7 @@ import { AuthenticatedUser } from '../decorators/current-user.decorator';
 export class AuthGuard implements CanActivate {
   constructor(private readonly authService: AuthService) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<{
       headers: { authorization?: string };
       user?: AuthenticatedUser;
@@ -31,7 +31,7 @@ export class AuthGuard implements CanActivate {
       );
     }
 
-    const payload = this.authService.verifyToken(token);
+    const payload = await this.authService.authenticate(token);
     if (!payload) {
       throw new UnauthorizedException('Invalid or expired access token');
     }

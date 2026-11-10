@@ -12,6 +12,8 @@ const STORAGE_KEY = 'smartcampus_auth_session';
 
 const LOGIN_ROLES: UserRole[] = ['teacher', 'student'];
 
+export type MessageResult = { ok: boolean; message: string };
+
 export type LoginResult =
   | { ok: true; user: User }
   | { ok: false; message: string };
@@ -99,6 +101,19 @@ export class AuthService {
     }
   }
 
+  requestPasswordReset(email: string): Promise<MessageResult> {
+    return this.postForMessage(API_ENDPOINTS.authForgotPassword, {
+      email: email.trim().toLowerCase(),
+    });
+  }
+
+  resetPassword(token: string, password: string): Promise<MessageResult> {
+    return this.postForMessage(API_ENDPOINTS.authResetPassword, {
+      token,
+      password,
+    });
+  }
+
   logout(): void {
     localStorage.removeItem(STORAGE_KEY);
     this.sessionSignal.set(null);
@@ -133,6 +148,39 @@ export class AuthService {
       }
     }
     return 'Sign in failed. Please try again.';
+  }
+
+  private async postForMessage(
+    endpoint: string,
+    body: object,
+  ): Promise<MessageResult> {
+    try {
+      const { message } = await firstValueFrom(
+        this.http.post<{ message: string }>(
+          `${environment.apiBaseUrl}${endpoint}`,
+          body,
+        ),
+      );
+      return { ok: true, message };
+    } catch (error) {
+      return { ok: false, message: this.mapResetError(error) };
+    }
+  }
+
+  private mapResetError(error: unknown): string {
+    const fallback = 'Something went wrong. Please try again.';
+    if (!(error instanceof HttpErrorResponse)) {
+      return fallback;
+    }
+    if (error.status === 0) {
+      return unreachableApiMessage();
+    }
+    if (error.status === 429) {
+      return 'Too many attempts. Try again in a few minutes.';
+    }
+    const message = (error.error as { message?: string | string[] } | null)
+      ?.message;
+    return Array.isArray(message) ? message.join(', ') : (message ?? fallback);
   }
 
   private persist(session: AuthSession): void {

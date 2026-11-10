@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
 import { AppController } from './app.controller';
@@ -8,6 +9,7 @@ import appConfig from './config/app.config';
 import databaseConfig from './config/database.config';
 import geminiConfig from './config/gemini.config';
 import jwtConfig from './config/jwt.config';
+import mailConfig from './config/mail.config';
 import { ALL_ENTITIES } from './database/entities';
 import { DatabaseModule } from './database/database.module';
 import { AiModule } from './modules/ai/ai.module';
@@ -31,8 +33,9 @@ const envFilePath = [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath,
-      load: [appConfig, databaseConfig, jwtConfig, geminiConfig],
+      load: [appConfig, databaseConfig, jwtConfig, geminiConfig, mailConfig],
     }),
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({

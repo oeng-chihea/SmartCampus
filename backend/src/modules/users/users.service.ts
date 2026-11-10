@@ -85,6 +85,13 @@ export class UsersService {
     return this.toResponse(saved);
   }
 
+  async updatePassword(userId: string, password: string): Promise<void> {
+    await this.users.update(userId, {
+      passwordHash: hashPassword(password),
+      passwordChangedAt: new Date(),
+    });
+  }
+
   toResponse(user: UserEntity): UserResponseDto {
     return {
       id: user.id,
