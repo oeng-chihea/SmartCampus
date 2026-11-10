@@ -54,15 +54,13 @@
   min-width: 0;
 }
 
-.student-form-card__grid > label,
-.student-form-card__field {
+.student-form-card__grid > label {
   display: grid;
   gap: 6px;
   min-width: 0;
 }
 
-.student-form-card__grid > label,
-.student-form-card__field > label {
+.student-form-card__grid > label {
   color: var(--color-brand-deep);
   font-size: 0.84rem;
   font-weight: 650;

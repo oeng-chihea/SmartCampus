@@ -5,8 +5,6 @@ import {
   Student,
   UpdateStudentRequest,
 } from '../../../models/student.model';
-import { SelectDropdownComponent } from '../select-dropdown/select-dropdown.component';
-import { SelectOption } from '../select-dropdown/select-dropdown.model';
 
 /**
  * Student account form.
@@ -14,18 +12,13 @@ import { SelectOption } from '../select-dropdown/select-dropdown.model';
  */
 @Component({
   selector: 'app-student-form-card',
-  imports: [FormsModule, SelectDropdownComponent],
+  imports: [FormsModule],
   templateUrl: './student-form-card.component.html',
   styleUrl: './student-form-card.component.scss',
 })
 export class StudentFormCardComponent implements OnInit {
-  /** Existing class names to pick from (e.g. SE401). */
-  readonly courseOptions = input<string[]>([]);
   readonly student = input<Student | null>(null);
   readonly editMode = computed(() => this.student() !== null);
-  readonly courseSelectOptions = computed<SelectOption[]>(() =>
-    this.courseOptions().map((course) => ({ value: course, label: course })),
-  );
   readonly errorMessage = input<string | null>(null);
   readonly submitting = input(false);
   readonly validationNotice = signal<string | null>(null);
@@ -43,15 +36,15 @@ export class StudentFormCardComponent implements OnInit {
 
   ngOnInit(): void {
     const student = this.student();
-    if (student) {
-      this.name = student.name;
-      this.studentId = student.studentId;
-      this.email = student.email;
-      this.course = student.course;
-      this.year = student.year;
+    if (!student) {
       return;
     }
-    this.course = this.courseOptions()[0] ?? '';
+
+    this.name = student.name;
+    this.studentId = student.studentId;
+    this.email = student.email;
+    this.course = student.course;
+    this.year = student.year;
   }
 
   submit(): void {
@@ -77,7 +70,7 @@ export class StudentFormCardComponent implements OnInit {
       name: this.name.trim(),
       studentId: this.studentId.trim(),
       email: this.email.trim(),
-      course: this.course.trim() || this.courseOptions()[0] || '',
+      course: this.course.trim(),
       year: this.year.trim(),
       password: this.password,
     });

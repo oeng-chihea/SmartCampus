@@ -67,18 +67,20 @@
       />
     </label>
 
-    <div class="student-form-card__field">
-      <label for="student-course">Class</label>
-      <app-select-dropdown
+    <label>
+      <span>Class <abbr title="required">*</abbr></span>
+      <input
+        type="text"
         name="course"
-        inputId="student-course"
         [(ngModel)]="course"
         (ngModelChange)="clearValidationNotice()"
-        [options]="courseSelectOptions()"
-        [placeholder]="courseOptions().length === 0 ? 'No classes yet' : 'Select a class'"
-        [disabled]="submitting() || courseOptions().length === 0"
+        required
+        maxlength="40"
+        autocomplete="off"
+        [disabled]="submitting()"
+        placeholder="e.g. SE401"
       />
-    </div>
+    </label>
 
     <label>
       <span>Year <abbr title="required">*</abbr></span>

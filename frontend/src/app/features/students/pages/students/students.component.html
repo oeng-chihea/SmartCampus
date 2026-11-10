@@ -67,7 +67,6 @@
     (closed)="closeStudentForm()"
   >
     <app-student-form-card
-      [courseOptions]="courses()"
       [student]="studentToEdit()"
       [errorMessage]="studentFormError()"
       [submitting]="creatingStudent() || savingStudent()"
