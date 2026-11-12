@@ -12,6 +12,7 @@ export default registerAs('mail', () => ({
   user: clean(process.env.SMTP_USER),
   pass: clean(process.env.SMTP_PASS),
   from: clean(process.env.MAIL_FROM) || 'Smart Campus <no-reply@localhost>',
+  brevoApiKey: clean(process.env.BREVO_API_KEY),
   resetBaseUrl: (
     clean(process.env.RESET_LINK_BASE_URL) ||
     clean(process.env.PUBLIC_APP_URL) ||
