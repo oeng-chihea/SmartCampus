@@ -17,4 +17,7 @@ export default registerAs('mail', () => ({
     clean(process.env.PUBLIC_APP_URL) ||
     DEFAULT_RESET_BASE_URL
   ).replace(/\/+$/, ''),
+  appBaseUrl: (
+    clean(process.env.PUBLIC_APP_URL) || DEFAULT_RESET_BASE_URL
+  ).replace(/\/+$/, ''),
 }));

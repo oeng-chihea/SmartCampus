@@ -270,6 +270,16 @@
             <span id="session-due-error" class="session-create-form__field-error">{{ dueErr }}</span>
           }
         </div>
+
+        <label class="session-create-form__notify">
+          <input type="checkbox" name="notifyStudents" [(ngModel)]="state.notifyStudents" />
+          <span>
+            <strong>Email all students</strong>
+            <small class="session-create-form__hint">
+              Sends the session name, location and due time. The QR code is not included.
+            </small>
+          </span>
+        </label>
       }
 
       <footer class="session-create-form__actions">

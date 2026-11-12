@@ -1,4 +1,12 @@
-import { IsDateString, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsDateString,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class CreateSessionDto {
   @IsString()
@@ -19,4 +27,8 @@ export class CreateSessionDto {
   @IsDateString()
   @IsNotEmpty()
   dueAt!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  notifyStudents?: boolean;
 }

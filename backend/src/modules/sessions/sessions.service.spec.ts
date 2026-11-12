@@ -6,9 +6,11 @@ import {
 import { Repository } from 'typeorm';
 import { AttendanceRecordEntity } from '../../database/entities/attendance-record.entity';
 import { SessionEntity } from '../../database/entities/session.entity';
+import { StudentEntity } from '../../database/entities/student.entity';
 import { AuthService } from '../auth/auth.service';
 import { LocationsService } from '../locations/locations.service';
 import { LOCATION_SEED } from '../locations/data/locations.seed';
+import { MailService } from '../mail/mail.service';
 import { SessionsService } from './sessions.service';
 
 function dueInMinutes(minutes: number): string {
@@ -21,6 +23,8 @@ describe('SessionsService', () => {
   let sessionStore: SessionEntity[];
   let attendanceStore: AttendanceRecordEntity[];
   let attendanceDelete: jest.Mock;
+  let studentFind: jest.Mock;
+  let mail: { isConfigured: boolean; sendSessionOpened: jest.Mock };
 
   const teacher = { userId: 'u-teacher-1', role: 'teacher' as const };
   const otherTeacher = {
@@ -225,7 +229,78 @@ describe('SessionsService', () => {
       }),
     } as unknown as Repository<AttendanceRecordEntity>;
 
-    service = new SessionsService(repo, attendanceRepo, locations, auth);
+    studentFind = jest
+      .fn()
+      .mockResolvedValue([
+        { email: 'Dara@campus.edu ' },
+        { email: 'dara@campus.edu' },
+        { email: 'sokha@campus.edu' },
+      ]);
+    mail = {
+      isConfigured: true,
+      sendSessionOpened: jest.fn().mockResolvedValue(undefined),
+    };
+
+    service = new SessionsService(
+      repo,
+      attendanceRepo,
+      locations,
+      auth,
+      { find: studentFind } as unknown as Repository<StudentEntity>,
+      mail as unknown as MailService,
+    );
+  });
+
+  describe('email alert on create', () => {
+    const body = {
+      title: 'SE401 · Morning Lecture',
+      locationId: 'LOC-001',
+      dueAt: dueInMinutes(45),
+    };
+
+    it('emails each active student once when notifyStudents is set', async () => {
+      const session = await service.create(
+        { ...body, notifyStudents: true },
+        teacher,
+      );
+
+      expect(session.emailAlert).toEqual({ recipients: 2, sent: true });
+      expect(mail.sendSessionOpened).toHaveBeenCalledWith(
+        ['dara@campus.edu', 'sokha@campus.edu'],
+        expect.objectContaining({ title: body.title }),
+      );
+    });
+
+    it('does not email students when notifyStudents is not set', async () => {
+      const session = await service.create(body, teacher);
+
+      expect(session.emailAlert).toBeUndefined();
+      expect(studentFind).not.toHaveBeenCalled();
+      expect(mail.sendSessionOpened).not.toHaveBeenCalled();
+    });
+
+    it('reports the alert as not sent when SMTP is not configured', async () => {
+      mail.isConfigured = false;
+
+      const session = await service.create(
+        { ...body, notifyStudents: true },
+        teacher,
+      );
+
+      expect(session.emailAlert).toEqual({ recipients: 2, sent: false });
+    });
+
+    it('skips sending when there are no students to email', async () => {
+      studentFind.mockResolvedValueOnce([]);
+
+      const session = await service.create(
+        { ...body, notifyStudents: true },
+        teacher,
+      );
+
+      expect(session.emailAlert).toEqual({ recipients: 0, sent: false });
+      expect(mail.sendSessionOpened).not.toHaveBeenCalled();
+    });
   });
 
   it('creates an open session on an active location with a QR token and dueAt', async () => {

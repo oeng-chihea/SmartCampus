@@ -23,6 +23,12 @@ export interface AttendanceSession {
   openedAt: string;
   closedAt: string | null;
   currentQr?: SessionQrSnapshot | null;
+  emailAlert?: SessionEmailAlert;
+}
+
+export interface SessionEmailAlert {
+  recipients: number;
+  sent: boolean;
 }
 
 /** Paginated GET /sessions?page=&limit=&q= (session picker). */
@@ -55,6 +61,7 @@ export interface CreateSessionRequest {
   locationId: string;
   /** Absolute due instant (ISO) built from the teacher’s local date + time. */
   dueAt: string;
+  notifyStudents: boolean;
 }
 
 /** Body for POST /sessions/:id/edit — title and location only; dueAt is create-only. */
@@ -101,6 +108,7 @@ export interface SessionsFormState {
   dueDate: string;
   /** HTML time input value `HH:mm` (local). */
   dueTime: string;
+  notifyStudents: boolean;
 }
 
 /** Snapshot of reactive sessions page data (state / docs). */

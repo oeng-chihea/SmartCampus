@@ -11,6 +11,7 @@ import { StudentEntity } from '../../database/entities/student.entity';
 import { AuthService } from '../auth/auth.service';
 import { LocationsService } from '../locations/locations.service';
 import { LOCATION_SEED } from '../locations/data/locations.seed';
+import { MailService } from '../mail/mail.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { AttendanceService } from './attendance.service';
 import { ReverseGeocodeService } from './reverse-geocode.service';
@@ -155,6 +156,8 @@ describe('AttendanceService', () => {
       attendanceForSessions,
       locations,
       auth,
+      {} as Repository<StudentEntity>,
+      {} as MailService,
     );
 
     const recordRepo = {

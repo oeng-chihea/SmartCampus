@@ -2,11 +2,12 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomBytes } from 'crypto';
-import { Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import {
   QR_PAYLOAD_PREFIX,
   QR_TTL_SECONDS,
@@ -17,14 +18,17 @@ import { AuthenticatedUser } from '../../common/decorators/current-user.decorato
 import { toIsoDate } from '../../common/utils/date.util';
 import { AttendanceRecordEntity } from '../../database/entities/attendance-record.entity';
 import { SessionEntity } from '../../database/entities/session.entity';
+import { StudentEntity } from '../../database/entities/student.entity';
 import { AuthService } from '../auth/auth.service';
 import { LocationsService } from '../locations/locations.service';
+import { MailService } from '../mail/mail.service';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { EditSessionDto } from './dto/edit-session.dto';
 import {
   OpenSessionLiveDto,
   PaginatedSessionsResponseDto,
   QrResponseDto,
+  SessionEmailAlertDto,
   SessionQrSnapshot,
   SessionResponseDto,
   SessionScanContext,
@@ -35,6 +39,8 @@ import {
  */
 @Injectable()
 export class SessionsService {
+  private readonly logger = new Logger(SessionsService.name);
+
   constructor(
     @InjectRepository(SessionEntity)
     private readonly sessions: Repository<SessionEntity>,
@@ -42,6 +48,9 @@ export class SessionsService {
     private readonly attendanceRecords: Repository<AttendanceRecordEntity>,
     private readonly locationsService: LocationsService,
     private readonly authService: AuthService,
+    @InjectRepository(StudentEntity)
+    private readonly students: Repository<StudentEntity>,
+    private readonly mail: MailService,
   ) {}
 
   async create(
@@ -76,7 +85,10 @@ export class SessionsService {
     await this.sessions.save(session);
     await this.locationsService.incrementSessionsUsing(location.id);
 
-    return this.toResponse(session, actor, true);
+    const response = this.toResponse(session, actor, true);
+    return dto.notifyStudents
+      ? { ...response, emailAlert: await this.alertStudents(session) }
+      : response;
   }
 
   async findAll(actor: AuthenticatedUser): Promise<SessionResponseDto[]> {
@@ -381,6 +393,33 @@ export class SessionsService {
       dueAt: session.dueAt ? toIsoDate(session.dueAt) : null,
       openedAt: toIsoDate(session.openedAt),
       qr: this.toQrResponse(session),
+    };
+  }
+
+  private async alertStudents(
+    session: SessionEntity,
+  ): Promise<SessionEmailAlertDto> {
+    const students = await this.students.find({
+      where: {
+        userId: Not(IsNull()),
+        loginEnabled: true,
+        status: Not('Inactive'),
+      },
+      select: { email: true },
+    });
+    const recipients = [
+      ...new Set(students.map((student) => student.email.trim().toLowerCase())),
+    ].filter(Boolean);
+
+    if (recipients.length > 0) {
+      void this.mail
+        .sendSessionOpened(recipients, session)
+        .catch((error) => this.logger.error('Session alert failed', error));
+    }
+
+    return {
+      recipients: recipients.length,
+      sent: this.mail.isConfigured && recipients.length > 0,
     };
   }
 

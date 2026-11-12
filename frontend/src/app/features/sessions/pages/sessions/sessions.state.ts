@@ -4,6 +4,7 @@ import { FieldErrors } from '../../../../models/alert.model';
 import { CampusLocation } from '../../../../models/location.model';
 import {
   AttendanceSession,
+  SessionEmailAlert,
   SessionQrResponse,
   SessionsFormState,
 } from '../../../../models/session.model';
@@ -51,6 +52,7 @@ export class SessionsPageState {
   dueDate = '';
   /** HTML `type="time"` value (local HH:mm) — clock time attendance stops. */
   dueTime = '';
+  notifyStudents = true;
 
   /** Interval handle for QR rotation — not shown in the template. */
   qrRefreshTimer: ReturnType<typeof setInterval> | null = null;
@@ -107,6 +109,7 @@ export class SessionsPageState {
     const due = defaultDueLocal(30);
     this.dueDate = due.date;
     this.dueTime = due.time;
+    this.notifyStudents = true;
     this.dialogError.set(null);
     this.fieldErrors.set({});
   }
@@ -170,13 +173,15 @@ export class SessionsPageState {
     this.creating.set(false);
   }
 
-  createSucceeded(sessionTitle: string): void {
+  createSucceeded(sessionTitle: string, emailAlert?: SessionEmailAlert): void {
     this.title = '';
     this.locationId = '';
     this.fieldErrors.set({});
     this.editTarget.set(null);
     this.createDialogOpen.set(false);
-    this.success.set(`Session “${sessionTitle}” is open. Show the QR to students.`);
+    this.success.set(
+      `Session “${sessionTitle}” is open. Show the QR to students.${emailAlertNote(emailAlert)}`,
+    );
   }
 
   beginEdit(): void {
@@ -320,6 +325,7 @@ export class SessionsPageState {
       locationId: this.locationId,
       dueDate: this.dueDate.trim(),
       dueTime: this.dueTime.trim(),
+      notifyStudents: this.notifyStudents,
     };
   }
 
@@ -343,4 +349,17 @@ export class SessionsPageState {
     this.stopQrRefresh();
     this.qrRefreshTimer = setInterval(onTick, intervalMs);
   }
+}
+
+function emailAlertNote(alert?: SessionEmailAlert): string {
+  if (!alert) {
+    return '';
+  }
+  if (alert.recipients === 0) {
+    return ' No active students to email.';
+  }
+  if (!alert.sent) {
+    return ' Email alert skipped: email is not set up on the server.';
+  }
+  return ` Emailing ${alert.recipients} student${alert.recipients === 1 ? '' : 's'}.`;
 }

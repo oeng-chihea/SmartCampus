@@ -21,6 +21,12 @@ export interface SessionResponseDto {
   closedAt: string | null;
   /** Present only for the session owner when the session is Open. */
   currentQr?: SessionQrSnapshot | null;
+  emailAlert?: SessionEmailAlertDto;
+}
+
+export interface SessionEmailAlertDto {
+  recipients: number;
+  sent: boolean;
 }
 
 /** Pagination envelope for GET /sessions?page=&limit= (session picker). */

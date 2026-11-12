@@ -62,3 +62,29 @@ describe('SessionsPageState edit dialog', () => {
     expect(state.success()).toContain('was updated');
   });
 });
+
+describe('SessionsPageState email alert', () => {
+  it('ticks "Email all students" by default when the create dialog opens', () => {
+    const state = new SessionsPageState();
+    state.notifyStudents = false;
+
+    state.openDialog();
+
+    expect(state.notifyStudents).toBe(true);
+    expect(state.getForm().notifyStudents).toBe(true);
+  });
+
+  it.each([
+    [undefined, 'Show the QR to students.'],
+    [{ recipients: 2, sent: true }, 'Emailing 2 students.'],
+    [{ recipients: 1, sent: true }, 'Emailing 1 student.'],
+    [{ recipients: 3, sent: false }, 'Email alert skipped'],
+    [{ recipients: 0, sent: false }, 'No active students to email.'],
+  ])('shows the email result %o in the success banner', (alert, expected) => {
+    const state = new SessionsPageState();
+
+    state.createSucceeded('SE401', alert);
+
+    expect(state.success()).toContain(expected);
+  });
+});

@@ -93,8 +93,9 @@ export class SessionsPageFlow {
         title: form.title,
         locationId: form.locationId,
         dueAt: validation.dueAt,
+        notifyStudents: form.notifyStudents,
       });
-      this.state.createSucceeded(session.title);
+      this.state.createSucceeded(session.title, session.emailAlert);
       await this.reload();
       await this.showQr(session.id);
     } catch (error) {

@@ -45,6 +45,17 @@ export function campusDateParts(
   };
 }
 
+export function formatCampusDateTime(
+  date: Date,
+  timeZone = CAMPUS_TIME_ZONE,
+): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+}
+
 export function isSameCampusDay(left: Date, right: Date): boolean {
   const a = campusDateParts(left);
   const b = campusDateParts(right);

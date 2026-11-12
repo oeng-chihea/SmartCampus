@@ -424,6 +424,30 @@
   text-transform: uppercase;
 }
 
+.session-create-form__notify {
+  align-items: flex-start;
+  color: var(--color-brand-deep);
+  cursor: pointer;
+  display: flex;
+  font-size: clamp(0.88rem, 1.4vw, 0.95rem);
+  gap: 10px;
+}
+
+.session-create-form__notify input[type='checkbox'] {
+  accent-color: var(--color-brand);
+  flex: none;
+  height: 18px;
+  margin: 2px 0 0;
+  min-height: 0;
+  padding: 0;
+  width: 18px;
+}
+
+.session-create-form__notify span {
+  display: grid;
+  gap: 2px;
+}
+
 .session-create-form__hint {
   color: var(--color-muted);
   font-size: 0.82rem;
