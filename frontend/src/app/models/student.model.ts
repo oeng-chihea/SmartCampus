@@ -15,16 +15,9 @@ export interface Student {
   hasAccount?: boolean;
 }
 
-export interface StudentDirectorySummary {
-  totalStudents: number;
-  activeScanners: number;
-  loginEnabledCount: number;
-}
-
 export interface StudentDirectoryResponse {
   students: Student[];
   courses: string[];
-  summary: StudentDirectorySummary;
 }
 
 /** Payload for the teacher “Add student account” form (creates profile + login). */

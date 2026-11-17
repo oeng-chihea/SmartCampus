@@ -79,6 +79,7 @@ export class UsersService {
     if (student) {
       student.userId = saved.id;
       student.loginEnabled = true;
+      student.status = 'Active';
       await this.students.save(student);
     }
 

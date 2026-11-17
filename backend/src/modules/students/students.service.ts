@@ -5,7 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
+import {
+  DataSource,
+  FindOptionsWhere,
+  Repository,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { USER_ROLES } from '../../common/constants/roles.constant';
 import { AttendanceRecordEntity } from '../../database/entities/attendance-record.entity';
 import { StudentEntity } from '../../database/entities/student.entity';
@@ -34,65 +39,11 @@ export class StudentsService {
   async findDirectory(
     filters: ListStudentsQueryDto = {},
   ): Promise<StudentDirectoryResponseDto> {
-    const query = this.students.createQueryBuilder('student');
-    const search = filters.search?.trim();
-
-    if (search) {
-      query.andWhere(
-        `(student.name LIKE :search ESCAPE '!'
-          OR student.studentId LIKE :search ESCAPE '!'
-          OR student.email LIKE :search ESCAPE '!')`,
-        { search: `${this.escapeLikePattern(search)}%` },
-      );
-    }
-    if (filters.course && filters.course !== 'all') {
-      query.andWhere('student.course = :course', { course: filters.course });
-    }
-    if (filters.status) {
-      query.andWhere('student.status = :status', { status: filters.status });
-    }
-
-    query.orderBy('student.name', 'ASC').addOrderBy('student.studentId', 'ASC');
-
-    const summaryQuery = this.students
-      .createQueryBuilder('student')
-      .select('COUNT(*)', 'total_students')
-      .addSelect(
-        'COALESCE(SUM(CASE WHEN student.status = :active THEN 1 ELSE 0 END), 0)',
-        'active_scanners',
-      )
-      .addSelect(
-        'COALESCE(SUM(CASE WHEN student.loginEnabled = :enabled THEN 1 ELSE 0 END), 0)',
-        'login_enabled_count',
-      )
-      .setParameters({ active: 'Active', enabled: true });
-
-    const coursesQuery = this.students
-      .createQueryBuilder('student')
-      .select('student.course', 'course')
-      .where("student.course <> ''")
-      .groupBy('student.course')
-      .orderBy('student.course', 'ASC');
-
-    const [rows, summaryRow, courseRows] = await Promise.all([
-      query.getMany(),
-      summaryQuery.getRawOne<{
-        total_students: string | number;
-        active_scanners: string | number;
-        login_enabled_count: string | number;
-      }>(),
-      coursesQuery.getRawMany<{ course: string }>(),
+    const [students, courses] = await Promise.all([
+      this.findDirectoryStudents(filters),
+      this.findDirectoryCourses(filters),
     ]);
-
-    return {
-      students: rows.map((row) => this.toResponse(row)),
-      courses: courseRows.map((row) => row.course),
-      summary: {
-        totalStudents: Number(summaryRow?.total_students ?? 0),
-        activeScanners: Number(summaryRow?.active_scanners ?? 0),
-        loginEnabledCount: Number(summaryRow?.login_enabled_count ?? 0),
-      },
-    };
+    return { students, courses };
   }
 
   /** Delete the profile and linked student login together; attendance snapshots are retained. */
@@ -154,7 +105,7 @@ export class StudentsService {
         course: dto.course.trim(),
         year: dto.year.trim(),
         attendanceRate: 0,
-        status: 'Active',
+        status: dto.password ? 'Active' : 'Inactive',
         loginEnabled: Boolean(dto.password),
         userId: null,
       }),
@@ -303,7 +254,6 @@ export class StudentsService {
     });
   }
 
-  /** Enable/disable login for a student that already has an account. */
   async setLoginEnabled(
     studentId: string,
     loginEnabled: boolean,
@@ -320,6 +270,7 @@ export class StudentsService {
     }
 
     student.loginEnabled = loginEnabled;
+    student.status = loginEnabled ? 'Active' : 'Inactive';
     await this.students.save(student);
     return this.toResponse(student);
   }
@@ -336,6 +287,51 @@ export class StudentsService {
       loginEnabled: student.loginEnabled,
       hasAccount: Boolean(student.userId),
     };
+  }
+
+  private async findDirectoryStudents(
+    filters: ListStudentsQueryDto,
+  ): Promise<StudentResponseDto[]> {
+    const query = this.filteredStudents(filters);
+    if (filters.course) {
+      query.andWhere('student.course = :course', { course: filters.course });
+    }
+    const rows = await query
+      .orderBy('student.name', 'ASC')
+      .addOrderBy('student.studentId', 'ASC')
+      .getMany();
+    return rows.map((row) => this.toResponse(row));
+  }
+
+  private async findDirectoryCourses(
+    filters: ListStudentsQueryDto,
+  ): Promise<string[]> {
+    const rows = await this.filteredStudents(filters)
+      .select('student.course', 'course')
+      .andWhere("student.course <> ''")
+      .groupBy('student.course')
+      .orderBy('student.course', 'ASC')
+      .getRawMany<{ course: string }>();
+    return rows.map((row) => row.course);
+  }
+
+  private filteredStudents(
+    filters: ListStudentsQueryDto,
+  ): SelectQueryBuilder<StudentEntity> {
+    const query = this.students.createQueryBuilder('student');
+    const search = filters.search?.trim();
+    if (search) {
+      query.andWhere(
+        `(student.name LIKE :search ESCAPE '!'
+          OR student.studentId LIKE :search ESCAPE '!'
+          OR student.email LIKE :search ESCAPE '!')`,
+        { search: `${this.escapeLikePattern(search)}%` },
+      );
+    }
+    if (filters.status) {
+      query.andWhere('student.status = :status', { status: filters.status });
+    }
+    return query;
   }
 
   private escapeLikePattern(value: string): string {

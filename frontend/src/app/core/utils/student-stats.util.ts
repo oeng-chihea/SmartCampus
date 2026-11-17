@@ -1,8 +1,4 @@
-import {
-  Student,
-  StudentDirectorySummary,
-  StudentFilters,
-} from '../../models/student.model';
+import { Student, StudentFilters } from '../../models/student.model';
 import { SelectOption } from '../../shared/components/select-dropdown/select-dropdown.model';
 import { StatCard } from '../../shared/components/stat-card/stat-card.model';
 
@@ -15,30 +11,20 @@ const STATUS_OPTIONS: SelectOption[] = [
   { value: 'Inactive', label: 'Inactive' },
 ];
 
-/** Build directory-wide cards from either a full list or API summary counts. */
-export function buildStudentMetrics(students: Student[]): StatCard[];
-export function buildStudentMetrics(summary: StudentDirectorySummary): StatCard[];
-export function buildStudentMetrics(
-  source: Student[] | StudentDirectorySummary,
-): StatCard[] {
-  const summary = Array.isArray(source)
-    ? {
-        totalStudents: source.length,
-        activeScanners: source.filter((student) => student.status === 'Active').length,
-      }
-    : (source as StudentDirectorySummary);
+export function buildStudentMetrics(students: Student[]): StatCard[] {
+  const activeScanners = students.filter((student) => student.status === 'Active').length;
 
   return [
     {
       label: 'Total students',
-      value: String(summary.totalStudents),
+      value: String(students.length),
       helper: 'Registered for attendance scanning',
       icon: 'students',
       tone: 'blue',
     },
     {
       label: 'Active scanners',
-      value: String(summary.activeScanners),
+      value: String(activeScanners),
       helper: 'Can submit attendance this term',
       icon: 'attendance',
       tone: 'green',

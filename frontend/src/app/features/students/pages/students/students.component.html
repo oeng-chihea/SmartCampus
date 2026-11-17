@@ -35,7 +35,7 @@
 
     @if (loading()) {
       <p class="students-page__empty">Loading students…</p>
-    } @else if (directorySummary().totalStudents === 0) {
+    } @else if (students().length === 0 && !hasActiveFilters()) {
       <p class="students-page__empty">
         No students yet. Add the first student account above.
       </p>

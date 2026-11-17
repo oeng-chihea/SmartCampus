@@ -3,7 +3,6 @@ import { AlertMessage } from '../../../../models/alert.model';
 import {
   CreateStudentRequest,
   Student,
-  StudentDirectorySummary,
   StudentFilterState,
   StudentFilters,
   UpdateStudentRequest,
@@ -60,11 +59,6 @@ export class StudentsComponent implements OnDestroy {
 
   readonly students = signal<Student[]>([]);
   readonly courses = signal<string[]>([]);
-  readonly directorySummary = signal<StudentDirectorySummary>({
-    totalStudents: 0,
-    activeScanners: 0,
-    loginEnabledCount: 0,
-  });
   readonly loading = signal(true);
   readonly alert = signal<AlertMessage | null>(null);
   readonly showForm = signal(false);
@@ -80,7 +74,11 @@ export class StudentsComponent implements OnDestroy {
     status: 'all',
   });
 
-  readonly metrics = computed(() => buildStudentMetrics(this.directorySummary()));
+  readonly metrics = computed(() => buildStudentMetrics(this.students()));
+  readonly hasActiveFilters = computed(() => {
+    const { search, course, status } = this.filterState();
+    return search.trim() !== '' || course !== 'all' || status !== 'all';
+  });
   readonly filters = computed<StudentFilters>(() =>
     buildStudentFilters(this.courses()),
   );
@@ -112,7 +110,6 @@ export class StudentsComponent implements OnDestroy {
       }
       this.students.set(directory.students);
       this.courses.set(directory.courses);
-      this.directorySummary.set(directory.summary);
       this.alert.set(null);
     } catch (error) {
       if (requestId !== this.loadRequestId) {
@@ -299,8 +296,9 @@ export class StudentsComponent implements OnDestroy {
   }
 
   private voiceStatusMessage(): string {
-    const summary = this.directorySummary();
-    return `${summary.totalStudents} students in the directory, ${summary.loginEnabledCount} can log in.`;
+    const students = this.students();
+    const canLogIn = students.filter((student) => student.loginEnabled).length;
+    return `${students.length} students shown, ${canLogIn} can log in.`;
   }
 
   private async voiceSelect(args: VoiceSelectArgs): Promise<VoiceToolResult> {
