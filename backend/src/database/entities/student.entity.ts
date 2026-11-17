@@ -24,7 +24,7 @@ export class StudentEntity {
   @Column({ name: 'attendance_rate', type: 'int', default: 0 })
   attendanceRate!: number;
 
-  /** Active | Review | Inactive */
+  /** Active | Inactive */
   @Column({ type: 'varchar', length: 20, default: 'Active' })
   status!: string;
 

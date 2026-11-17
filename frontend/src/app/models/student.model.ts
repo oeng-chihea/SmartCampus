@@ -8,7 +8,7 @@ export interface Student {
   course: string;
   year: string;
   attendanceRate: number;
-  status: 'Active' | 'Review' | 'Inactive';
+  status: 'Active' | 'Inactive';
   /** When false, student cannot sign in (FR-01 access control). */
   loginEnabled: boolean;
   /** True when a login account exists for this student (users row linked). */
@@ -19,7 +19,6 @@ export interface StudentDirectorySummary {
   totalStudents: number;
   activeScanners: number;
   loginEnabledCount: number;
-  needsReview: number;
 }
 
 export interface StudentDirectoryResponse {

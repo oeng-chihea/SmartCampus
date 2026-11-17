@@ -64,7 +64,6 @@ export class StudentsComponent implements OnDestroy {
     totalStudents: 0,
     activeScanners: 0,
     loginEnabledCount: 0,
-    needsReview: 0,
   });
   readonly loading = signal(true);
   readonly alert = signal<AlertMessage | null>(null);

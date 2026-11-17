@@ -12,7 +12,6 @@ const ALL_STATUSES: SelectOption = { value: 'all', label: 'All statuses' };
 const STATUS_OPTIONS: SelectOption[] = [
   ALL_STATUSES,
   { value: 'Active', label: 'Active' },
-  { value: 'Review', label: 'Review' },
   { value: 'Inactive', label: 'Inactive' },
 ];
 
@@ -26,7 +25,6 @@ export function buildStudentMetrics(
     ? {
         totalStudents: source.length,
         activeScanners: source.filter((student) => student.status === 'Active').length,
-        needsReview: source.filter((student) => student.status === 'Review').length,
       }
     : (source as StudentDirectorySummary);
 
@@ -44,13 +42,6 @@ export function buildStudentMetrics(
       helper: 'Can submit attendance this term',
       icon: 'attendance',
       tone: 'green',
-    },
-    {
-      label: 'Needs review',
-      value: String(summary.needsReview),
-      helper: 'Profile or attendance issues',
-      icon: 'late',
-      tone: 'amber',
     },
   ];
 }

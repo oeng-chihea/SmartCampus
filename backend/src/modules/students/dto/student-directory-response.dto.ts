@@ -4,7 +4,6 @@ export interface StudentDirectorySummaryDto {
   totalStudents: number;
   activeScanners: number;
   loginEnabledCount: number;
-  needsReview: number;
 }
 
 export interface StudentDirectoryResponseDto {

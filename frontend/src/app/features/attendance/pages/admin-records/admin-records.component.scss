@@ -78,6 +78,17 @@
   padding-bottom: 14px;
 }
 
+/*
+ * Grid item of the workspace: without min-width: 0 its min-content width
+ * (the 1120px records table) stretches the whole workspace column past the
+ * card, and admin-layout's overflow-x: clip then cuts off the filters,
+ * Export button, and last table columns. Let it shrink so only the table
+ * wrapper scrolls horizontally.
+ */
+.attendance-page__session-panel {
+  min-width: 0;
+}
+
 .attendance-session__summary:focus-visible,
 .attendance-session__row:focus-visible,
 .attendance-session__table-wrap:focus-visible,

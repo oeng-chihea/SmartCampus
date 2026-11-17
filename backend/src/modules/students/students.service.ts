@@ -48,7 +48,7 @@ export class StudentsService {
     if (filters.course && filters.course !== 'all') {
       query.andWhere('student.course = :course', { course: filters.course });
     }
-    if (filters.status && filters.status !== 'all') {
+    if (filters.status) {
       query.andWhere('student.status = :status', { status: filters.status });
     }
 
@@ -62,14 +62,10 @@ export class StudentsService {
         'active_scanners',
       )
       .addSelect(
-        'COALESCE(SUM(CASE WHEN student.status = :review THEN 1 ELSE 0 END), 0)',
-        'needs_review',
-      )
-      .addSelect(
         'COALESCE(SUM(CASE WHEN student.loginEnabled = :enabled THEN 1 ELSE 0 END), 0)',
         'login_enabled_count',
       )
-      .setParameters({ active: 'Active', review: 'Review', enabled: true });
+      .setParameters({ active: 'Active', enabled: true });
 
     const coursesQuery = this.students
       .createQueryBuilder('student')
@@ -84,7 +80,6 @@ export class StudentsService {
         total_students: string | number;
         active_scanners: string | number;
         login_enabled_count: string | number;
-        needs_review: string | number;
       }>(),
       coursesQuery.getRawMany<{ course: string }>(),
     ]);
@@ -96,7 +91,6 @@ export class StudentsService {
         totalStudents: Number(summaryRow?.total_students ?? 0),
         activeScanners: Number(summaryRow?.active_scanners ?? 0),
         loginEnabledCount: Number(summaryRow?.login_enabled_count ?? 0),
-        needsReview: Number(summaryRow?.needs_review ?? 0),
       },
     };
   }
