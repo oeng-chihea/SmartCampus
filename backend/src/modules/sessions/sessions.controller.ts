@@ -61,8 +61,8 @@ export class SessionsController {
    */
   @Get('open')
   @Roles(USER_ROLES.teacher, USER_ROLES.student)
-  listOpenLive() {
-    return this.sessionsService.listOpenLive();
+  listOpenLive(@CurrentUser() user: AuthenticatedUser) {
+    return this.sessionsService.listOpenLive(user);
   }
 
   @Get(':id')

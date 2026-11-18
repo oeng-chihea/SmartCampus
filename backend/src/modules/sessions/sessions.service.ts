@@ -7,13 +7,15 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomBytes } from 'crypto';
-import { IsNull, Not, Repository } from 'typeorm';
+import { In, IsNull, Not, Repository } from 'typeorm';
+import { USER_ROLES } from '../../common/constants/roles.constant';
 import {
   QR_PAYLOAD_PREFIX,
   QR_TTL_SECONDS,
   SESSION_STATUS,
   type SessionStatus,
 } from '../../common/constants/session.constant';
+import { ATTENDANCE_STATUS } from '../../common/constants/status.constant';
 import { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { toIsoDate } from '../../common/utils/date.util';
 import { AttendanceRecordEntity } from '../../database/entities/attendance-record.entity';
@@ -146,15 +148,20 @@ export class SessionsService {
    * Live open sessions for teacher + student UIs.
    * Rotates expired QR tokens so both sides share the same current code.
    */
-  async listOpenLive(): Promise<OpenSessionLiveDto[]> {
+  async listOpenLive(
+    viewer?: AuthenticatedUser,
+  ): Promise<OpenSessionLiveDto[]> {
     const rows = await this.sessions.find({
       where: { status: SESSION_STATUS.open },
       order: { openedAt: 'DESC' },
     });
+    const attended = await this.presentSessionIds(viewer, rows);
 
     const live: OpenSessionLiveDto[] = [];
     for (const session of rows) {
-      live.push(await this.toOpenLive(session));
+      if (!attended.has(session.id)) {
+        live.push(await this.toOpenLive(session));
+      }
     }
     return live;
   }
@@ -394,6 +401,24 @@ export class SessionsService {
       openedAt: toIsoDate(session.openedAt),
       qr: this.toQrResponse(session),
     };
+  }
+
+  private async presentSessionIds(
+    viewer: AuthenticatedUser | undefined,
+    sessions: SessionEntity[],
+  ): Promise<Set<string>> {
+    if (viewer?.role !== USER_ROLES.student || sessions.length === 0) {
+      return new Set();
+    }
+    const records = await this.attendanceRecords.find({
+      where: {
+        userId: viewer.userId,
+        sessionId: In(sessions.map((session) => session.id)),
+        attendanceStatus: ATTENDANCE_STATUS.present,
+      },
+      select: { sessionId: true },
+    });
+    return new Set(records.map((record) => record.sessionId));
   }
 
   private async alertStudents(

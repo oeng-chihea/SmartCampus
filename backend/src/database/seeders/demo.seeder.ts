@@ -7,14 +7,7 @@ import { LOCATION_SEED } from '../../modules/locations/data/locations.seed';
 import { LocationEntity } from '../entities/location.entity';
 import { UserEntity } from '../entities/user.entity';
 
-/**
- * Idempotent seed rows so login + locations work after a fresh schema sync.
- * Safe to run on every boot: skips existing users and preserves counters.
- *
- * Seeds only what the app cannot create on its own:
- * - the first teacher account (there is no sign-up endpoint)
- * - the campus locations (there is no create-location endpoint)
- */
+
 @Injectable()
 export class DemoSeeder implements OnModuleInit {
   private readonly logger = new Logger(DemoSeeder.name);
@@ -55,6 +48,7 @@ export class DemoSeeder implements OnModuleInit {
         studentId: null,
       }),
     );
+
   }
 
   private async seedLocations(): Promise<void> {
